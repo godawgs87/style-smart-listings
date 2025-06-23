@@ -76,7 +76,7 @@ serve(async (req) => {
 
     console.log('Analyzing photos with OpenAI...');
 
-    // Enhanced prompt for price research
+    // Enhanced prompt for better structured response
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -96,11 +96,11 @@ IMPORTANT: Research current market values and suggest a competitive price based 
 - Typical used market pricing (60-75% of retail for good condition)
 - Current demand and availability
 
-Return a JSON object with this exact structure:
+You MUST respond with ONLY a valid JSON object in this exact format:
 {
   "title": "Complete eBay title (max 80 characters)",
   "description": "Detailed description for eBay listing",
-  "price": number (researched competitive market price),
+  "price": 85,
   "category": "Category name",
   "condition": "Condition assessment",
   "measurements": {
@@ -113,14 +113,14 @@ Return a JSON object with this exact structure:
   "priceResearch": "Brief explanation of how you determined this competitive price"
 }
 
-Focus on accurate item identification, realistic market-based pricing, and compelling listing copy.`
+Do not include any text before or after the JSON. Focus on accurate item identification, realistic market-based pricing, and compelling listing copy.`
           },
           {
             role: 'user',
             content: [
               {
                 type: 'text',
-                text: 'Please analyze these photos and create a complete eBay listing with competitive market-researched pricing. Research typical selling prices for this item in similar condition.'
+                text: 'Please analyze these photos and create a complete eBay listing with competitive market-researched pricing. Research typical selling prices for this item in similar condition. Respond with ONLY the JSON object, no additional text.'
               },
               ...base64Images.slice(0, 3).map(image => ({
                 type: 'image_url',
@@ -131,13 +131,12 @@ Focus on accurate item identification, realistic market-based pricing, and compe
             ]
           }
         ],
-        max_tokens: 1200,
-        temperature: 0.2
+        max_tokens: 1000,
+        temperature: 0.1
       }),
     });
 
     console.log(`OpenAI API response status: ${response.status}`);
-    console.log(`Response headers:`, Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -157,25 +156,46 @@ Focus on accurate item identification, realistic market-based pricing, and compe
     const data = await response.json();
     console.log('OpenAI response received successfully');
     
-    const content = data.choices[0].message.content;
+    const content = data.choices[0].message.content.trim();
     console.log('OpenAI response content:', content);
 
-    // Parse the JSON response
+    // Parse the JSON response with better error handling
     let listingData;
     try {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        listingData = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error('No JSON found in response');
+      // First, try to parse as direct JSON
+      try {
+        listingData = JSON.parse(content);
+      } catch (directParseError) {
+        // If that fails, try to extract JSON from the content
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          listingData = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error('No valid JSON found in response');
+        }
       }
+
+      // Validate required fields
+      if (!listingData.title || !listingData.description || !listingData.price) {
+        throw new Error('Missing required fields in parsed data');
+      }
+
+      // Ensure price is a number
+      if (typeof listingData.price === 'string') {
+        listingData.price = parseFloat(listingData.price.replace(/[^0-9.]/g, ''));
+      }
+
+      console.log('Successfully parsed listing data:', listingData);
+
     } catch (parseError) {
       console.error('Failed to parse JSON:', parseError);
-      // Fallback response with research-based pricing
+      console.error('Raw content that failed to parse:', content);
+      
+      // Create a fallback response based on the content
       listingData = {
         title: "Item from Photos - Please Review",
-        description: content,
-        price: 85, // More reasonable default price
+        description: content.length > 100 ? content : "Please review and update this listing with accurate details.",
+        price: 75,
         category: "Other",
         condition: "Pre-owned",
         measurements: {
@@ -184,8 +204,8 @@ Focus on accurate item identification, realistic market-based pricing, and compe
           height: "4 inches",
           weight: "1.5 lbs"
         },
-        keywords: ["vintage", "collectible", "unique"],
-        priceResearch: "Estimated based on typical used item pricing"
+        keywords: ["item", "tool", "equipment"],
+        priceResearch: "Estimated based on typical used item pricing - please verify market value"
       };
     }
 
