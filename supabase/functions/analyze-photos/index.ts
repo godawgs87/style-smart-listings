@@ -71,29 +71,40 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',
-            content: `You are an expert eBay listing assistant. Analyze the uploaded photos and create a complete listing.
+            content: `You are an expert eBay listing assistant. Analyze the uploaded photos with extreme attention to detail and create a complete, professional listing.
 
-CRITICAL: You must respond with ONLY valid JSON. No explanations, no markdown, no extra text.
+CRITICAL INSTRUCTIONS:
+- You must respond with ONLY valid JSON. No explanations, no markdown, no extra text.
+- Look for ANY text, labels, model numbers, brand names, or serial numbers visible in the photos
+- Pay special attention to rulers, measuring tapes, or size references in photos
+- Identify the exact brand, model, and specific product details
+- Research current market prices for similar items
+- Write compelling, detailed descriptions that highlight key features and condition
 
 Response format (exactly this structure):
 {
-  "title": "Item Title Here",
-  "description": "Detailed description here",
+  "title": "Specific Brand Model Name - Key Features",
+  "description": "Detailed multi-paragraph description with specifications, condition notes, and features",
   "price": 85,
-  "category": "Category",
-  "condition": "Used",
+  "category": "Specific Category",
+  "condition": "New/Used/Like New/Fair/Poor",
   "measurements": {
-    "length": "10 inches",
-    "width": "8 inches",
-    "height": "6 inches",
-    "weight": "2 lbs"
+    "length": "X inches/cm",
+    "width": "X inches/cm", 
+    "height": "X inches/cm",
+    "weight": "X lbs/oz"
   },
-  "keywords": ["keyword1", "keyword2"],
-  "priceResearch": "Price explanation here"
+  "keywords": ["brand", "model", "specific", "terms"],
+  "priceResearch": "Detailed explanation of pricing research and market analysis",
+  "brand": "Brand Name",
+  "model": "Model Number/Name",
+  "features": ["Feature 1", "Feature 2", "Feature 3"],
+  "defects": ["Any visible wear", "Missing parts", "Damage noted"],
+  "includes": ["What's included in sale"]
 }`
           },
           {
@@ -101,19 +112,20 @@ Response format (exactly this structure):
             content: [
               {
                 type: 'text',
-                text: 'Analyze these photos and respond with ONLY the JSON object. No other text.'
+                text: 'Analyze these photos in extreme detail. Look for any text, labels, model numbers, measurements, brand markings, or identifying features. Create a professional eBay listing with accurate pricing research. Respond with ONLY the JSON object.'
               },
-              ...base64Images.slice(0, 3).map(image => ({
+              ...base64Images.slice(0, 4).map(image => ({
                 type: 'image_url',
                 image_url: {
-                  url: `data:image/jpeg;base64,${image}`
+                  url: `data:image/jpeg;base64,${image}`,
+                  detail: 'high'
                 }
               }))
             ]
           }
         ],
-        max_tokens: 800,
-        temperature: 0
+        max_tokens: 1200,
+        temperature: 0.1
       }),
     });
 
@@ -174,19 +186,25 @@ Response format (exactly this structure):
       
       // Ensure price is a number
       if (typeof listingData.price === 'string') {
-        listingData.price = parseFloat(listingData.price.replace(/[^0-9.]/g, '')) || 75;
+        listingData.price = parseFloat(listingData.price.replace(/[^0-9.]/g, '')) || 85;
       }
       
-      console.log('Successfully parsed listing data');
+      // Ensure arrays exist
+      listingData.keywords = listingData.keywords || [];
+      listingData.features = listingData.features || [];
+      listingData.defects = listingData.defects || [];
+      listingData.includes = listingData.includes || [];
+      
+      console.log('Successfully parsed enhanced listing data');
 
     } catch (parseError) {
       console.error('JSON parsing failed:', parseError);
       console.error('Failed content:', content);
       
-      // Create fallback response
+      // Create enhanced fallback response
       listingData = {
-        title: "DeWalt Tool - Needs Review",
-        description: "Professional grade DeWalt tool in good working condition. Please review and update this listing with accurate details.",
+        title: "Professional Tool - Needs Review",
+        description: "Professional grade tool in working condition. Please review photos carefully and update this listing with accurate details based on the specific item shown.",
         price: 85,
         category: "Tools & Hardware",
         condition: "Used",
@@ -196,8 +214,13 @@ Response format (exactly this structure):
           height: "6 inches",
           weight: "2 lbs"
         },
-        keywords: ["dewalt", "tool", "construction"],
-        priceResearch: "Estimated based on typical DeWalt tool pricing - please verify current market value"
+        keywords: ["tool", "professional", "equipment"],
+        priceResearch: "Estimated based on typical tool pricing - please verify current market value",
+        brand: "Unknown",
+        model: "Please identify from photos",
+        features: ["Professional grade", "Working condition"],
+        defects: ["Please inspect photos for wear"],
+        includes: ["Item as shown in photos"]
       };
     }
 

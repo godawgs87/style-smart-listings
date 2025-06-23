@@ -15,7 +15,12 @@ export interface ListingData {
   };
   keywords?: string[];
   photos: string[];
-  priceResearch?: string; // New field for price research explanation
+  priceResearch?: string;
+  brand?: string;
+  model?: string;
+  features?: string[];
+  defects?: string[];
+  includes?: string[];
 }
 
 export interface CreateListingProps {
