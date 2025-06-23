@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import MobileHeader from '@/components/MobileHeader';
 import { Card } from '@/components/ui/card';
@@ -22,27 +23,7 @@ import {
 import { Eye, Download, Trash2, Upload, ShoppingCart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-
-interface ListingData {
-  id: string;
-  title: string;
-  description: string;
-  price: number;
-  category: string;
-  condition: string;
-  measurements: {
-    length?: string;
-    width?: string;
-    height?: string;
-    weight?: string;
-  };
-  keywords?: string[];
-  shippingCost: number;
-  photos: string[];
-  status: 'draft' | 'exported' | 'listed';
-  createdAt: string;
-  exportedAt?: string;
-}
+import { useListings } from '@/hooks/useListings';
 
 interface ListingsManagerProps {
   onBack: () => void;
@@ -50,16 +31,10 @@ interface ListingsManagerProps {
 
 const ListingsManager = ({ onBack }: ListingsManagerProps) => {
   const { toast } = useToast();
-  
-  // Get saved listings from localStorage
-  const [listings, setListings] = useState<ListingData[]>(() => {
-    const saved = localStorage.getItem('savedListings');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const { listings, loading, deleteListing, updateListingStatus } = useListings();
+  const [selectedListing, setSelectedListing] = useState<any>(null);
 
-  const [selectedListing, setSelectedListing] = useState<ListingData | null>(null);
-
-  const handleListToEbay = async (listing: ListingData) => {
+  const handleListToEbay = async (listing: any) => {
     try {
       toast({
         title: "Listing to eBay...",
@@ -75,19 +50,10 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
       }
 
       if (data.success) {
-        // Update listing status to listed
-        const updatedListings = listings.map(l => 
-          l.id === listing.id 
-            ? { 
-                ...l, 
-                status: 'listed' as const, 
-                ebayItemId: data.itemId,
-                listedAt: new Date().toISOString() 
-              }
-            : l
-        );
-        setListings(updatedListings);
-        localStorage.setItem('savedListings', JSON.stringify(updatedListings));
+        await updateListingStatus(listing.id, 'listed', {
+          ebay_item_id: data.itemId,
+          listed_at: new Date().toISOString()
+        });
 
         toast({
           title: "Listed on eBay!",
@@ -106,38 +72,17 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
     }
   };
 
-  const handleExportToBay = (listing: ListingData) => {
-    // Update listing status
-    const updatedListings = listings.map(l => 
-      l.id === listing.id 
-        ? { ...l, status: 'exported' as const, exportedAt: new Date().toISOString() }
-        : l
-    );
-    setListings(updatedListings);
-    localStorage.setItem('savedListings', JSON.stringify(updatedListings));
+  const handleExportToBay = async (listing: any) => {
+    const success = await updateListingStatus(listing.id, 'exported', {
+      exported_at: new Date().toISOString()
+    });
 
-    // Generate eBay-compatible data
-    const ebayData = {
-      title: listing.title,
-      description: listing.description,
-      startPrice: listing.price,
-      category: listing.category,
-      condition: listing.condition,
-      shippingCost: listing.shippingCost,
-      photos: listing.photos,
-      itemSpecifics: [
-        { name: "Condition", value: listing.condition },
-        ...(listing.measurements.length ? [{ name: "Length", value: listing.measurements.length }] : []),
-        ...(listing.measurements.width ? [{ name: "Width", value: listing.measurements.width }] : []),
-        ...(listing.measurements.height ? [{ name: "Height", value: listing.measurements.height }] : []),
-        ...(listing.measurements.weight ? [{ name: "Weight", value: listing.measurements.weight }] : []),
-      ]
-    };
+    if (!success) return;
 
-    // Create download link for eBay CSV format
+    // Generate eBay-compatible CSV
     const csvContent = [
       'Title,Description,StartPrice,Category,Condition,ShippingCost',
-      `"${listing.title}","${listing.description}",${listing.price},"${listing.category}","${listing.condition}",${listing.shippingCost}`
+      `"${listing.title}","${listing.description || ''}",${listing.price},"${listing.category || ''}","${listing.condition || ''}",${listing.shipping_cost || 9.95}`
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -169,7 +114,7 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
     // Create bulk CSV
     const csvHeaders = 'Title,Description,StartPrice,Category,Condition,ShippingCost\n';
     const csvRows = draftListings.map(listing => 
-      `"${listing.title}","${listing.description}",${listing.price},"${listing.category}","${listing.condition}",${listing.shippingCost}`
+      `"${listing.title}","${listing.description || ''}",${listing.price},"${listing.category || ''}","${listing.condition || ''}",${listing.shipping_cost || 9.95}`
     ).join('\n');
 
     const csvContent = csvHeaders + csvRows;
@@ -182,28 +127,15 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
     window.URL.revokeObjectURL(url);
 
     // Update all exported listings
-    const updatedListings = listings.map(l => 
-      l.status === 'draft' 
-        ? { ...l, status: 'exported' as const, exportedAt: new Date().toISOString() }
-        : l
-    );
-    setListings(updatedListings);
-    localStorage.setItem('savedListings', JSON.stringify(updatedListings));
+    draftListings.forEach(listing => {
+      updateListingStatus(listing.id, 'exported', {
+        exported_at: new Date().toISOString()
+      });
+    });
 
     toast({
       title: "Bulk Export Complete!",
       description: `${draftListings.length} listings exported to CSV.`
-    });
-  };
-
-  const handleDeleteListing = (listingId: string) => {
-    const updatedListings = listings.filter(l => l.id !== listingId);
-    setListings(updatedListings);
-    localStorage.setItem('savedListings', JSON.stringify(updatedListings));
-    
-    toast({
-      title: "Listing Deleted",
-      description: "The listing has been removed."
     });
   };
 
@@ -219,6 +151,17 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
         return <Badge variant="outline">{status}</Badge>;
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p>Loading listings...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -293,10 +236,10 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
                       </TableCell>
                       <TableCell>
                         <div className="font-semibold">${listing.price}</div>
-                        <div className="text-xs text-gray-600">+${listing.shippingCost} shipping</div>
+                        <div className="text-xs text-gray-600">+${listing.shipping_cost || 9.95} shipping</div>
                       </TableCell>
                       <TableCell>
-                        {getStatusBadge(listing.status)}
+                        {getStatusBadge(listing.status || 'draft')}
                       </TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
@@ -316,7 +259,7 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
                                   <SheetHeader>
                                     <SheetTitle>{selectedListing.title}</SheetTitle>
                                     <SheetDescription>
-                                      {getStatusBadge(selectedListing.status)} • Created {new Date(selectedListing.createdAt).toLocaleDateString()}
+                                      {getStatusBadge(selectedListing.status || 'draft')} • Created {new Date(selectedListing.created_at).toLocaleDateString()}
                                     </SheetDescription>
                                   </SheetHeader>
                                   
@@ -324,38 +267,42 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
                                     <div>
                                       <h4 className="font-medium mb-2">Pricing</h4>
                                       <div className="text-2xl font-bold text-green-600">${selectedListing.price}</div>
-                                      <div className="text-sm text-gray-600">+${selectedListing.shippingCost} shipping</div>
+                                      <div className="text-sm text-gray-600">+${selectedListing.shipping_cost || 9.95} shipping</div>
                                     </div>
                                     
-                                    <div>
-                                      <h4 className="font-medium mb-2">Description</h4>
-                                      <p className="text-sm text-gray-700">{selectedListing.description}</p>
-                                    </div>
+                                    {selectedListing.description && (
+                                      <div>
+                                        <h4 className="font-medium mb-2">Description</h4>
+                                        <p className="text-sm text-gray-700">{selectedListing.description}</p>
+                                      </div>
+                                    )}
                                     
                                     <div>
                                       <h4 className="font-medium mb-2">Details</h4>
                                       <div className="space-y-1 text-sm">
-                                        <div>Category: {selectedListing.category}</div>
-                                        <div>Condition: {selectedListing.condition}</div>
-                                        {selectedListing.measurements.weight && (
+                                        {selectedListing.category && <div>Category: {selectedListing.category}</div>}
+                                        {selectedListing.condition && <div>Condition: {selectedListing.condition}</div>}
+                                        {selectedListing.measurements?.weight && (
                                           <div>Weight: {selectedListing.measurements.weight}</div>
                                         )}
                                       </div>
                                     </div>
                                     
-                                    <div>
-                                      <h4 className="font-medium mb-2">Photos ({selectedListing.photos.length})</h4>
-                                      <div className="grid grid-cols-2 gap-2">
-                                        {selectedListing.photos.slice(0, 4).map((photo, index) => (
-                                          <img
-                                            key={index}
-                                            src={photo}
-                                            alt={`Product ${index + 1}`}
-                                            className="w-full h-20 object-cover rounded"
-                                          />
-                                        ))}
+                                    {selectedListing.photos && selectedListing.photos.length > 0 && (
+                                      <div>
+                                        <h4 className="font-medium mb-2">Photos ({selectedListing.photos.length})</h4>
+                                        <div className="grid grid-cols-2 gap-2">
+                                          {selectedListing.photos.slice(0, 4).map((photo: string, index: number) => (
+                                            <img
+                                              key={index}
+                                              src={photo}
+                                              alt={`Product ${index + 1}`}
+                                              className="w-full h-20 object-cover rounded"
+                                            />
+                                          ))}
+                                        </div>
                                       </div>
-                                    </div>
+                                    )}
                                   </div>
                                 </>
                               )}
@@ -386,7 +333,7 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
                           <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={() => handleDeleteListing(listing.id)}
+                            onClick={() => deleteListing(listing.id)}
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
