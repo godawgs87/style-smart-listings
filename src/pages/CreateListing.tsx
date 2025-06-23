@@ -1,10 +1,10 @@
-
 import React, { useState } from 'react';
 import MobileHeader from '@/components/MobileHeader';
 import CreateListingSteps from '@/components/create-listing/CreateListingSteps';
 import CreateListingContent from '@/components/create-listing/CreateListingContent';
 import { useToast } from '@/hooks/use-toast';
 import { Step, ListingData, CreateListingProps } from '@/types/CreateListing';
+import { supabase } from '@/integrations/supabase/client';
 
 const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
   const [currentStep, setCurrentStep] = useState<Step>('photos');
@@ -45,27 +45,20 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
       
       console.log('Calling analyze-photos function...');
       
-      // Use fetch instead of supabase.functions.invoke for better error handling
-      const response = await fetch('/api/analyze-photos', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ photos: base64Photos })
+      // Use Supabase function invocation instead of fetch
+      const { data, error } = await supabase.functions.invoke('analyze-photos', {
+        body: { photos: base64Photos }
       });
 
-      console.log('Function response status:', response.status);
+      console.log('Function response data:', data);
+      console.log('Function error:', error);
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Function call failed:', errorText);
-        throw new Error(`Analysis failed: ${response.status} - ${errorText}`);
+      if (error) {
+        console.error('Function call failed:', error);
+        throw new Error(`Analysis failed: ${error.message}`);
       }
 
-      const data = await response.json();
-      console.log('Function response data:', data);
-
-      if (data.success && data.listing) {
+      if (data?.success && data?.listing) {
         const analysisResult = data.listing;
         setListingData({
           ...analysisResult,
@@ -83,7 +76,7 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
           description: `Listing generated with researched price: $${analysisResult.price}${priceInfo}`
         });
       } else {
-        throw new Error(data.error || 'Analysis failed - no data returned');
+        throw new Error(data?.error || 'Analysis failed - no data returned');
       }
     } catch (error) {
       console.error('=== ANALYSIS ERROR ===');
