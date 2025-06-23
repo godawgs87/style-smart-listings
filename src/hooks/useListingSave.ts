@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { ListingData } from '@/types/CreateListing';
@@ -7,69 +6,8 @@ export const useListingSave = () => {
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
-  const getStorageInfo = () => {
-    let totalSize = 0;
-    const items: { key: string; size: number }[] = [];
-    
-    for (let key in localStorage) {
-      if (localStorage.hasOwnProperty(key)) {
-        const size = localStorage[key].length + key.length;
-        totalSize += size;
-        items.push({ key, size });
-      }
-    }
-    
-    return { totalSize, items: items.sort((a, b) => b.size - a.size) };
-  };
-
-  const clearAllStorage = () => {
-    console.log('=== CLEARING ALL STORAGE ===');
-    const beforeInfo = getStorageInfo();
-    console.log('Storage before clear:', beforeInfo);
-    
-    try {
-      localStorage.clear();
-      console.log('Successfully cleared all localStorage');
-      
-      const afterInfo = getStorageInfo();
-      console.log('Storage after clear:', afterInfo);
-      return true;
-    } catch (error) {
-      console.error('Error clearing localStorage:', error);
-      return false;
-    }
-  };
-
-  const testStorageCapacity = () => {
-    console.log('=== TESTING STORAGE CAPACITY ===');
-    const testData = 'x'.repeat(1000); // 1KB chunks
-    let testCount = 0;
-    
-    try {
-      while (testCount < 5000) { // Test up to 5MB
-        const testKey = `test-${testCount}`;
-        localStorage.setItem(testKey, testData);
-        testCount++;
-      }
-    } catch (error) {
-      console.log(`Storage capacity test: Failed after ${testCount}KB`);
-    }
-    
-    // Clean up test data
-    for (let i = 0; i < testCount; i++) {
-      try {
-        localStorage.removeItem(`test-${i}`);
-      } catch (e) {
-        // Ignore cleanup errors
-      }
-    }
-    
-    return testCount;
-  };
-
   const saveListing = async (listingData: ListingData, shippingCost: number): Promise<boolean> => {
-    console.log('=== SAVE LISTING ATTEMPT ===');
-    console.log('Starting save process...');
+    console.log('=== SAVE LISTING WITH FALLBACK STRATEGY ===');
     
     if (!listingData) {
       console.error('No listing data provided');
@@ -84,21 +22,6 @@ export const useListingSave = () => {
     setIsSaving(true);
     
     try {
-      // Get initial storage info
-      const initialInfo = getStorageInfo();
-      console.log('Initial storage info:', initialInfo);
-      
-      // Test basic localStorage functionality
-      try {
-        const testKey = 'test-' + Date.now();
-        localStorage.setItem(testKey, 'test');
-        localStorage.removeItem(testKey);
-        console.log('localStorage basic test: PASSED');
-      } catch (testError) {
-        console.error('localStorage basic test: FAILED', testError);
-        throw new Error('Browser storage is not available');
-      }
-
       // Create the new listing object
       const newListing = {
         id: `listing-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -115,86 +38,77 @@ export const useListingSave = () => {
         price: newListing.price
       });
 
-      // Calculate the size of what we're trying to save
-      const newListingStr = JSON.stringify([newListing]);
-      const newListingSize = newListingStr.length;
-      console.log('New listing data size:', newListingSize, 'characters');
+      // Try localStorage first, but don't fail if it doesn't work
+      let storageSaved = false;
+      try {
+        // Test if localStorage is available and has space
+        const testKey = 'storage-test';
+        localStorage.setItem(testKey, 'test');
+        localStorage.removeItem(testKey);
+        
+        // Try to save to localStorage
+        const existingListings = localStorage.getItem('savedListings');
+        const listings = existingListings ? JSON.parse(existingListings) : [];
+        listings.unshift(newListing);
+        
+        // Keep only the last 3 listings to minimize storage usage
+        const trimmedListings = listings.slice(0, 3);
+        localStorage.setItem('savedListings', JSON.stringify(trimmedListings));
+        
+        console.log('Successfully saved to localStorage');
+        storageSaved = true;
+      } catch (storageError) {
+        console.warn('localStorage not available, using fallback:', storageError);
+        storageSaved = false;
+      }
 
-      // Aggressive approach: Start fresh
-      console.log('=== STARTING WITH CLEAN SLATE ===');
+      // Always offer download as backup
+      const downloadData = {
+        listing: newListing,
+        exportedAt: new Date().toISOString(),
+        note: storageSaved ? 'Also saved to browser storage' : 'Browser storage unavailable - data exported only'
+      };
+
+      const dataStr = JSON.stringify(downloadData, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
       
-      // Clear everything and start over
-      const cleared = clearAllStorage();
-      if (!cleared) {
-        throw new Error('Failed to clear storage');
+      // Create a download link
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `listing-${newListing.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${Date.now()}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      if (storageSaved) {
+        toast({
+          title: "Listing Saved! ✅",
+          description: `Your ${listingData.title} listing has been saved and downloaded as backup.`
+        });
+      } else {
+        toast({
+          title: "Listing Exported! 📁",
+          description: `Your ${listingData.title} listing has been downloaded. Browser storage unavailable.`
+        });
       }
-
-      // Test storage capacity after clearing
-      const capacity = testStorageCapacity();
-      console.log('Available storage capacity:', capacity, 'KB');
-
-      if (capacity < 10) {
-        throw new Error('Insufficient storage capacity available. Please try a different browser or clear your browser data.');
-      }
-
-      // Try to save the new listing
-      console.log('Attempting to save new listing...');
-      localStorage.setItem('savedListings', newListingStr);
-      
-      // Verify the save
-      const verification = localStorage.getItem('savedListings');
-      if (!verification) {
-        throw new Error('Failed to verify save - data not found after save');
-      }
-
-      const parsedVerification = JSON.parse(verification);
-      if (!Array.isArray(parsedVerification) || parsedVerification.length === 0) {
-        throw new Error('Failed to verify save - invalid data structure');
-      }
-
-      console.log('Save verification successful:', parsedVerification.length, 'listings saved');
-
-      // Final storage info
-      const finalInfo = getStorageInfo();
-      console.log('Final storage info:', finalInfo);
-
-      toast({
-        title: "Listing Saved! ✅",
-        description: `Your ${listingData.title} listing has been saved successfully.`
-      });
 
       return true;
 
     } catch (error) {
-      console.error('=== SAVE ERROR DETAILS ===');
-      console.error('Error name:', error?.name);
-      console.error('Error message:', error?.message);
-      console.error('Error stack:', error?.stack);
-      
-      // Get final storage state for debugging
-      const errorInfo = getStorageInfo();
-      console.error('Storage state at error:', errorInfo);
-
-      let errorMessage = 'Unknown error occurred';
-      
-      if (error?.name === 'QuotaExceededError' || error?.message?.includes('quota')) {
-        errorMessage = 'Browser storage is full. All data has been cleared but storage is still insufficient. Please try using a different browser or contact support.';
-      } else if (error?.message?.includes('storage')) {
-        errorMessage = error.message;
-      } else {
-        errorMessage = `Save failed: ${error?.message || 'Unknown error'}`;
-      }
+      console.error('=== SAVE ERROR ===');
+      console.error('Error:', error);
 
       toast({
         title: "Save Failed",
-        description: errorMessage,
+        description: `Failed to save listing: ${error?.message || 'Unknown error'}`,
         variant: "destructive"
       });
 
       return false;
     } finally {
       setIsSaving(false);
-      console.log('Save process completed');
     }
   };
 
