@@ -6,13 +6,13 @@ import CreateListingContent from '@/components/create-listing/CreateListingConte
 import { Step, ListingData, CreateListingProps } from '@/types/CreateListing';
 import { usePhotoAnalysis } from '@/hooks/usePhotoAnalysis';
 import { useListingSave } from '@/hooks/useListingSave';
-import { getWeight, getDimensions } from '@/utils/listingUtils';
+import { getWeightFromListing, getDimensionsFromListing } from '@/utils/listingUtils';
 
 const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
   const [currentStep, setCurrentStep] = useState<Step>('photos');
   const [photos, setPhotos] = useState<File[]>([]);
   const [listingData, setListingData] = useState<ListingData | null>(null);
-  const [shippingCost, setShippingCost] = useState(0); // Changed from 9.95 to 0
+  const [shippingCost, setShippingCost] = useState(0);
   
   const { isAnalyzing, analyzePhotos } = usePhotoAnalysis();
   const { isSaving, saveListing } = useListingSave();
@@ -79,8 +79,8 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
           onEdit={() => setCurrentStep('photos')}
           onExport={() => setCurrentStep('shipping')}
           onShippingSelect={handleShippingSelect}
-          getWeight={getWeight}
-          getDimensions={getDimensions}
+          getWeight={() => getWeightFromListing(listingData)}
+          getDimensions={() => getDimensionsFromListing(listingData)}
         />
       </div>
     </div>

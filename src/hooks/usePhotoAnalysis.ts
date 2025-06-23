@@ -1,9 +1,9 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { ListingData } from '@/types/CreateListing';
 import { convertFilesToBase64 } from '@/utils/photoUtils';
-import { getMeasurementStrings } from '@/utils/listingUtils';
 
 export const usePhotoAnalysis = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -40,12 +40,9 @@ export const usePhotoAnalysis = () => {
       if (data?.success && data?.listing) {
         const analysisResult = data.listing;
         
-        // Use consistent measurements from utilities
-        const consistentMeasurements = getMeasurementStrings();
-        
+        // Use the AI-determined measurements instead of overriding them
         const listingData = {
           ...analysisResult,
-          measurements: consistentMeasurements,
           photos: base64Photos
         };
         
