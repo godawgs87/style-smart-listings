@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,7 +9,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { Edit, Eye, Trash2, MoreVertical, CheckSquare } from 'lucide-react';
+import { Edit, Eye, Trash2, MoreVertical, CheckSquare, Table } from 'lucide-react';
 import { useListings } from '@/hooks/useListings';
 import MobileHeader from '@/components/MobileHeader';
 import Navigation from '@/components/Navigation';
@@ -18,6 +17,7 @@ import { useAuth } from '@/hooks/useAuth';
 import ListingEditor from '@/components/ListingEditor';
 import ListingPreview from '@/components/ListingPreview';
 import BulkActionsBar from '@/components/BulkActionsBar';
+import ListingsTable from '@/components/ListingsTable';
 
 interface ListingsManagerProps {
   onBack: () => void;
@@ -30,6 +30,7 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
   const [previewingListing, setPreviewingListing] = useState<any>(null);
   const [selectedListings, setSelectedListings] = useState<string[]>([]);
   const [isBulkMode, setIsBulkMode] = useState(false);
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
 
   const handleEdit = (listingId: string) => {
     const listing = listings.find(l => l.id === listingId);
@@ -98,9 +99,17 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
     setIsBulkMode(false);
   };
 
+  const handleUpdateListing = async (listingId: string, updates: any) => {
+    await updateListingStatus(listingId, updates.status, updates);
+  };
+
   const toggleBulkMode = () => {
     setIsBulkMode(!isBulkMode);
     setSelectedListings([]);
+  };
+
+  const toggleViewMode = () => {
+    setViewMode(prev => prev === 'cards' ? 'table' : 'cards');
   };
 
   if (loading) {
@@ -121,13 +130,13 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
         <MobileHeader 
           title="Edit Listing" 
           showBack 
-          onBack={handleCancelEdit}
+          onBack={() => setEditingListing(null)}
         />
         <div className="p-4">
           <ListingEditor
             listing={editingListing}
-            onSave={handleSaveEdit}
-            onCancel={handleCancelEdit}
+            onSave={() => setEditingListing(null)}
+            onCancel={() => setEditingListing(null)}
           />
         </div>
       </div>
@@ -141,7 +150,7 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
         <MobileHeader 
           title="Preview Listing" 
           showBack 
-          onBack={handleClosePreview}
+          onBack={() => setPreviewingListing(null)}
         />
         <div className="p-4">
           <ListingPreview
@@ -150,7 +159,7 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
               setPreviewingListing(null);
               setEditingListing(previewingListing);
             }}
-            onExport={handleClosePreview}
+            onExport={() => setPreviewingListing(null)}
           />
         </div>
       </div>
@@ -184,21 +193,29 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div className="flex items-center gap-4">
             <Button
-              variant={isBulkMode ? "default" : "outline"}
+              variant={viewMode === 'table' ? "default" : "outline"}
               size="sm"
-              onClick={toggleBulkMode}
+              onClick={toggleViewMode}
             >
-              <CheckSquare className="w-4 h-4 mr-2" />
-              {isBulkMode ? 'Exit Bulk Mode' : 'Bulk Select'}
+              <Table className="w-4 h-4 mr-2" />
+              {viewMode === 'table' ? 'Table View' : 'Card View'}
             </Button>
-            {isBulkMode && (
+            
+            {viewMode === 'cards' && (
+              <Button
+                variant={isBulkMode ? "default" : "outline"}
+                size="sm"
+                onClick={toggleBulkMode}
+              >
+                <CheckSquare className="w-4 h-4 mr-2" />
+                {isBulkMode ? 'Exit Bulk Mode' : 'Bulk Select'}
+              </Button>
+            )}
+            
+            {(isBulkMode || viewMode === 'table') && (
               <div className="flex items-center gap-2">
-                <Checkbox
-                  checked={selectedListings.length === listings.length}
-                  onCheckedChange={handleSelectAll}
-                />
                 <span className="text-sm text-gray-600">
-                  Select All ({selectedListings.length} selected)
+                  {selectedListings.length} selected
                 </span>
               </div>
             )}
@@ -206,7 +223,7 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
         </div>
 
         {/* Bulk Actions Bar */}
-        {isBulkMode && selectedListings.length > 0 && (
+        {(isBulkMode || viewMode === 'table') && selectedListings.length > 0 && (
           <BulkActionsBar
             selectedCount={selectedListings.length}
             onBulkDelete={handleBulkDelete}
@@ -214,63 +231,84 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
           />
         )}
 
-        {/* Listings Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-          {listings.map((listing) => (
-            <Card key={listing.id} className="p-4 flex flex-col">
-              {/* Header with checkbox and actions */}
-              <div className="flex justify-between items-start mb-3">
-                <div className="flex items-start gap-3 flex-1 min-w-0">
-                  {isBulkMode && (
-                    <Checkbox
-                      checked={selectedListings.includes(listing.id)}
-                      onCheckedChange={(checked) => handleSelectListing(listing.id, checked as boolean)}
-                      className="mt-1 flex-shrink-0"
-                    />
-                  )}
-                  <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 leading-tight">
-                    {listing.title}
-                  </h3>
-                </div>
-                {!isBulkMode && (
-                  <div className="flex space-x-1 flex-shrink-0 ml-2">
-                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleEdit(listing.id)}>
-                      <Edit className="w-3 h-3" />
-                    </Button>
-                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handlePreview(listing.id)}>
-                      <Eye className="w-3 h-3" />
-                    </Button>
-                    <Button variant="destructive" size="icon" className="h-8 w-8" onClick={() => handleDelete(listing.id)}>
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
+        {/* Content */}
+        {viewMode === 'table' ? (
+          <ListingsTable
+            listings={listings}
+            selectedListings={selectedListings}
+            onSelectListing={handleSelectListing}
+            onSelectAll={handleSelectAll}
+            onUpdateListing={handleUpdateListing}
+            onDeleteListing={deleteListing}
+          />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+            {listings.map((listing) => (
+              <Card key={listing.id} className="p-4 flex flex-col">
+                {/* Header with checkbox and actions */}
+                <div className="flex justify-between items-start mb-3">
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    {isBulkMode && (
+                      <Checkbox
+                        checked={selectedListings.includes(listing.id)}
+                        onCheckedChange={(checked) => handleSelectListing(listing.id, checked as boolean)}
+                        className="mt-1 flex-shrink-0"
+                      />
+                    )}
+                    <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 leading-tight">
+                      {listing.title}
+                    </h3>
                   </div>
-                )}
-              </div>
-
-              {/* Content */}
-              <div className="space-y-3 flex-1">
-                {/* Badges */}
-                <div className="flex flex-wrap gap-1">
-                  <Badge variant="secondary" className="text-xs">{listing.category}</Badge>
-                  <Badge variant="outline" className="text-xs">{listing.condition}</Badge>
-                  {listing.status && (
-                    <Badge variant={listing.status === 'active' ? 'default' : 'secondary'} className="text-xs">
-                      {listing.status}
-                    </Badge>
+                  {!isBulkMode && (
+                    <div className="flex space-x-1 flex-shrink-0 ml-2">
+                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => {
+                        const listing = listings.find(l => l.id === listing.id);
+                        if (listing) setEditingListing(listing);
+                      }}>
+                        <Edit className="w-3 h-3" />
+                      </Button>
+                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => {
+                        const listing = listings.find(l => l.id === listing.id);
+                        if (listing) setPreviewingListing(listing);
+                      }}>
+                        <Eye className="w-3 h-3" />
+                      </Button>
+                      <Button variant="destructive" size="icon" className="h-8 w-8" onClick={() => {
+                        if (window.confirm('Are you sure you want to delete this listing?')) {
+                          deleteListing(listing.id);
+                        }
+                      }}>
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
                   )}
                 </div>
 
-                {/* Description */}
-                <p className="text-xs text-gray-700 line-clamp-3">
-                  {listing.description?.substring(0, 80)}...
-                </p>
+                {/* Content */}
+                <div className="space-y-3 flex-1">
+                  {/* Badges */}
+                  <div className="flex flex-wrap gap-1">
+                    <Badge variant="secondary" className="text-xs">{listing.category}</Badge>
+                    <Badge variant="outline" className="text-xs">{listing.condition}</Badge>
+                    {listing.status && (
+                      <Badge variant={listing.status === 'active' ? 'default' : 'secondary'} className="text-xs">
+                        {listing.status}
+                      </Badge>
+                    )}
+                  </div>
 
-                {/* Price */}
-                <p className="text-sm font-bold text-green-600">${listing.price}</p>
-              </div>
-            </Card>
-          ))}
-        </div>
+                  {/* Description */}
+                  <p className="text-xs text-gray-700 line-clamp-3">
+                    {listing.description?.substring(0, 80)}...
+                  </p>
+
+                  {/* Price */}
+                  <p className="text-sm font-bold text-green-600">${listing.price}</p>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
 
         {/* Empty State */}
         {listings.length === 0 && (
