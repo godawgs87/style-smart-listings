@@ -2,6 +2,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import type { Database } from '@/integrations/supabase/types';
+
+type SupabaseListing = Database['public']['Tables']['listings']['Row'];
 
 interface Listing {
   id: string;
@@ -31,6 +34,13 @@ export const useListings = () => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+  const transformListing = (supabaseListing: SupabaseListing): Listing => {
+    return {
+      ...supabaseListing,
+      measurements: (supabaseListing.measurements as any) || {}
+    };
+  };
+
   const fetchListings = async () => {
     try {
       const { data, error } = await supabase
@@ -48,7 +58,8 @@ export const useListings = () => {
         return;
       }
 
-      setListings(data || []);
+      const transformedListings = (data || []).map(transformListing);
+      setListings(transformedListings);
     } catch (error) {
       console.error('Error:', error);
       toast({
