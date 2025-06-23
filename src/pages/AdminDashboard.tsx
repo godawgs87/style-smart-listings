@@ -13,7 +13,10 @@ import {
   TrendingUp, 
   Save,
   User,
-  Bell
+  Bell,
+  Link,
+  CheckCircle,
+  AlertCircle
 } from 'lucide-react';
 import MobileHeader from '@/components/MobileHeader';
 import Navigation from '@/components/Navigation';
@@ -34,9 +37,37 @@ const AdminDashboard = ({ onBack }: AdminDashboardProps) => {
     defaultCategory: 'Electronics',
   });
 
+  const [ebayConnection, setEbayConnection] = useState({
+    isConnected: false,
+    devId: '',
+    appId: '',
+    certId: '',
+    userToken: '',
+  });
+
   const handleSaveSettings = () => {
     console.log('Saving settings:', settings);
     // TODO: Implement settings save
+  };
+
+  const handleConnectEbay = () => {
+    console.log('Connecting to eBay with credentials:', {
+      devId: ebayConnection.devId,
+      appId: ebayConnection.appId,
+      certId: ebayConnection.certId
+    });
+    // TODO: Implement eBay OAuth flow
+    setEbayConnection({ ...ebayConnection, isConnected: true });
+  };
+
+  const handleDisconnectEbay = () => {
+    setEbayConnection({
+      isConnected: false,
+      devId: '',
+      appId: '',
+      certId: '',
+      userToken: '',
+    });
   };
 
   return (
@@ -72,6 +103,94 @@ const AdminDashboard = ({ onBack }: AdminDashboardProps) => {
               <Label>Account Type</Label>
               <p className="text-sm text-gray-600">Free Plan</p>
             </div>
+          </div>
+        </Card>
+
+        <Card className="p-6">
+          <div className="flex items-center mb-4">
+            <Link className="w-5 h-5 mr-2" />
+            <h2 className="text-xl font-bold">eBay Integration</h2>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div className="flex items-center">
+                {ebayConnection.isConnected ? (
+                  <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
+                ) : (
+                  <AlertCircle className="w-5 h-5 text-orange-500 mr-2" />
+                )}
+                <div>
+                  <p className="font-medium">
+                    {ebayConnection.isConnected ? 'Connected to eBay' : 'Not Connected'}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    {ebayConnection.isConnected 
+                      ? 'You can now list items directly to eBay' 
+                      : 'Connect your eBay account to start listing items'
+                    }
+                  </p>
+                </div>
+              </div>
+              
+              {ebayConnection.isConnected ? (
+                <Button variant="outline" onClick={handleDisconnectEbay}>
+                  Disconnect
+                </Button>
+              ) : null}
+            </div>
+
+            {!ebayConnection.isConnected && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="ebayDevId">Developer ID</Label>
+                    <Input
+                      type="text"
+                      id="ebayDevId"
+                      placeholder="Your eBay Developer ID"
+                      value={ebayConnection.devId}
+                      onChange={(e) => setEbayConnection({ ...ebayConnection, devId: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="ebayAppId">Application ID</Label>
+                    <Input
+                      type="text"
+                      id="ebayAppId"
+                      placeholder="Your eBay Application ID"
+                      value={ebayConnection.appId}
+                      onChange={(e) => setEbayConnection({ ...ebayConnection, appId: e.target.value })}
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <Label htmlFor="ebayCertId">Certificate ID</Label>
+                  <Input
+                    type="text"
+                    id="ebayCertId"
+                    placeholder="Your eBay Certificate ID"
+                    value={ebayConnection.certId}
+                    onChange={(e) => setEbayConnection({ ...ebayConnection, certId: e.target.value })}
+                  />
+                </div>
+
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    <strong>Need eBay API credentials?</strong> Visit the eBay Developers Program to create your application and get your API keys.
+                  </p>
+                </div>
+
+                <Button 
+                  onClick={handleConnectEbay}
+                  disabled={!ebayConnection.devId || !ebayConnection.appId || !ebayConnection.certId}
+                  className="w-full"
+                >
+                  Connect to eBay
+                </Button>
+              </div>
+            )}
           </div>
         </Card>
 
