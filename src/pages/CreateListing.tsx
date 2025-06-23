@@ -5,9 +5,10 @@ import ShippingCalculator from '@/components/ShippingCalculator';
 import ListingPreview from '@/components/ListingPreview';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Check, Save } from 'lucide-react';
+import { Check, Save, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface CreateListingProps {
   onBack: () => void;
@@ -110,14 +111,17 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
   };
 
   const handleExport = async () => {
+    console.log('=== SAVE LISTING DEBUG ===');
     console.log('handleExport called');
+    console.log('listingData exists:', !!listingData);
     console.log('listingData:', listingData);
+    console.log('shippingCost:', shippingCost);
     
     if (!listingData) {
       console.error('No listing data available');
       toast({
         title: "Error",
-        description: "No listing data available to save.",
+        description: "No listing data available to save. Please go back and analyze your photos first.",
         variant: "destructive"
       });
       return;
@@ -126,43 +130,77 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
     setIsSaving(true);
     
     try {
-      // Save listing to localStorage
-      const savedListings = JSON.parse(localStorage.getItem('savedListings') || '[]');
+      console.log('Starting save process...');
+      
+      // Test localStorage access
+      const testKey = 'test-access';
+      localStorage.setItem(testKey, 'test');
+      localStorage.removeItem(testKey);
+      console.log('localStorage access test passed');
+      
+      // Get existing listings
+      const savedListingsStr = localStorage.getItem('savedListings');
+      console.log('Existing savedListings string:', savedListingsStr);
+      
+      const savedListings = savedListingsStr ? JSON.parse(savedListingsStr) : [];
+      console.log('Parsed savedListings array:', savedListings);
+      
       const newListing = {
-        id: `listing-${Date.now()}`,
+        id: `listing-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         ...listingData,
-        shippingCost,
+        shippingCost: Number(shippingCost) || 9.95,
         status: 'draft',
         createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
 
-      console.log('Saving listing:', newListing);
+      console.log('New listing object created:', newListing);
+      
       savedListings.push(newListing);
-      localStorage.setItem('savedListings', JSON.stringify(savedListings));
+      console.log('Updated savedListings array:', savedListings);
+      
+      const stringifiedListings = JSON.stringify(savedListings);
+      console.log('Stringified listings length:', stringifiedListings.length);
+      
+      localStorage.setItem('savedListings', stringifiedListings);
+      console.log('Successfully saved to localStorage');
+      
+      // Verify the save
+      const verification = localStorage.getItem('savedListings');
+      console.log('Verification - localStorage content exists:', !!verification);
+      console.log('Verification - content length:', verification?.length || 0);
 
-      console.log('Listing saved successfully');
       toast({
-        title: "Listing Saved!",
-        description: "Your listing has been saved and is ready for export."
+        title: "Listing Saved Successfully! ✅",
+        description: `Your ${listingData.title} listing has been saved and is ready for export.`
       });
 
-      // Navigate to listings manager if available, otherwise go back
-      if (onViewListings) {
-        console.log('Navigating to listings manager');
-        onViewListings();
-      } else {
-        console.log('Going back to previous screen');
-        onBack();
-      }
+      // Small delay to ensure toast is visible
+      setTimeout(() => {
+        if (onViewListings) {
+          console.log('Navigating to listings manager');
+          onViewListings();
+        } else {
+          console.log('Going back to previous screen');
+          onBack();
+        }
+      }, 1000);
+
     } catch (error) {
-      console.error('Error saving listing:', error);
+      console.error('=== SAVE ERROR ===');
+      console.error('Error type:', error?.constructor?.name);
+      console.error('Error message:', error?.message);
+      console.error('Error stack:', error?.stack);
+      console.error('Full error object:', error);
+      
       toast({
         title: "Save Failed",
-        description: "There was an error saving your listing. Please try again.",
+        description: `Save failed: ${error?.message || 'Unknown error'}. Please try again or contact support.`,
         variant: "destructive"
       });
     } finally {
       setIsSaving(false);
+      console.log('Save process completed, isSaving set to false');
     }
   };
 
@@ -198,6 +236,9 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
       height: parseSize(listingData.measurements.height)
     };
   };
+
+  // Check if price seems high for used condition
+  const isPriceHigh = listingData && listingData.condition?.toLowerCase().includes('used') && listingData.price > 100;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -258,6 +299,16 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
 
         {currentStep === 'preview' && !isAnalyzing && listingData && (
           <div className="space-y-6">
+            {isPriceHigh && (
+              <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Price Check:</strong> ${listingData.price} seems high for used condition. 
+                  Consider checking sold listings on eBay for similar items to ensure competitive pricing.
+                </AlertDescription>
+              </Alert>
+            )}
+            
             <ListingPreview
               listing={{
                 ...listingData,
@@ -271,6 +322,13 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
 
         {currentStep === 'shipping' && listingData && (
           <div className="space-y-6">
+            <Alert>
+              <AlertDescription>
+                <strong>Shipping Rates:</strong> These are calculated estimates based on package dimensions and weight using standard carrier pricing formulas. 
+                Actual rates may vary. For exact pricing, use carrier websites or shipping software.
+              </AlertDescription>
+            </Alert>
+            
             <Card className="p-6">
               <h2 className="text-xl font-bold mb-4">Shipping Calculator</h2>
               <ShippingCalculator
@@ -280,23 +338,37 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
               />
             </Card>
             
+            <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+              <h4 className="font-medium text-yellow-800 mb-2">💡 Pricing Tip</h4>
+              <p className="text-sm text-yellow-700">
+                For used items, research "sold listings" on eBay to find competitive prices. 
+                Items in "Used - Good" condition typically sell for 60-75% of retail price.
+              </p>
+            </div>
+            
             <Button 
               onClick={handleExport} 
-              className="w-full gradient-bg text-white"
+              className="w-full gradient-bg text-white text-lg py-6"
               disabled={isSaving}
             >
               {isSaving ? (
                 <>
-                  <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
-                  Saving...
+                  <div className="animate-spin w-5 h-5 border-3 border-white border-t-transparent rounded-full mr-3"></div>
+                  Saving Listing...
                 </>
               ) : (
                 <>
-                  <Save className="w-4 h-4 mr-2" />
+                  <Save className="w-5 h-5 mr-3" />
                   Save Listing
                 </>
               )}
             </Button>
+            
+            {isSaving && (
+              <p className="text-center text-sm text-gray-600">
+                Please wait while we save your listing...
+              </p>
+            )}
           </div>
         )}
       </div>
