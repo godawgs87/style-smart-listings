@@ -1,12 +1,27 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import React, { useState } from 'react';
+import Dashboard from './Dashboard';
+import CreateListing from './CreateListing';
+
+type Screen = 'dashboard' | 'create-listing';
 
 const Index = () => {
+  const [currentScreen, setCurrentScreen] = useState<Screen>('dashboard');
+
+  const renderScreen = () => {
+    switch (currentScreen) {
+      case 'dashboard':
+        return <Dashboard onCreateListing={() => setCurrentScreen('create-listing')} />;
+      case 'create-listing':
+        return <CreateListing onBack={() => setCurrentScreen('dashboard')} />;
+      default:
+        return <Dashboard onCreateListing={() => setCurrentScreen('create-listing')} />;
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="max-w-md mx-auto bg-white min-h-screen">
+      {renderScreen()}
     </div>
   );
 };
