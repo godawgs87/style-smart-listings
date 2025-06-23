@@ -35,7 +35,12 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
     setShippingCost(option.cost);
   };
 
-  const handleExport = async () => {
+  const handlePreviewExport = () => {
+    console.log('Moving to shipping step');
+    setCurrentStep('shipping');
+  };
+
+  const handleSaveListing = async () => {
     if (!listingData) return;
     
     console.log('Attempting to save with shipping cost:', shippingCost);
@@ -79,7 +84,7 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
           onPhotosChange={handlePhotosChange}
           onAnalyze={handleAnalyze}
           onEdit={() => setCurrentStep('photos')}
-          onExport={handleExport}
+          onExport={currentStep === 'preview' ? handlePreviewExport : handleSaveListing}
           onShippingSelect={handleShippingSelect}
           getWeight={() => getWeightFromListing(listingData)}
           getDimensions={() => getDimensionsFromListing(listingData)}
