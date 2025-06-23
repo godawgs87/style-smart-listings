@@ -6,17 +6,28 @@ export const useListingSave = () => {
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
+  const clearAllListings = () => {
+    try {
+      localStorage.removeItem('savedListings');
+      console.log('Cleared all saved listings');
+      return true;
+    } catch (error) {
+      console.error('Error clearing all listings:', error);
+      return false;
+    }
+  };
+
   const clearOldListings = () => {
     try {
       const savedListingsStr = localStorage.getItem('savedListings');
       if (savedListingsStr) {
         const savedListings = JSON.parse(savedListingsStr);
-        if (Array.isArray(savedListings) && savedListings.length > 10) {
-          // Keep only the 5 most recent listings
+        if (Array.isArray(savedListings) && savedListings.length > 0) {
+          // Keep only the 2 most recent listings for more aggressive cleanup
           const sortedListings = savedListings.sort((a, b) => 
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           );
-          const recentListings = sortedListings.slice(0, 5);
+          const recentListings = sortedListings.slice(0, 2);
           localStorage.setItem('savedListings', JSON.stringify(recentListings));
           console.log(`Cleared old listings, kept ${recentListings.length} most recent`);
           return true;
@@ -29,11 +40,22 @@ export const useListingSave = () => {
     }
   };
 
+  const getStorageSize = () => {
+    let total = 0;
+    for (let key in localStorage) {
+      if (localStorage.hasOwnProperty(key)) {
+        total += localStorage[key].length + key.length;
+      }
+    }
+    return total;
+  };
+
   const saveListing = async (listingData: ListingData, shippingCost: number): Promise<boolean> => {
     console.log('=== SAVE LISTING DEBUG ===');
     console.log('saveListing called');
     console.log('listingData exists:', !!listingData);
     console.log('shippingCost:', shippingCost);
+    console.log('Storage size before save:', getStorageSize());
     
     if (!listingData) {
       console.error('No listing data available');
@@ -101,14 +123,15 @@ export const useListingSave = () => {
       savedListings.push(newListing);
       console.log('Updated savedListings array length:', savedListings.length);
       
-      // Try to save with quota handling
+      // Try to save with more aggressive quota handling
       let saveAttempt = 0;
-      const maxAttempts = 3;
+      const maxAttempts = 5;
       
       while (saveAttempt < maxAttempts) {
         try {
           const stringifiedListings = JSON.stringify(savedListings);
           console.log(`Save attempt ${saveAttempt + 1}, stringified listings length:`, stringifiedListings.length);
+          console.log('Storage size before attempt:', getStorageSize());
           
           localStorage.setItem('savedListings', stringifiedListings);
           console.log('Successfully saved to localStorage');
@@ -127,19 +150,59 @@ export const useListingSave = () => {
           console.error(`Save attempt ${saveAttempt + 1} failed:`, saveError);
           
           if (saveError.name === 'QuotaExceededError' || saveError.message.includes('quota')) {
-            console.log('Storage quota exceeded, attempting to clear old listings...');
+            console.log('Storage quota exceeded, attempting cleanup...');
             
-            const clearedSpace = clearOldListings();
-            if (clearedSpace) {
-              toast({
-                title: "Storage Cleaned",
-                description: "Cleared old listings to make space. Retrying save...",
-              });
-              saveAttempt++;
-              continue; // Retry the save
+            if (saveAttempt === 0) {
+              // First attempt: clear old listings
+              const clearedSpace = clearOldListings();
+              if (clearedSpace) {
+                toast({
+                  title: "Storage Cleaned",
+                  description: "Cleared old listings to make space. Retrying save...",
+                });
+              }
+            } else if (saveAttempt === 1) {
+              // Second attempt: clear all listings except the current one
+              const clearedAll = clearAllListings();
+              if (clearedAll) {
+                savedListings = [newListing]; // Only keep the new listing
+                toast({
+                  title: "Storage Reset",
+                  description: "Cleared all old listings to make space. Retrying save...",
+                });
+              }
             } else {
-              throw new Error('Storage quota exceeded. Please manually delete some saved listings and try again.');
+              // Final attempts: try to clear other localStorage items
+              try {
+                const keysToDelete = [];
+                for (let key in localStorage) {
+                  if (key !== 'savedListings' && localStorage.hasOwnProperty(key)) {
+                    keysToDelete.push(key);
+                  }
+                }
+                
+                keysToDelete.forEach(key => {
+                  try {
+                    localStorage.removeItem(key);
+                    console.log('Removed localStorage key:', key);
+                  } catch (e) {
+                    console.warn('Could not remove key:', key);
+                  }
+                });
+                
+                if (keysToDelete.length > 0) {
+                  toast({
+                    title: "Storage Cleared",
+                    description: "Cleared browser storage to make space. Retrying save...",
+                  });
+                }
+              } catch (e) {
+                console.error('Error clearing storage:', e);
+              }
             }
+            
+            saveAttempt++;
+            continue; // Retry the save
           } else {
             throw new Error(`Save operation failed: ${saveError.message}`);
           }
@@ -147,7 +210,7 @@ export const useListingSave = () => {
       }
       
       if (saveAttempt >= maxAttempts) {
-        throw new Error('Failed to save after multiple attempts. Please clear some saved listings manually.');
+        throw new Error('Storage quota exceeded. Your browser storage is full. Please try clearing your browser data or use a different browser.');
       }
 
       toast({
