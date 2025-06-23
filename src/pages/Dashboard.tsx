@@ -1,15 +1,15 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Camera, Plus, ArrowUp } from 'lucide-react';
+import { Camera, Plus, ArrowUp, List } from 'lucide-react';
 import MobileHeader from '@/components/MobileHeader';
 
 interface DashboardProps {
   onCreateListing: () => void;
+  onViewListings: () => void;
 }
 
-const Dashboard = ({ onCreateListing }: DashboardProps) => {
+const Dashboard = ({ onCreateListing, onViewListings }: DashboardProps) => {
   const recentListings = [
     { id: 1, title: "Vintage Nike Air Max 90", price: 85, status: "Active" },
     { id: 2, title: "Levi's 501 Jeans Size 32", price: 45, status: "Sold" },
@@ -32,13 +32,24 @@ const Dashboard = ({ onCreateListing }: DashboardProps) => {
         <h1 className="text-2xl font-bold mb-2">Welcome back!</h1>
         <p className="text-blue-100 mb-6">Ready to create your next listing?</p>
         
-        <Button
-          onClick={onCreateListing}
-          className="w-full bg-white text-blue-600 hover:bg-gray-100 py-3 text-lg font-medium"
-        >
-          <Camera className="w-5 h-5 mr-2" />
-          Create New Listing
-        </Button>
+        <div className="space-y-3">
+          <Button
+            onClick={onCreateListing}
+            className="w-full bg-white text-blue-600 hover:bg-gray-100 py-3 text-lg font-medium"
+          >
+            <Camera className="w-5 h-5 mr-2" />
+            Create New Listing
+          </Button>
+          
+          <Button
+            onClick={onViewListings}
+            variant="outline"
+            className="w-full border-white text-white hover:bg-white hover:text-blue-600 py-3 text-lg font-medium"
+          >
+            <List className="w-5 h-5 mr-2" />
+            Manage Listings
+          </Button>
+        </div>
       </div>
 
       {/* Stats Grid */}
