@@ -1,5 +1,7 @@
+
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { ListingData } from '@/types/CreateListing';
 
 export const useListingSave = () => {
@@ -7,7 +9,7 @@ export const useListingSave = () => {
   const { toast } = useToast();
 
   const saveListing = async (listingData: ListingData, shippingCost: number): Promise<boolean> => {
-    console.log('=== SAVE LISTING ===');
+    console.log('=== SAVE LISTING TO SUPABASE ===');
     
     if (!listingData) {
       console.error('No listing data provided');
@@ -22,106 +24,63 @@ export const useListingSave = () => {
     setIsSaving(true);
     
     try {
-      // Create the new listing object
-      const newListing = {
-        id: `listing-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        ...listingData,
-        shippingCost: Number(shippingCost) || 9.95,
-        status: 'draft',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+      // Check if user is authenticated
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please sign in to save your listing.",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      // Prepare listing data for Supabase
+      const listingForDb = {
+        user_id: user.id,
+        title: listingData.title,
+        description: listingData.description,
+        price: listingData.price,
+        category: listingData.category,
+        condition: listingData.condition,
+        measurements: listingData.measurements || {},
+        keywords: listingData.keywords || [],
+        photos: listingData.photos || [],
+        price_research: listingData.priceResearch,
+        shipping_cost: Number(shippingCost) || 9.95,
+        status: 'draft'
       };
 
-      console.log('New listing created:', {
-        id: newListing.id,
-        title: newListing.title,
-        price: newListing.price
+      console.log('Saving listing to Supabase:', {
+        title: listingForDb.title,
+        price: listingForDb.price,
+        shipping_cost: listingForDb.shipping_cost
       });
 
-      // Try to save to localStorage with aggressive cleanup if needed
-      let storageSaved = false;
-      try {
-        const existingListings = JSON.parse(localStorage.getItem('savedListings') || '[]');
-        
-        // Add new listing to the beginning
-        const updatedListings = [newListing, ...existingListings];
-        
-        // Try to save all listings first
-        try {
-          localStorage.setItem('savedListings', JSON.stringify(updatedListings));
-          console.log('Successfully saved to localStorage with all listings');
-          storageSaved = true;
-        } catch (storageError) {
-          console.log('Failed to save all listings, trying with cleanup...');
-          
-          // If that fails, keep only the new listing and most recent one
-          const minimalListings = updatedListings.slice(0, 2);
-          try {
-            localStorage.setItem('savedListings', JSON.stringify(minimalListings));
-            console.log('Successfully saved to localStorage with minimal listings');
-            storageSaved = true;
-          } catch (minimalError) {
-            console.log('Failed minimal save, trying with just new listing...');
-            
-            // If that still fails, save only the new listing
-            try {
-              localStorage.setItem('savedListings', JSON.stringify([newListing]));
-              console.log('Successfully saved only new listing to localStorage');
-              storageSaved = true;
-            } catch (singleError) {
-              console.warn('All localStorage save attempts failed:', singleError);
-              storageSaved = false;
-            }
-          }
-        }
-      } catch (parseError) {
-        console.log('localStorage data was corrupted, creating fresh with new listing');
-        try {
-          localStorage.setItem('savedListings', JSON.stringify([newListing]));
-          storageSaved = true;
-        } catch (freshError) {
-          console.warn('Even fresh localStorage save failed:', freshError);
-          storageSaved = false;
-        }
-      }
+      // Save to Supabase
+      const { data, error } = await supabase
+        .from('listings')
+        .insert([listingForDb])
+        .select()
+        .single();
 
-      // Always offer download as backup, but make it optional for user
-      const downloadData = {
-        listing: newListing,
-        exportedAt: new Date().toISOString(),
-        note: storageSaved ? 'Backup export of saved listing' : 'Primary export - browser storage unavailable'
-      };
-
-      const dataStr = JSON.stringify(downloadData, null, 2);
-      const dataBlob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(dataBlob);
-      
-      // Create download link but don't auto-click if localStorage worked
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `listing-${newListing.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${Date.now()}.json`;
-      
-      if (!storageSaved) {
-        // Only auto-download if localStorage failed
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      }
-      
-      URL.revokeObjectURL(url);
-
-      // Show appropriate success message
-      if (storageSaved) {
+      if (error) {
+        console.error('Supabase save error:', error);
         toast({
-          title: "Listing Saved! ✅",
-          description: `Your ${listingData.title} listing has been saved to your Listings Manager.`
+          title: "Save Failed",
+          description: `Failed to save listing: ${error.message}`,
+          variant: "destructive"
         });
-      } else {
-        toast({
-          title: "Listing Exported! 📁",
-          description: `Your ${listingData.title} listing has been downloaded. Browser storage is full.`
-        });
+        return false;
       }
+
+      console.log('Successfully saved listing:', data);
+
+      toast({
+        title: "Listing Saved! ✅",
+        description: `Your ${listingData.title} listing has been saved to your account.`
+      });
 
       return true;
 
