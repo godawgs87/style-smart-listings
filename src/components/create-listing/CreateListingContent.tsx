@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,8 +42,14 @@ const CreateListingContent = ({
   getWeight,
   getDimensions
 }: CreateListingContentProps) => {
-  console.log('CreateListingContent - Current shipping cost:', shippingCost);
-  console.log('CreateListingContent - Button should be enabled:', shippingCost > 0);
+  console.log('=== CreateListingContent DEBUG ===');
+  console.log('Current step:', currentStep);
+  console.log('Shipping cost:', shippingCost);
+  console.log('Shipping cost type:', typeof shippingCost);
+  console.log('Is saving:', isSaving);
+  console.log('Is saving type:', typeof isSaving);
+  console.log('Button should be disabled:', isSaving || shippingCost <= 0);
+  console.log('shippingCost <= 0:', shippingCost <= 0);
 
   if (currentStep === 'photos') {
     return (
@@ -85,6 +90,13 @@ const CreateListingContent = ({
   }
 
   if (currentStep === 'shipping' && listingData) {
+    const buttonDisabled = isSaving || shippingCost <= 0;
+    console.log('=== BUTTON STATE DEBUG ===');
+    console.log('Button disabled calculated:', buttonDisabled);
+    console.log('isSaving:', isSaving);
+    console.log('shippingCost:', shippingCost);
+    console.log('shippingCost <= 0:', shippingCost <= 0);
+    
     return (
       <div className="space-y-6">
         <Alert>
@@ -105,10 +117,22 @@ const CreateListingContent = ({
         
         <PricingTip />
         
+        {/* Debug info for troubleshooting */}
+        <div className="bg-yellow-100 p-4 rounded text-sm">
+          <strong>Debug Info:</strong><br/>
+          Shipping Cost: {shippingCost} (type: {typeof shippingCost})<br/>
+          Is Saving: {isSaving ? 'true' : 'false'}<br/>
+          Button Disabled: {buttonDisabled ? 'true' : 'false'}
+        </div>
+        
         <Button 
-          onClick={onExport} 
+          onClick={() => {
+            console.log('=== BUTTON CLICKED ===');
+            console.log('Calling onExport...');
+            onExport();
+          }} 
           className="w-full gradient-bg text-white text-lg py-6"
-          disabled={isSaving || shippingCost <= 0}
+          disabled={buttonDisabled}
         >
           {isSaving ? (
             <>
