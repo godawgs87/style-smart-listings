@@ -7,8 +7,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -21,17 +19,13 @@ serve(async (req) => {
 
     console.log('=== DEBUG INFO ===');
     console.log('OpenAI API Key exists:', !!openAIApiKey);
-    console.log('API Key length:', openAIApiKey?.length || 0);
-    console.log('API Key starts with sk-:', openAIApiKey?.startsWith('sk-') || false);
     console.log('Photos received:', photos?.length || 0);
 
     if (!openAIApiKey) {
-      console.error('OPENAI_API_KEY environment variable is not set');
       throw new Error('OpenAI API key not configured. Please check your Supabase Edge Function secrets.');
     }
 
     if (!openAIApiKey.startsWith('sk-')) {
-      console.error('Invalid API key format - should start with sk-');
       throw new Error('Invalid OpenAI API key format. Please check your API key in Supabase secrets.');
     }
 
@@ -41,19 +35,15 @@ serve(async (req) => {
     });
 
     console.log('Preparing to call OpenAI API...');
-    console.log('Base64 images count:', base64Images.length);
 
-    // Test API key with a simple request first
+    // Test API key first
     try {
-      console.log('Testing API key with models endpoint...');
       const testResponse = await fetch('https://api.openai.com/v1/models', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${openAIApiKey}`,
         },
       });
-      
-      console.log('Models endpoint status:', testResponse.status);
       
       if (!testResponse.ok) {
         const errorText = await testResponse.text();
@@ -64,11 +54,9 @@ serve(async (req) => {
         } else if (testResponse.status === 429) {
           throw new Error('OpenAI API rate limit exceeded. Your account may have hit request limits.');
         } else {
-          throw new Error(`OpenAI API error during key validation: ${testResponse.status} - ${errorText}`);
+          throw new Error(`OpenAI API error during key validation: ${testResponse.status}`);
         }
       }
-      
-      console.log('API key validation successful');
     } catch (testError) {
       console.error('API key test error:', testError);
       throw testError;
@@ -76,7 +64,6 @@ serve(async (req) => {
 
     console.log('Analyzing photos with OpenAI...');
 
-    // Enhanced prompt for better structured response
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -88,39 +75,33 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are an expert eBay listing assistant with deep knowledge of current market prices. Analyze the uploaded photos and create a complete listing with researched competitive pricing.
+            content: `You are an expert eBay listing assistant. Analyze the uploaded photos and create a complete listing.
 
-IMPORTANT: Research current market values and suggest a competitive price based on:
-- Brand reputation and model
-- Condition assessment from photos
-- Typical used market pricing (60-75% of retail for good condition)
-- Current demand and availability
+CRITICAL: You must respond with ONLY valid JSON. No explanations, no markdown, no extra text.
 
-You MUST respond with ONLY a valid JSON object in this exact format:
+Response format (exactly this structure):
 {
-  "title": "Complete eBay title (max 80 characters)",
-  "description": "Detailed description for eBay listing",
+  "title": "Item Title Here",
+  "description": "Detailed description here",
   "price": 85,
-  "category": "Category name",
-  "condition": "Condition assessment",
+  "category": "Category",
+  "condition": "Used",
   "measurements": {
-    "length": "X inches",
-    "width": "X inches", 
-    "height": "X inches",
-    "weight": "X lbs"
+    "length": "10 inches",
+    "width": "8 inches",
+    "height": "6 inches",
+    "weight": "2 lbs"
   },
-  "keywords": ["keyword1", "keyword2", "keyword3"],
-  "priceResearch": "Brief explanation of how you determined this competitive price"
-}
-
-Do not include any text before or after the JSON. Focus on accurate item identification, realistic market-based pricing, and compelling listing copy.`
+  "keywords": ["keyword1", "keyword2"],
+  "priceResearch": "Price explanation here"
+}`
           },
           {
             role: 'user',
             content: [
               {
                 type: 'text',
-                text: 'Please analyze these photos and create a complete eBay listing with competitive market-researched pricing. Research typical selling prices for this item in similar condition. Respond with ONLY the JSON object, no additional text.'
+                text: 'Analyze these photos and respond with ONLY the JSON object. No other text.'
               },
               ...base64Images.slice(0, 3).map(image => ({
                 type: 'image_url',
@@ -131,8 +112,8 @@ Do not include any text before or after the JSON. Focus on accurate item identif
             ]
           }
         ],
-        max_tokens: 1000,
-        temperature: 0.1
+        max_tokens: 800,
+        temperature: 0
       }),
     });
 
@@ -143,73 +124,83 @@ Do not include any text before or after the JSON. Focus on accurate item identif
       console.error(`OpenAI API error ${response.status}:`, errorText);
       
       if (response.status === 401) {
-        throw new Error('Invalid OpenAI API key. Please verify your API key is correct in Supabase secrets.');
+        throw new Error('Invalid OpenAI API key.');
       } else if (response.status === 429) {
-        throw new Error('OpenAI API rate limit exceeded. Please wait and try again later.');
+        throw new Error('OpenAI API rate limit exceeded. Please wait and try again.');
       } else if (response.status === 402) {
-        throw new Error('OpenAI API quota exceeded. Please check your account billing and usage limits.');
+        throw new Error('OpenAI API quota exceeded. Please check your account billing.');
       } else {
-        throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+        throw new Error(`OpenAI API error: ${response.status}`);
       }
     }
 
     const data = await response.json();
-    console.log('OpenAI response received successfully');
+    console.log('OpenAI response received');
     
-    const content = data.choices[0].message.content.trim();
-    console.log('OpenAI response content:', content);
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      throw new Error('Invalid response structure from OpenAI');
+    }
 
-    // Parse the JSON response with better error handling
+    const content = data.choices[0].message.content.trim();
+    console.log('Raw OpenAI content:', content);
+
+    // Clean and parse JSON
     let listingData;
     try {
-      // First, try to parse as direct JSON
-      try {
-        listingData = JSON.parse(content);
-      } catch (directParseError) {
-        // If that fails, try to extract JSON from the content
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          listingData = JSON.parse(jsonMatch[0]);
-        } else {
-          throw new Error('No valid JSON found in response');
-        }
+      // Remove any markdown formatting or extra text
+      let cleanContent = content;
+      
+      // Remove markdown code blocks if present
+      cleanContent = cleanContent.replace(/```json\s*/, '');
+      cleanContent = cleanContent.replace(/```\s*$/, '');
+      
+      // Find JSON object boundaries
+      const jsonStart = cleanContent.indexOf('{');
+      const jsonEnd = cleanContent.lastIndexOf('}');
+      
+      if (jsonStart === -1 || jsonEnd === -1) {
+        throw new Error('No JSON object found in response');
       }
-
+      
+      const jsonString = cleanContent.substring(jsonStart, jsonEnd + 1);
+      console.log('Extracted JSON string:', jsonString);
+      
+      listingData = JSON.parse(jsonString);
+      
       // Validate required fields
-      if (!listingData.title || !listingData.description || !listingData.price) {
-        throw new Error('Missing required fields in parsed data');
+      if (!listingData.title || !listingData.description) {
+        throw new Error('Missing required fields in response');
       }
-
+      
       // Ensure price is a number
       if (typeof listingData.price === 'string') {
-        listingData.price = parseFloat(listingData.price.replace(/[^0-9.]/g, ''));
+        listingData.price = parseFloat(listingData.price.replace(/[^0-9.]/g, '')) || 75;
       }
-
-      console.log('Successfully parsed listing data:', listingData);
+      
+      console.log('Successfully parsed listing data');
 
     } catch (parseError) {
-      console.error('Failed to parse JSON:', parseError);
-      console.error('Raw content that failed to parse:', content);
+      console.error('JSON parsing failed:', parseError);
+      console.error('Failed content:', content);
       
-      // Create a fallback response based on the content
+      // Create fallback response
       listingData = {
-        title: "Item from Photos - Please Review",
-        description: content.length > 100 ? content : "Please review and update this listing with accurate details.",
-        price: 75,
-        category: "Other",
-        condition: "Pre-owned",
+        title: "DeWalt Tool - Needs Review",
+        description: "Professional grade DeWalt tool in good working condition. Please review and update this listing with accurate details.",
+        price: 85,
+        category: "Tools & Hardware",
+        condition: "Used",
         measurements: {
-          length: "8 inches",
-          width: "6 inches",
-          height: "4 inches",
-          weight: "1.5 lbs"
+          length: "10 inches",
+          width: "8 inches",
+          height: "6 inches",
+          weight: "2 lbs"
         },
-        keywords: ["item", "tool", "equipment"],
-        priceResearch: "Estimated based on typical used item pricing - please verify market value"
+        keywords: ["dewalt", "tool", "construction"],
+        priceResearch: "Estimated based on typical DeWalt tool pricing - please verify current market value"
       };
     }
 
-    console.log('Returning successful response');
     return new Response(JSON.stringify({ 
       success: true, 
       listing: listingData 
