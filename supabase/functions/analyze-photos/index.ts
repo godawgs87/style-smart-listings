@@ -30,11 +30,11 @@ serve(async (req) => {
 
     console.log('Analyzing photos with OpenAI...');
 
-    // Retry logic for rate limiting - fixed implementation
-    const maxRetries = 3;
-    let lastError;
+    // Improved retry logic with better error handling
+    const maxRetries = 5;
+    let attempt = 0;
     
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
+    while (attempt < maxRetries) {
       try {
         console.log(`Attempt ${attempt + 1} of ${maxRetries}`);
         
@@ -90,6 +90,8 @@ Focus on identifying the item accurately, estimating realistic measurements, and
           }),
         });
 
+        console.log(`Response status: ${response.status}`);
+
         if (response.ok) {
           const data = await response.json();
           const content = data.choices[0].message.content;
@@ -134,39 +136,61 @@ Focus on identifying the item accurately, estimating realistic measurements, and
 
         // Handle rate limiting
         if (response.status === 429) {
-          const waitTime = Math.pow(2, attempt) * 1000; // Exponential backoff: 1s, 2s, 4s
+          const retryAfter = response.headers.get('retry-after');
+          const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : Math.pow(2, attempt) * 2000;
+          
           console.log(`Rate limited on attempt ${attempt + 1}. Waiting ${waitTime}ms before retry...`);
           
-          if (attempt < maxRetries - 1) { // Don't wait on the last attempt
+          if (attempt < maxRetries - 1) {
             await sleep(waitTime);
+            attempt++;
             continue;
           } else {
-            throw new Error('OpenAI API rate limit exceeded. Please wait a moment and try again.');
+            throw new Error('OpenAI API rate limit exceeded after all retries. Your account may have exceeded its quota or request limits. Please check your OpenAI account usage and billing.');
           }
+        }
+
+        // Handle quota exceeded or other billing issues
+        if (response.status === 402) {
+          throw new Error('OpenAI API quota exceeded. Please check your account billing and usage limits.');
         }
 
         // Handle other HTTP errors
         const errorText = await response.text();
+        console.error(`OpenAI API error ${response.status}:`, errorText);
+        
+        if (response.status >= 500) {
+          // Server errors - retry
+          if (attempt < maxRetries - 1) {
+            const waitTime = Math.pow(2, attempt) * 1000;
+            console.log(`Server error, retrying in ${waitTime}ms...`);
+            await sleep(waitTime);
+            attempt++;
+            continue;
+          }
+        }
+        
         throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
 
       } catch (error) {
-        lastError = error;
         console.error(`Attempt ${attempt + 1} failed:`, error.message);
         
-        // If it's the last attempt, throw the error
-        if (attempt === maxRetries - 1) {
+        // If it's the last attempt or a non-retryable error, throw
+        if (attempt === maxRetries - 1 || 
+            error.message.includes('quota exceeded') || 
+            error.message.includes('API key')) {
           throw error;
         }
         
-        // Wait before retrying (except for rate limit errors which have their own wait)
-        if (!error.message.includes('429') && !error.message.includes('rate limit')) {
-          await sleep(1000 * (attempt + 1)); // 1s, 2s, 3s
-        }
+        // Wait before retrying for network errors
+        const waitTime = Math.pow(2, attempt) * 1000;
+        console.log(`Waiting ${waitTime}ms before retry...`);
+        await sleep(waitTime);
+        attempt++;
       }
     }
 
-    // This should never be reached, but just in case
-    throw lastError || new Error('Max retries exceeded');
+    throw new Error('Max retries exceeded');
 
   } catch (error) {
     console.error('Error in analyze-photos function:', error);
@@ -174,9 +198,11 @@ Focus on identifying the item accurately, estimating realistic measurements, and
     // Provide specific error messages for common issues
     let errorMessage = error.message;
     if (error.message.includes('rate limit') || error.message.includes('429')) {
-      errorMessage = 'OpenAI API rate limit reached. Please wait a few minutes and try again.';
+      errorMessage = 'OpenAI API rate limit reached. Your account may have hit request limits. Please wait and try again later, or check your OpenAI account usage.';
+    } else if (error.message.includes('quota exceeded') || error.message.includes('402')) {
+      errorMessage = 'OpenAI API quota exceeded. Please check your account billing and usage limits at https://platform.openai.com/usage';
     } else if (error.message.includes('API key')) {
-      errorMessage = 'OpenAI API key is not configured properly.';
+      errorMessage = 'OpenAI API key is not configured properly. Please check your API key in the Supabase secrets.';
     }
     
     return new Response(JSON.stringify({ 
