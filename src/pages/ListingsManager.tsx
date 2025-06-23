@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import MobileHeader from '@/components/MobileHeader';
 import { Card } from '@/components/ui/card';
@@ -20,8 +19,9 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { Eye, Download, Trash2, Upload } from 'lucide-react';
+import { Eye, Download, Trash2, Upload, ShoppingCart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ListingData {
   id: string;
@@ -58,6 +58,53 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
   });
 
   const [selectedListing, setSelectedListing] = useState<ListingData | null>(null);
+
+  const handleListToEbay = async (listing: ListingData) => {
+    try {
+      toast({
+        title: "Listing to eBay...",
+        description: "Please wait while we list your item on eBay."
+      });
+
+      const { data, error } = await supabase.functions.invoke('list-to-ebay', {
+        body: { listing }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data.success) {
+        // Update listing status to listed
+        const updatedListings = listings.map(l => 
+          l.id === listing.id 
+            ? { 
+                ...l, 
+                status: 'listed' as const, 
+                ebayItemId: data.itemId,
+                listedAt: new Date().toISOString() 
+              }
+            : l
+        );
+        setListings(updatedListings);
+        localStorage.setItem('savedListings', JSON.stringify(updatedListings));
+
+        toast({
+          title: "Listed on eBay!",
+          description: `${listing.title} has been successfully listed on eBay.`
+        });
+      } else {
+        throw new Error(data.error || 'eBay listing failed');
+      }
+    } catch (error) {
+      console.error('eBay listing error:', error);
+      toast({
+        title: "eBay Listing Failed",
+        description: "There was an error listing your item on eBay. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
 
   const handleExportToBay = (listing: ListingData) => {
     // Update listing status
@@ -316,13 +363,24 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
                           </Sheet>
                           
                           {listing.status === 'draft' && (
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => handleExportToBay(listing)}
-                            >
-                              <Download className="w-4 h-4" />
-                            </Button>
+                            <>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleListToEbay(listing)}
+                                className="bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100"
+                              >
+                                <ShoppingCart className="w-4 h-4" />
+                              </Button>
+                              
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleExportToBay(listing)}
+                              >
+                                <Download className="w-4 h-4" />
+                              </Button>
+                            </>
                           )}
                           
                           <Button 
