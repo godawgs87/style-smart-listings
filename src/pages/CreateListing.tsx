@@ -31,12 +31,14 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
 
   const handleShippingSelect = (option: any) => {
     console.log('Selected shipping:', option);
+    console.log('Setting shipping cost to:', option.cost);
     setShippingCost(option.cost);
   };
 
   const handleExport = async () => {
     if (!listingData) return;
     
+    console.log('Attempting to save with shipping cost:', shippingCost);
     const success = await saveListing(listingData, shippingCost);
     if (success) {
       // Small delay to ensure toast is visible
@@ -77,7 +79,7 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
           onPhotosChange={handlePhotosChange}
           onAnalyze={handleAnalyze}
           onEdit={() => setCurrentStep('photos')}
-          onExport={() => setCurrentStep('shipping')}
+          onExport={handleExport}
           onShippingSelect={handleShippingSelect}
           getWeight={() => getWeightFromListing(listingData)}
           getDimensions={() => getDimensionsFromListing(listingData)}

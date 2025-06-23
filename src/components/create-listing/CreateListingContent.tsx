@@ -43,6 +43,9 @@ const CreateListingContent = ({
   getWeight,
   getDimensions
 }: CreateListingContentProps) => {
+  console.log('CreateListingContent - Current shipping cost:', shippingCost);
+  console.log('CreateListingContent - Button should be enabled:', shippingCost > 0);
+
   if (currentStep === 'photos') {
     return (
       <Card className="p-6">
@@ -105,14 +108,14 @@ const CreateListingContent = ({
         <Button 
           onClick={onExport} 
           className="w-full gradient-bg text-white text-lg py-6"
-          disabled={isSaving || shippingCost === 0}
+          disabled={isSaving || shippingCost <= 0}
         >
           {isSaving ? (
             <>
               <div className="animate-spin w-5 h-5 border-3 border-white border-t-transparent rounded-full mr-3"></div>
               Saving Listing...
             </>
-          ) : shippingCost === 0 ? (
+          ) : shippingCost <= 0 ? (
             <>
               <Save className="w-5 h-5 mr-3" />
               Select Shipping Option First
@@ -120,7 +123,7 @@ const CreateListingContent = ({
           ) : (
             <>
               <Save className="w-5 h-5 mr-3" />
-              Save Listing
+              Save Listing (${shippingCost.toFixed(2)} shipping)
             </>
           )}
         </Button>
