@@ -63,8 +63,12 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
     setIsAnalyzing(true);
     
     try {
+      console.log('=== PHOTO ANALYSIS DEBUG ===');
+      console.log('Starting photo analysis with', photos.length, 'photos');
+      
       // Convert photos to base64
       const base64Photos = await convertFilesToBase64(photos);
+      console.log('Photos converted to base64, first photo size:', base64Photos[0]?.length || 0);
       
       console.log('Calling analyze-photos function...');
       
@@ -72,12 +76,14 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
         body: { photos: base64Photos }
       });
 
+      console.log('Supabase function response received');
+      console.log('Error:', error);
+      console.log('Data:', data);
+
       if (error) {
         console.error('Supabase function error:', error);
-        throw error;
+        throw new Error(`Function call failed: ${error.message}`);
       }
-
-      console.log('Analysis result:', data);
 
       if (data.success && data.listing) {
         const analysisResult = data.listing;
@@ -91,13 +97,17 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
           description: "Your listing has been generated successfully."
         });
       } else {
-        throw new Error(data.error || 'Analysis failed');
+        throw new Error(data.error || 'Analysis failed - no data returned');
       }
     } catch (error) {
-      console.error('Analysis error:', error);
+      console.error('=== ANALYSIS ERROR ===');
+      console.error('Error type:', error?.constructor?.name);
+      console.error('Error message:', error?.message);
+      console.error('Full error:', error);
+      
       toast({
         title: "Analysis Failed",
-        description: "There was an error analyzing your photos. Please try again.",
+        description: `Error: ${error?.message || 'Unknown error'}. Please check your photos and try again.`,
         variant: "destructive"
       });
     } finally {
@@ -208,7 +218,7 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
     { id: 'photos', title: 'Photos', completed: photos.length > 0 },
     { id: 'analysis', title: 'Analysis', completed: listingData !== null },
     { id: 'preview', title: 'Preview', completed: currentStep === 'shipping' },
-    { id: 'shipping', title: 'Shipping', completed: false }
+    { id: 'shipping', title: 'Ship', completed: false }
   ];
 
   // Extract weight from listing data for shipping calculator
@@ -248,30 +258,32 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
         onBack={onBack}
       />
 
-      {/* Progress Steps */}
-      <div className="bg-white border-b border-gray-200 p-4">
-        <div className="flex justify-between items-center">
+      {/* Fixed Progress Steps - Better responsive layout */}
+      <div className="bg-white border-b border-gray-200 p-3 sticky top-[60px] z-40">
+        <div className="flex justify-between items-center max-w-full overflow-x-auto">
           {steps.map((step, index) => (
-            <div key={step.id} className="flex items-center">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                step.completed 
-                  ? 'bg-green-500 text-white' 
-                  : currentStep === step.id
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-gray-300 text-gray-600'
-              }`}>
-                {step.completed ? <Check className="w-4 h-4" /> : index + 1}
+            <div key={step.id} className="flex items-center min-w-0 flex-1">
+              <div className="flex items-center justify-center min-w-0">
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0 ${
+                  step.completed 
+                    ? 'bg-green-500 text-white' 
+                    : currentStep === step.id
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-300 text-gray-600'
+                }`}>
+                  {step.completed ? <Check className="w-3 h-3" /> : index + 1}
+                </div>
+                <span className="ml-1.5 text-xs font-medium text-gray-900 truncate">{step.title}</span>
               </div>
-              <span className="ml-2 text-sm font-medium text-gray-900">{step.title}</span>
               {index < steps.length - 1 && (
-                <div className="w-8 h-0.5 bg-gray-300 mx-2" />
+                <div className="w-4 h-0.5 bg-gray-300 mx-1.5 flex-shrink-0" />
               )}
             </div>
           ))}
         </div>
       </div>
 
-      <div className="p-4">
+      <div className="p-4 space-y-4">
         {currentStep === 'photos' && (
           <Card className="p-6">
             <h2 className="text-xl font-bold mb-4">Upload Item Photos</h2>
@@ -279,8 +291,8 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
             
             {photos.length > 0 && (
               <div className="mt-6">
-                <Button onClick={handleAnalyze} className="w-full">
-                  Analyze Photos ({photos.length} uploaded)
+                <Button onClick={handleAnalyze} className="w-full" disabled={isAnalyzing}>
+                  {isAnalyzing ? 'Analyzing...' : `Analyze Photos (${photos.length} uploaded)`}
                 </Button>
               </div>
             )}
