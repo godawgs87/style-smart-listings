@@ -1,8 +1,15 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Settings, List, Camera, LogOut } from 'lucide-react';
+import { Settings, List, Camera, LogOut, Menu } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useIsMobile } from '@/hooks/use-mobile';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface NavigationProps {
   currentView?: string;
@@ -11,6 +18,7 @@ interface NavigationProps {
 
 const Navigation = ({ currentView, onNavigate }: NavigationProps) => {
   const { signOut } = useAuth();
+  const isMobile = useIsMobile();
 
   const handleNavigation = (path: string) => {
     if (path.startsWith('/')) {
@@ -19,6 +27,36 @@ const Navigation = ({ currentView, onNavigate }: NavigationProps) => {
       onNavigate(path as 'dashboard' | 'create' | 'listings');
     }
   };
+
+  if (isMobile) {
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm">
+            <Menu className="w-4 h-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuItem onClick={() => handleNavigation('dashboard')}>
+            <Camera className="w-4 h-4 mr-2" />
+            Create
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => handleNavigation('listings')}>
+            <List className="w-4 h-4 mr-2" />
+            Listings
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => handleNavigation('/admin')}>
+            <Settings className="w-4 h-4 mr-2" />
+            Admin
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={signOut}>
+            <LogOut className="w-4 h-4 mr-2" />
+            Sign Out
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
 
   return (
     <nav className="flex items-center space-x-2">
