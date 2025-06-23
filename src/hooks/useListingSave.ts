@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { ListingData } from '@/types/CreateListing';
@@ -7,11 +6,33 @@ export const useListingSave = () => {
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
+  const clearOldListings = () => {
+    try {
+      const savedListingsStr = localStorage.getItem('savedListings');
+      if (savedListingsStr) {
+        const savedListings = JSON.parse(savedListingsStr);
+        if (Array.isArray(savedListings) && savedListings.length > 10) {
+          // Keep only the 5 most recent listings
+          const sortedListings = savedListings.sort((a, b) => 
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+          const recentListings = sortedListings.slice(0, 5);
+          localStorage.setItem('savedListings', JSON.stringify(recentListings));
+          console.log(`Cleared old listings, kept ${recentListings.length} most recent`);
+          return true;
+        }
+      }
+      return false;
+    } catch (error) {
+      console.error('Error clearing old listings:', error);
+      return false;
+    }
+  };
+
   const saveListing = async (listingData: ListingData, shippingCost: number): Promise<boolean> => {
     console.log('=== SAVE LISTING DEBUG ===');
     console.log('saveListing called');
     console.log('listingData exists:', !!listingData);
-    console.log('listingData:', listingData);
     console.log('shippingCost:', shippingCost);
     
     if (!listingData) {
@@ -80,40 +101,53 @@ export const useListingSave = () => {
       savedListings.push(newListing);
       console.log('Updated savedListings array length:', savedListings.length);
       
-      try {
-        const stringifiedListings = JSON.stringify(savedListings);
-        console.log('Stringified listings length:', stringifiedListings.length);
-        
-        // Check if we're approaching localStorage limits (usually ~5MB)
-        if (stringifiedListings.length > 4000000) { // 4MB warning threshold
-          console.warn('Approaching localStorage size limit');
-          toast({
-            title: "Storage Warning",
-            description: "Your saved listings are taking up significant storage. Consider exporting older listings.",
-            variant: "destructive"
-          });
-        }
-        
-        localStorage.setItem('savedListings', stringifiedListings);
-        console.log('Successfully saved to localStorage');
-        
-        // Verify the save
-        const verification = localStorage.getItem('savedListings');
-        console.log('Verification - localStorage content exists:', !!verification);
-        console.log('Verification - content length:', verification?.length || 0);
+      // Try to save with quota handling
+      let saveAttempt = 0;
+      const maxAttempts = 3;
+      
+      while (saveAttempt < maxAttempts) {
+        try {
+          const stringifiedListings = JSON.stringify(savedListings);
+          console.log(`Save attempt ${saveAttempt + 1}, stringified listings length:`, stringifiedListings.length);
+          
+          localStorage.setItem('savedListings', stringifiedListings);
+          console.log('Successfully saved to localStorage');
+          
+          // Verify the save
+          const verification = localStorage.getItem('savedListings');
+          console.log('Verification - localStorage content exists:', !!verification);
 
-        if (!verification) {
-          throw new Error('Failed to verify save operation');
-        }
+          if (!verification) {
+            throw new Error('Failed to verify save operation');
+          }
 
-      } catch (saveError) {
-        console.error('Error saving to localStorage:', saveError);
-        
-        if (saveError.name === 'QuotaExceededError' || saveError.message.includes('quota')) {
-          throw new Error('Storage quota exceeded. Please clear some saved listings and try again.');
-        } else {
-          throw new Error(`Save operation failed: ${saveError.message}`);
+          break; // Success, exit the retry loop
+
+        } catch (saveError) {
+          console.error(`Save attempt ${saveAttempt + 1} failed:`, saveError);
+          
+          if (saveError.name === 'QuotaExceededError' || saveError.message.includes('quota')) {
+            console.log('Storage quota exceeded, attempting to clear old listings...');
+            
+            const clearedSpace = clearOldListings();
+            if (clearedSpace) {
+              toast({
+                title: "Storage Cleaned",
+                description: "Cleared old listings to make space. Retrying save...",
+              });
+              saveAttempt++;
+              continue; // Retry the save
+            } else {
+              throw new Error('Storage quota exceeded. Please manually delete some saved listings and try again.');
+            }
+          } else {
+            throw new Error(`Save operation failed: ${saveError.message}`);
+          }
         }
+      }
+      
+      if (saveAttempt >= maxAttempts) {
+        throw new Error('Failed to save after multiple attempts. Please clear some saved listings manually.');
       }
 
       toast({
@@ -127,7 +161,6 @@ export const useListingSave = () => {
       console.error('=== SAVE ERROR ===');
       console.error('Error type:', error?.constructor?.name);
       console.error('Error message:', error?.message);
-      console.error('Error stack:', error?.stack);
       console.error('Full error object:', error);
       
       toast({

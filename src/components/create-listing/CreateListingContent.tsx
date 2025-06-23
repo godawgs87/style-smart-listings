@@ -117,14 +117,6 @@ const CreateListingContent = ({
         
         <PricingTip />
         
-        {/* Debug info for troubleshooting */}
-        <div className="bg-yellow-100 p-4 rounded text-sm">
-          <strong>Debug Info:</strong><br/>
-          Shipping Cost: {shippingCost} (type: {typeof shippingCost})<br/>
-          Is Saving: {isSaving ? 'true' : 'false'}<br/>
-          Button Disabled: {buttonDisabled ? 'true' : 'false'}
-        </div>
-        
         <Button 
           onClick={() => {
             console.log('=== BUTTON CLICKED ===');
