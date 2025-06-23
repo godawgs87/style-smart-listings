@@ -30,13 +30,15 @@ serve(async (req) => {
 
     console.log('Analyzing photos with OpenAI...');
 
-    // Retry logic for rate limiting
-    let retries = 3;
-    let response;
+    // Retry logic for rate limiting - fixed implementation
+    const maxRetries = 3;
+    let lastError;
     
-    while (retries > 0) {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        response = await fetch('https://api.openai.com/v1/chat/completions', {
+        console.log(`Attempt ${attempt + 1} of ${maxRetries}`);
+        
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${openAIApiKey}`,
@@ -89,81 +91,90 @@ Focus on identifying the item accurately, estimating realistic measurements, and
         });
 
         if (response.ok) {
-          break; // Success, exit retry loop
-        } else if (response.status === 429) {
-          retries--;
-          if (retries > 0) {
-            console.log(`Rate limited, retrying in ${4 - retries} seconds...`);
-            await sleep((4 - retries) * 1000); // Exponential backoff
-          } else {
-            throw new Error('Rate limit exceeded. Please wait a moment and try again.');
+          const data = await response.json();
+          const content = data.choices[0].message.content;
+          
+          console.log('OpenAI response:', content);
+
+          // Parse the JSON response
+          let listingData;
+          try {
+            const jsonMatch = content.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              listingData = JSON.parse(jsonMatch[0]);
+            } else {
+              throw new Error('No JSON found in response');
+            }
+          } catch (parseError) {
+            console.error('Failed to parse JSON:', parseError);
+            // Fallback response
+            listingData = {
+              title: "Item from Photos - Please Review",
+              description: content,
+              price: 25,
+              category: "Other",
+              condition: "Pre-owned",
+              measurements: {
+                length: "8 inches",
+                width: "6 inches",
+                height: "4 inches",
+                weight: "1.5 lbs"
+              },
+              keywords: ["vintage", "collectible", "unique"]
+            };
           }
-        } else {
-          throw new Error(`OpenAI API error: ${response.status} - ${await response.text()}`);
+
+          return new Response(JSON.stringify({ 
+            success: true, 
+            listing: listingData 
+          }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
         }
+
+        // Handle rate limiting
+        if (response.status === 429) {
+          const waitTime = Math.pow(2, attempt) * 1000; // Exponential backoff: 1s, 2s, 4s
+          console.log(`Rate limited on attempt ${attempt + 1}. Waiting ${waitTime}ms before retry...`);
+          
+          if (attempt < maxRetries - 1) { // Don't wait on the last attempt
+            await sleep(waitTime);
+            continue;
+          } else {
+            throw new Error('OpenAI API rate limit exceeded. Please wait a moment and try again.');
+          }
+        }
+
+        // Handle other HTTP errors
+        const errorText = await response.text();
+        throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+
       } catch (error) {
-        if (retries === 1) {
-          throw error; // Last retry, throw the error
+        lastError = error;
+        console.error(`Attempt ${attempt + 1} failed:`, error.message);
+        
+        // If it's the last attempt, throw the error
+        if (attempt === maxRetries - 1) {
+          throw error;
         }
-        retries--;
-        console.log(`Request failed, retrying... (${retries} attempts left)`);
-        await sleep(1000);
+        
+        // Wait before retrying (except for rate limit errors which have their own wait)
+        if (!error.message.includes('429') && !error.message.includes('rate limit')) {
+          await sleep(1000 * (attempt + 1)); // 1s, 2s, 3s
+        }
       }
     }
 
-    if (!response || !response.ok) {
-      throw new Error('Failed to get response from OpenAI after retries');
-    }
-
-    const data = await response.json();
-    const content = data.choices[0].message.content;
-    
-    console.log('OpenAI response:', content);
-
-    // Parse the JSON response
-    let listingData;
-    try {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        listingData = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error('No JSON found in response');
-      }
-    } catch (parseError) {
-      console.error('Failed to parse JSON:', parseError);
-      // Fallback response
-      listingData = {
-        title: "Item from Photos - Please Review",
-        description: content,
-        price: 25,
-        category: "Other",
-        condition: "Pre-owned",
-        measurements: {
-          length: "8 inches",
-          width: "6 inches",
-          height: "4 inches",
-          weight: "1.5 lbs"
-        },
-        keywords: ["vintage", "collectible", "unique"]
-      };
-    }
-
-    return new Response(JSON.stringify({ 
-      success: true, 
-      listing: listingData 
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    // This should never be reached, but just in case
+    throw lastError || new Error('Max retries exceeded');
 
   } catch (error) {
     console.error('Error in analyze-photos function:', error);
     
     // Provide specific error messages for common issues
     let errorMessage = error.message;
-    if (error.message.includes('Rate limit')) {
-      errorMessage = 'OpenAI API rate limit reached. Please wait a moment and try again.';
-    } else if (error.message.includes('429')) {
-      errorMessage = 'Too many requests to OpenAI. Please wait a few seconds and try again.';
+    if (error.message.includes('rate limit') || error.message.includes('429')) {
+      errorMessage = 'OpenAI API rate limit reached. Please wait a few minutes and try again.';
     } else if (error.message.includes('API key')) {
       errorMessage = 'OpenAI API key is not configured properly.';
     }
