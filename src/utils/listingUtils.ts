@@ -3,11 +3,24 @@
 
 export const getWeightFromListing = (listingData: any): number => {
   if (listingData?.measurements?.weight) {
-    // Extract numeric value from weight string (e.g., "5.0 lbs" -> 5.0)
-    const weightMatch = listingData.measurements.weight.match(/[\d.]+/);
-    return weightMatch ? parseFloat(weightMatch[0]) : 5.0;
+    const weightStr = listingData.measurements.weight.toLowerCase();
+    const weightMatch = weightStr.match(/[\d.]+/);
+    
+    if (weightMatch) {
+      const numericWeight = parseFloat(weightMatch[0]);
+      
+      // Check if it's in ounces and convert to pounds
+      if (weightStr.includes('oz')) {
+        return numericWeight / 16; // Convert ounces to pounds
+      } else if (weightStr.includes('lb') || weightStr.includes('pound')) {
+        return numericWeight;
+      } else {
+        // Default assume pounds if no unit specified
+        return numericWeight;
+      }
+    }
   }
-  return 5.0; // Default fallback
+  return 1.0; // More reasonable default for small items
 };
 
 export const getDimensionsFromListing = (listingData: any) => {
@@ -19,22 +32,22 @@ export const getDimensionsFromListing = (listingData: any) => {
   };
   
   return {
-    length: extractNumber(measurements.length) || 20,
-    width: extractNumber(measurements.width) || 8,
-    height: extractNumber(measurements.height) || 12
+    length: extractNumber(measurements.length) || 10,
+    width: extractNumber(measurements.width) || 6,
+    height: extractNumber(measurements.height) || 4
   };
 };
 
 // Legacy functions for backward compatibility (can be removed if not used elsewhere)
 export const getWeight = (): number => {
-  return 5.0;
+  return 1.0;
 };
 
 export const getDimensions = () => {
   return {
-    length: 20,
-    width: 8, 
-    height: 12
+    length: 10,
+    width: 6, 
+    height: 4
   };
 };
 

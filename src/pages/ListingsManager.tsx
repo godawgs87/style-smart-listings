@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,6 +8,8 @@ import { useListings } from '@/hooks/useListings';
 import MobileHeader from '@/components/MobileHeader';
 import Navigation from '@/components/Navigation';
 import { useAuth } from '@/hooks/useAuth';
+import ListingEditor from '@/components/ListingEditor';
+import ListingPreview from '@/components/ListingPreview';
 
 interface ListingsManagerProps {
   onBack: () => void;
@@ -15,13 +18,21 @@ interface ListingsManagerProps {
 const ListingsManager = ({ onBack }: ListingsManagerProps) => {
   const { listings, loading, deleteListing } = useListings();
   const { user } = useAuth();
+  const [editingListing, setEditingListing] = useState<any>(null);
+  const [previewingListing, setPreviewingListing] = useState<any>(null);
 
   const handleEdit = (listingId: string) => {
-    console.log('Edit listing:', listingId);
+    const listing = listings.find(l => l.id === listingId);
+    if (listing) {
+      setEditingListing(listing);
+    }
   };
 
   const handlePreview = (listingId: string) => {
-    console.log('Preview listing:', listingId);
+    const listing = listings.find(l => l.id === listingId);
+    if (listing) {
+      setPreviewingListing(listing);
+    }
   };
 
   const handleDelete = async (listingId: string) => {
@@ -30,12 +41,68 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
     }
   };
 
+  const handleSaveEdit = (updatedListing: any) => {
+    setEditingListing(null);
+    // TODO: Implement save functionality to update the listing in the database
+  };
+
+  const handleCancelEdit = () => {
+    setEditingListing(null);
+  };
+
+  const handleClosePreview = () => {
+    setPreviewingListing(null);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
           <p>Loading listings...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show editor if editing
+  if (editingListing) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <MobileHeader 
+          title="Edit Listing" 
+          showBack 
+          onBack={handleCancelEdit}
+        />
+        <div className="p-4">
+          <ListingEditor
+            listing={editingListing}
+            onSave={handleSaveEdit}
+            onCancel={handleCancelEdit}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Show preview if previewing
+  if (previewingListing) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <MobileHeader 
+          title="Preview Listing" 
+          showBack 
+          onBack={handleClosePreview}
+        />
+        <div className="p-4">
+          <ListingPreview
+            listing={previewingListing}
+            onEdit={() => {
+              setPreviewingListing(null);
+              setEditingListing(previewingListing);
+            }}
+            onExport={handleClosePreview}
+          />
         </div>
       </div>
     );
@@ -82,7 +149,7 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
                   <Badge variant="secondary">{listing.category}</Badge>
                   <Badge variant="outline">{listing.condition}</Badge>
                 </div>
-                <p className="text-sm text-gray-700">{listing.description.substring(0, 100)}...</p>
+                <p className="text-sm text-gray-700">{listing.description?.substring(0, 100)}...</p>
                 <p className="text-sm font-medium text-green-600">${listing.price}</p>
               </div>
             </Card>
