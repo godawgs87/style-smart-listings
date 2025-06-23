@@ -7,6 +7,8 @@ import ListingPreview from '@/components/ListingPreview';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Check } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface CreateListingProps {
   onBack: () => void;
@@ -14,60 +16,139 @@ interface CreateListingProps {
 
 type Step = 'photos' | 'analysis' | 'preview' | 'shipping';
 
+interface ListingData {
+  title: string;
+  description: string;
+  price: number;
+  category: string;
+  condition: string;
+  measurements: {
+    length?: string;
+    width?: string;
+    height?: string;
+    weight?: string;
+  };
+  keywords?: string[];
+  photos: string[];
+}
+
 const CreateListing = ({ onBack }: CreateListingProps) => {
   const [currentStep, setCurrentStep] = useState<Step>('photos');
   const [photos, setPhotos] = useState<File[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  
-  // Simulated AI-generated listing data
-  const [listingData] = useState({
-    title: "Vintage Nike Air Max 90 White/Black Size 10.5 Excellent Condition",
-    description: "Classic Nike Air Max 90 in excellent pre-owned condition. White leather upper with black accents and signature Air Max sole. Minor wear on outsole, no major flaws. From smoke-free home. Fast shipping with tracking!",
-    price: 85,
-    category: "Athletic Shoes",
-    condition: "Pre-owned - Excellent",
-    measurements: {
-      length: "12.5 inches",
-      width: "4.5 inches", 
-      height: "5 inches",
-      weight: "2.1 lbs"
-    },
-    shippingCost: 9.95,
-    photos: photos.map(photo => URL.createObjectURL(photo))
-  });
+  const [listingData, setListingData] = useState<ListingData | null>(null);
+  const [shippingCost, setShippingCost] = useState(9.95);
+  const { toast } = useToast();
 
   const handlePhotosChange = (newPhotos: File[]) => {
     setPhotos(newPhotos);
+  };
+
+  const convertFilesToBase64 = async (files: File[]): Promise<string[]> => {
+    const promises = files.map(file => {
+      return new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+    });
+    return Promise.all(promises);
   };
 
   const handleAnalyze = async () => {
     if (photos.length === 0) return;
     
     setIsAnalyzing(true);
-    // Simulate AI analysis
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    setIsAnalyzing(false);
-    setCurrentStep('preview');
+    
+    try {
+      // Convert photos to base64
+      const base64Photos = await convertFilesToBase64(photos);
+      
+      console.log('Calling analyze-photos function...');
+      
+      const { data, error } = await supabase.functions.invoke('analyze-photos', {
+        body: { photos: base64Photos }
+      });
+
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw error;
+      }
+
+      console.log('Analysis result:', data);
+
+      if (data.success && data.listing) {
+        const analysisResult = data.listing;
+        setListingData({
+          ...analysisResult,
+          photos: base64Photos
+        });
+        setCurrentStep('preview');
+        toast({
+          title: "Analysis Complete!",
+          description: "Your listing has been generated successfully."
+        });
+      } else {
+        throw new Error(data.error || 'Analysis failed');
+      }
+    } catch (error) {
+      console.error('Analysis error:', error);
+      toast({
+        title: "Analysis Failed",
+        description: "There was an error analyzing your photos. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const handleShippingSelect = (option: any) => {
     console.log('Selected shipping:', option);
-    // Update listing data with shipping info
+    setShippingCost(option.cost);
   };
 
   const handleExport = () => {
     console.log('Exporting to eBay...');
-    // Simulate export process
-    alert('Listing exported to eBay successfully!');
+    toast({
+      title: "Export Successful!",
+      description: "Your listing has been prepared for eBay."
+    });
     onBack();
   };
 
   const steps = [
     { id: 'photos', title: 'Photos', completed: photos.length > 0 },
-    { id: 'analysis', title: 'Analysis', completed: currentStep !== 'photos' },
-    { id: 'preview', title: 'Preview', completed: currentStep === 'shipping' || currentStep === 'preview' },
+    { id: 'analysis', title: 'Analysis', completed: listingData !== null },
+    { id: 'preview', title: 'Preview', completed: currentStep === 'shipping' },
     { id: 'shipping', title: 'Shipping', completed: false }
   ];
+
+  // Extract weight from listing data for shipping calculator
+  const getWeight = (): number => {
+    if (!listingData?.measurements?.weight) return 2.0;
+    const weightStr = listingData.measurements.weight;
+    const weightMatch = weightStr.match(/(\d+\.?\d*)/);
+    return weightMatch ? parseFloat(weightMatch[1]) : 2.0;
+  };
+
+  const getDimensions = () => {
+    if (!listingData?.measurements) {
+      return { length: 10, width: 8, height: 6 };
+    }
+    
+    const parseSize = (sizeStr?: string): number => {
+      if (!sizeStr) return 8;
+      const match = sizeStr.match(/(\d+\.?\d*)/);
+      return match ? parseFloat(match[1]) : 8;
+    };
+
+    return {
+      length: parseSize(listingData.measurements.length),
+      width: parseSize(listingData.measurements.width),
+      height: parseSize(listingData.measurements.height)
+    };
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -121,28 +202,31 @@ const CreateListing = ({ onBack }: CreateListingProps) => {
             <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
             <h3 className="text-lg font-medium mb-2">Analyzing Your Photos...</h3>
             <p className="text-gray-600 text-sm">
-              Our AI is extracting measurements, identifying the item, and generating your listing.
+              Our AI is identifying the item, extracting measurements, and generating your listing.
             </p>
           </Card>
         )}
 
-        {currentStep === 'preview' && !isAnalyzing && (
+        {currentStep === 'preview' && !isAnalyzing && listingData && (
           <div className="space-y-6">
             <ListingPreview
-              listing={listingData}
-              onEdit={() => {/* Handle edit */}}
+              listing={{
+                ...listingData,
+                shippingCost
+              }}
+              onEdit={() => setCurrentStep('photos')}
               onExport={() => setCurrentStep('shipping')}
             />
           </div>
         )}
 
-        {currentStep === 'shipping' && (
+        {currentStep === 'shipping' && listingData && (
           <div className="space-y-6">
             <Card className="p-6">
               <h2 className="text-xl font-bold mb-4">Shipping Calculator</h2>
               <ShippingCalculator
-                weight={2.1}
-                dimensions={{ length: 12.5, width: 4.5, height: 5 }}
+                weight={getWeight()}
+                dimensions={getDimensions()}
                 onShippingSelect={handleShippingSelect}
               />
             </Card>

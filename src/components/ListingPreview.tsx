@@ -17,7 +17,8 @@ interface ListingData {
     height?: string;
     weight?: string;
   };
-  shippingCost: number;
+  keywords?: string[];
+  shippingCost?: number;
   photos: string[];
 }
 
@@ -32,7 +33,7 @@ const ListingPreview = ({ listing, onEdit, onExport }: ListingPreviewProps) => {
     <div className="space-y-6">
       <Card className="p-6">
         <div className="flex justify-between items-start mb-4">
-          <h2 className="text-xl font-bold text-gray-900">{listing.title}</h2>
+          <h2 className="text-xl font-bold text-gray-900 pr-4">{listing.title}</h2>
           <Button variant="outline" size="sm" onClick={onEdit}>
             <Edit className="w-4 h-4 mr-2" />
             Edit
@@ -46,13 +47,18 @@ const ListingPreview = ({ listing, onEdit, onExport }: ListingPreviewProps) => {
           </div>
           <div>
             <span className="text-sm text-gray-500">Shipping</span>
-            <p className="text-lg font-semibold">${listing.shippingCost}</p>
+            <p className="text-lg font-semibold">${listing.shippingCost?.toFixed(2) || '9.95'}</p>
           </div>
         </div>
 
-        <div className="flex space-x-2 mb-4">
+        <div className="flex flex-wrap gap-2 mb-4">
           <Badge variant="secondary">{listing.category}</Badge>
           <Badge variant="outline">{listing.condition}</Badge>
+          {listing.keywords?.slice(0, 3).map((keyword, index) => (
+            <Badge key={index} variant="outline" className="text-xs">
+              {keyword}
+            </Badge>
+          ))}
         </div>
 
         <div className="space-y-3">
@@ -95,7 +101,7 @@ const ListingPreview = ({ listing, onEdit, onExport }: ListingPreviewProps) => {
       </div>
 
       <Button onClick={onExport} className="w-full gradient-bg text-white">
-        Export to eBay
+        Continue to Shipping
       </Button>
     </div>
   );
