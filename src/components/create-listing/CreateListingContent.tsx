@@ -1,8 +1,10 @@
+
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Save, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import PhotoUpload from '@/components/PhotoUpload';
 import ShippingCalculator from '@/components/ShippingCalculator';
 import ListingPreview from '@/components/ListingPreview';
@@ -53,18 +55,20 @@ const CreateListingContent = ({
 
   if (currentStep === 'photos') {
     return (
-      <Card className="p-6">
-        <h2 className="text-xl font-bold mb-4">Upload Item Photos</h2>
-        <PhotoUpload onPhotosChange={onPhotosChange} />
-        
-        {photos.length > 0 && (
-          <div className="mt-6">
-            <Button onClick={onAnalyze} className="w-full" disabled={isAnalyzing}>
-              {isAnalyzing ? 'Analyzing...' : `Analyze Photos (${photos.length} uploaded)`}
-            </Button>
-          </div>
-        )}
-      </Card>
+      <ScrollArea className="h-[calc(100vh-200px)]">
+        <Card className="p-6">
+          <h2 className="text-xl font-bold mb-4">Upload Item Photos</h2>
+          <PhotoUpload onPhotosChange={onPhotosChange} />
+          
+          {photos.length > 0 && (
+            <div className="mt-6">
+              <Button onClick={onAnalyze} className="w-full" disabled={isAnalyzing}>
+                {isAnalyzing ? 'Analyzing...' : `Analyze Photos (${photos.length} uploaded)`}
+              </Button>
+            </div>
+          )}
+        </Card>
+      </ScrollArea>
     );
   }
 
@@ -74,18 +78,20 @@ const CreateListingContent = ({
 
   if (currentStep === 'preview' && listingData) {
     return (
-      <div className="space-y-6">
-        <PriceAlert listingData={listingData} />
-        <ListingPreview
-          listing={{
-            ...listingData,
-            // Don't show shipping cost in preview until it's selected
-            shippingCost: undefined
-          }}
-          onEdit={onEdit}
-          onExport={() => onExport()}
-        />
-      </div>
+      <ScrollArea className="h-[calc(100vh-200px)]">
+        <div className="space-y-6 pr-4">
+          <PriceAlert listingData={listingData} />
+          <ListingPreview
+            listing={{
+              ...listingData,
+              // Don't show shipping cost in preview until it's selected
+              shippingCost: undefined
+            }}
+            onEdit={onEdit}
+            onExport={() => onExport()}
+          />
+        </div>
+      </ScrollArea>
     );
   }
 
@@ -98,58 +104,60 @@ const CreateListingContent = ({
     console.log('shippingCost <= 0:', shippingCost <= 0);
     
     return (
-      <div className="space-y-6">
-        <Alert>
-          <AlertDescription>
-            <strong>Shipping Rates:</strong> These are calculated estimates based on package dimensions and weight using standard carrier pricing formulas. 
-            Actual rates may vary. For exact pricing, use carrier websites or shipping software.
-          </AlertDescription>
-        </Alert>
-        
-        <Card className="p-6">
-          <h2 className="text-xl font-bold mb-4">Shipping Calculator</h2>
-          <ShippingCalculator
-            weight={getWeight()}
-            dimensions={getDimensions()}
-            onShippingSelect={onShippingSelect}
-          />
-        </Card>
-        
-        <PricingTip />
-        
-        <Button 
-          onClick={() => {
-            console.log('=== BUTTON CLICKED ===');
-            console.log('Calling onExport...');
-            onExport();
-          }} 
-          className="w-full gradient-bg text-white text-lg py-6"
-          disabled={buttonDisabled}
-        >
-          {isSaving ? (
-            <>
-              <div className="animate-spin w-5 h-5 border-3 border-white border-t-transparent rounded-full mr-3"></div>
-              Saving Listing...
-            </>
-          ) : shippingCost <= 0 ? (
-            <>
-              <Save className="w-5 h-5 mr-3" />
-              Select Shipping Option First
-            </>
-          ) : (
-            <>
-              <Save className="w-5 h-5 mr-3" />
-              Save Listing (${shippingCost.toFixed(2)} shipping)
-            </>
+      <ScrollArea className="h-[calc(100vh-200px)]">
+        <div className="space-y-6 pr-4">
+          <Alert>
+            <AlertDescription>
+              <strong>Shipping Rates:</strong> These are calculated estimates based on package dimensions and weight using standard carrier pricing formulas. 
+              Actual rates may vary. For exact pricing, use carrier websites or shipping software.
+            </AlertDescription>
+          </Alert>
+          
+          <Card className="p-6">
+            <h2 className="text-xl font-bold mb-4">Shipping Calculator</h2>
+            <ShippingCalculator
+              weight={getWeight()}
+              dimensions={getDimensions()}
+              onShippingSelect={onShippingSelect}
+            />
+          </Card>
+          
+          <PricingTip />
+          
+          <Button 
+            onClick={() => {
+              console.log('=== BUTTON CLICKED ===');
+              console.log('Calling onExport...');
+              onExport();
+            }} 
+            className="w-full gradient-bg text-white text-lg py-6"
+            disabled={buttonDisabled}
+          >
+            {isSaving ? (
+              <>
+                <div className="animate-spin w-5 h-5 border-3 border-white border-t-transparent rounded-full mr-3"></div>
+                Saving Listing...
+              </>
+            ) : shippingCost <= 0 ? (
+              <>
+                <Save className="w-5 h-5 mr-3" />
+                Select Shipping Option First
+              </>
+            ) : (
+              <>
+                <Save className="w-5 h-5 mr-3" />
+                Save Listing (${shippingCost.toFixed(2)} shipping)
+              </>
+            )}
+          </Button>
+          
+          {isSaving && (
+            <p className="text-center text-sm text-gray-600">
+              Please wait while we save your listing...
+            </p>
           )}
-        </Button>
-        
-        {isSaving && (
-          <p className="text-center text-sm text-gray-600">
-            Please wait while we save your listing...
-          </p>
-        )}
-      </div>
+        </div>
+      </ScrollArea>
     );
   }
 

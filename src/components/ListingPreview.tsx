@@ -3,7 +3,7 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Edit } from 'lucide-react';
+import { Edit, Settings } from 'lucide-react';
 
 interface ListingData {
   title: string;
@@ -29,15 +29,25 @@ interface ListingPreviewProps {
 }
 
 const ListingPreview = ({ listing, onEdit, onExport }: ListingPreviewProps) => {
+  const handleAdminClick = () => {
+    window.location.href = '/admin';
+  };
+
   return (
     <div className="space-y-6">
       <Card className="p-6">
         <div className="flex justify-between items-start mb-4">
           <h2 className="text-xl font-bold text-gray-900 pr-4">{listing.title}</h2>
-          <Button variant="outline" size="sm" onClick={onEdit}>
-            <Edit className="w-4 h-4 mr-2" />
-            Edit
-          </Button>
+          <div className="flex space-x-2">
+            <Button variant="outline" size="sm" onClick={handleAdminClick}>
+              <Settings className="w-4 h-4 mr-2" />
+              Admin
+            </Button>
+            <Button variant="outline" size="sm" onClick={onEdit}>
+              <Edit className="w-4 h-4 mr-2" />
+              Edit
+            </Button>
+          </div>
         </div>
         
         <div className="grid grid-cols-2 gap-4 mb-4">
