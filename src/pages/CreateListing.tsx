@@ -5,7 +5,7 @@ import ShippingCalculator from '@/components/ShippingCalculator';
 import ListingPreview from '@/components/ListingPreview';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Check } from 'lucide-react';
+import { Check, Save } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -38,6 +38,7 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [listingData, setListingData] = useState<ListingData | null>(null);
   const [shippingCost, setShippingCost] = useState(9.95);
+  const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
   const handlePhotosChange = (newPhotos: File[]) => {
@@ -108,33 +109,60 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
     setShippingCost(option.cost);
   };
 
-  const handleExport = () => {
-    if (!listingData) return;
+  const handleExport = async () => {
+    console.log('handleExport called');
+    console.log('listingData:', listingData);
+    
+    if (!listingData) {
+      console.error('No listing data available');
+      toast({
+        title: "Error",
+        description: "No listing data available to save.",
+        variant: "destructive"
+      });
+      return;
+    }
 
-    // Save listing to localStorage
-    const savedListings = JSON.parse(localStorage.getItem('savedListings') || '[]');
-    const newListing = {
-      id: `listing-${Date.now()}`,
-      ...listingData,
-      shippingCost,
-      status: 'draft',
-      createdAt: new Date().toISOString(),
-    };
+    setIsSaving(true);
+    
+    try {
+      // Save listing to localStorage
+      const savedListings = JSON.parse(localStorage.getItem('savedListings') || '[]');
+      const newListing = {
+        id: `listing-${Date.now()}`,
+        ...listingData,
+        shippingCost,
+        status: 'draft',
+        createdAt: new Date().toISOString(),
+      };
 
-    savedListings.push(newListing);
-    localStorage.setItem('savedListings', JSON.stringify(savedListings));
+      console.log('Saving listing:', newListing);
+      savedListings.push(newListing);
+      localStorage.setItem('savedListings', JSON.stringify(savedListings));
 
-    console.log('Listing saved:', newListing);
-    toast({
-      title: "Listing Saved!",
-      description: "Your listing has been saved and is ready for export."
-    });
+      console.log('Listing saved successfully');
+      toast({
+        title: "Listing Saved!",
+        description: "Your listing has been saved and is ready for export."
+      });
 
-    // Navigate to listings manager if available, otherwise go back
-    if (onViewListings) {
-      onViewListings();
-    } else {
-      onBack();
+      // Navigate to listings manager if available, otherwise go back
+      if (onViewListings) {
+        console.log('Navigating to listings manager');
+        onViewListings();
+      } else {
+        console.log('Going back to previous screen');
+        onBack();
+      }
+    } catch (error) {
+      console.error('Error saving listing:', error);
+      toast({
+        title: "Save Failed",
+        description: "There was an error saving your listing. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -252,8 +280,22 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
               />
             </Card>
             
-            <Button onClick={handleExport} className="w-full gradient-bg text-white">
-              Save Listing
+            <Button 
+              onClick={handleExport} 
+              className="w-full gradient-bg text-white"
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <>
+                  <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Listing
+                </>
+              )}
             </Button>
           </div>
         )}
