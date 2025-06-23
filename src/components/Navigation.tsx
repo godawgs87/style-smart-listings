@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 
 interface NavigationProps {
   currentView?: string;
-  onNavigate?: (view: string) => void;
+  onNavigate?: (view: 'dashboard' | 'create' | 'listings') => void;
 }
 
 const Navigation = ({ currentView, onNavigate }: NavigationProps) => {
@@ -16,7 +16,7 @@ const Navigation = ({ currentView, onNavigate }: NavigationProps) => {
     if (path.startsWith('/')) {
       window.location.href = path;
     } else if (onNavigate) {
-      onNavigate(path);
+      onNavigate(path as 'dashboard' | 'create' | 'listings');
     }
   };
 

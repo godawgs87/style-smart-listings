@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -74,7 +75,7 @@ const AdminDashboard = ({ onBack }: AdminDashboardProps) => {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <Label htmlFor="ebayApiKey">eBay API Key</Label>
-                <Badge variant={settings.ebayConnected ? 'success' : 'destructive'}>
+                <Badge variant={settings.ebayConnected ? 'default' : 'destructive'} className={settings.ebayConnected ? 'bg-green-500' : ''}>
                   {settings.ebayConnected ? <CheckCircle className="w-4 h-4 mr-2" /> : <XCircle className="w-4 h-4 mr-2" />}
                   {settings.ebayConnected ? 'Connected' : 'Not Connected'}
                 </Badge>
@@ -103,7 +104,7 @@ const AdminDashboard = ({ onBack }: AdminDashboardProps) => {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <Label htmlFor="mercariApiKey">Mercari API Key</Label>
-                <Badge variant={settings.mercariConnected ? 'success' : 'destructive'}>
+                <Badge variant={settings.mercariConnected ? 'default' : 'destructive'} className={settings.mercariConnected ? 'bg-green-500' : ''}>
                   {settings.mercariConnected ?  <CheckCircle className="w-4 h-4 mr-2" /> : <XCircle className="w-4 h-4 mr-2" />}
                   {settings.mercariConnected ? 'Connected' : 'Not Connected'}
                 </Badge>
@@ -170,7 +171,7 @@ const AdminDashboard = ({ onBack }: AdminDashboardProps) => {
           <div>
             <div className="flex items-center justify-between mb-2">
               <Label htmlFor="postmarkApiKey">Postmark API Key</Label>
-              <Badge variant={settings.postmarkConnected ? 'success' : 'destructive'}>
+              <Badge variant={settings.postmarkConnected ? 'default' : 'destructive'} className={settings.postmarkConnected ? 'bg-green-500' : ''}>
                 {settings.postmarkConnected ? <CheckCircle className="w-4 h-4 mr-2" /> : <XCircle className="w-4 h-4 mr-2" />}
                 {settings.postmarkConnected ? 'Connected' : 'Not Connected'}
               </Badge>
