@@ -7,7 +7,7 @@ export const useListingSave = () => {
   const { toast } = useToast();
 
   const saveListing = async (listingData: ListingData, shippingCost: number): Promise<boolean> => {
-    console.log('=== SAVE LISTING WITH FALLBACK STRATEGY ===');
+    console.log('=== SAVE LISTING ===');
     
     if (!listingData) {
       console.error('No listing data provided');
@@ -38,59 +38,88 @@ export const useListingSave = () => {
         price: newListing.price
       });
 
-      // Try localStorage first, but don't fail if it doesn't work
+      // Try to save to localStorage with aggressive cleanup if needed
       let storageSaved = false;
       try {
-        // Test if localStorage is available and has space
-        const testKey = 'storage-test';
-        localStorage.setItem(testKey, 'test');
-        localStorage.removeItem(testKey);
+        const existingListings = JSON.parse(localStorage.getItem('savedListings') || '[]');
         
-        // Try to save to localStorage
-        const existingListings = localStorage.getItem('savedListings');
-        const listings = existingListings ? JSON.parse(existingListings) : [];
-        listings.unshift(newListing);
+        // Add new listing to the beginning
+        const updatedListings = [newListing, ...existingListings];
         
-        // Keep only the last 3 listings to minimize storage usage
-        const trimmedListings = listings.slice(0, 3);
-        localStorage.setItem('savedListings', JSON.stringify(trimmedListings));
-        
-        console.log('Successfully saved to localStorage');
-        storageSaved = true;
-      } catch (storageError) {
-        console.warn('localStorage not available, using fallback:', storageError);
-        storageSaved = false;
+        // Try to save all listings first
+        try {
+          localStorage.setItem('savedListings', JSON.stringify(updatedListings));
+          console.log('Successfully saved to localStorage with all listings');
+          storageSaved = true;
+        } catch (storageError) {
+          console.log('Failed to save all listings, trying with cleanup...');
+          
+          // If that fails, keep only the new listing and most recent one
+          const minimalListings = updatedListings.slice(0, 2);
+          try {
+            localStorage.setItem('savedListings', JSON.stringify(minimalListings));
+            console.log('Successfully saved to localStorage with minimal listings');
+            storageSaved = true;
+          } catch (minimalError) {
+            console.log('Failed minimal save, trying with just new listing...');
+            
+            // If that still fails, save only the new listing
+            try {
+              localStorage.setItem('savedListings', JSON.stringify([newListing]));
+              console.log('Successfully saved only new listing to localStorage');
+              storageSaved = true;
+            } catch (singleError) {
+              console.warn('All localStorage save attempts failed:', singleError);
+              storageSaved = false;
+            }
+          }
+        }
+      } catch (parseError) {
+        console.log('localStorage data was corrupted, creating fresh with new listing');
+        try {
+          localStorage.setItem('savedListings', JSON.stringify([newListing]));
+          storageSaved = true;
+        } catch (freshError) {
+          console.warn('Even fresh localStorage save failed:', freshError);
+          storageSaved = false;
+        }
       }
 
-      // Always offer download as backup
+      // Always offer download as backup, but make it optional for user
       const downloadData = {
         listing: newListing,
         exportedAt: new Date().toISOString(),
-        note: storageSaved ? 'Also saved to browser storage' : 'Browser storage unavailable - data exported only'
+        note: storageSaved ? 'Backup export of saved listing' : 'Primary export - browser storage unavailable'
       };
 
       const dataStr = JSON.stringify(downloadData, null, 2);
       const dataBlob = new Blob([dataStr], { type: 'application/json' });
       const url = URL.createObjectURL(dataBlob);
       
-      // Create a download link
+      // Create download link but don't auto-click if localStorage worked
       const link = document.createElement('a');
       link.href = url;
       link.download = `listing-${newListing.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${Date.now()}.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      
+      if (!storageSaved) {
+        // Only auto-download if localStorage failed
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+      
       URL.revokeObjectURL(url);
 
+      // Show appropriate success message
       if (storageSaved) {
         toast({
           title: "Listing Saved! ✅",
-          description: `Your ${listingData.title} listing has been saved and downloaded as backup.`
+          description: `Your ${listingData.title} listing has been saved to your Listings Manager.`
         });
       } else {
         toast({
           title: "Listing Exported! 📁",
-          description: `Your ${listingData.title} listing has been downloaded. Browser storage unavailable.`
+          description: `Your ${listingData.title} listing has been downloaded. Browser storage is full.`
         });
       }
 
