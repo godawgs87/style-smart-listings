@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -43,8 +44,7 @@ const Dashboard = ({ onCreateListing, onViewListings }: DashboardProps) => {
           
           <Button
             onClick={onViewListings}
-            variant="outline"
-            className="w-full border-white text-white hover:bg-white hover:text-blue-600 py-3 text-lg font-medium"
+            className="w-full bg-white/10 text-white border border-white/30 hover:bg-white hover:text-blue-600 py-3 text-lg font-medium transition-colors"
           >
             <List className="w-5 h-5 mr-2" />
             Manage Listings
