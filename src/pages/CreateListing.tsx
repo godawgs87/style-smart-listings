@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import MobileHeader from '@/components/MobileHeader';
 import PhotoUpload from '@/components/PhotoUpload';
@@ -12,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 
 interface CreateListingProps {
   onBack: () => void;
+  onViewListings?: () => void;
 }
 
 type Step = 'photos' | 'analysis' | 'preview' | 'shipping';
@@ -32,7 +32,7 @@ interface ListingData {
   photos: string[];
 }
 
-const CreateListing = ({ onBack }: CreateListingProps) => {
+const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
   const [currentStep, setCurrentStep] = useState<Step>('photos');
   const [photos, setPhotos] = useState<File[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -109,12 +109,33 @@ const CreateListing = ({ onBack }: CreateListingProps) => {
   };
 
   const handleExport = () => {
-    console.log('Exporting to eBay...');
+    if (!listingData) return;
+
+    // Save listing to localStorage
+    const savedListings = JSON.parse(localStorage.getItem('savedListings') || '[]');
+    const newListing = {
+      id: `listing-${Date.now()}`,
+      ...listingData,
+      shippingCost,
+      status: 'draft',
+      createdAt: new Date().toISOString(),
+    };
+
+    savedListings.push(newListing);
+    localStorage.setItem('savedListings', JSON.stringify(savedListings));
+
+    console.log('Listing saved:', newListing);
     toast({
-      title: "Export Successful!",
-      description: "Your listing has been prepared for eBay."
+      title: "Listing Saved!",
+      description: "Your listing has been saved and is ready for export."
     });
-    onBack();
+
+    // Navigate to listings manager if available, otherwise go back
+    if (onViewListings) {
+      onViewListings();
+    } else {
+      onBack();
+    }
   };
 
   const steps = [
@@ -232,7 +253,7 @@ const CreateListing = ({ onBack }: CreateListingProps) => {
             </Card>
             
             <Button onClick={handleExport} className="w-full gradient-bg text-white">
-              Export to eBay
+              Save Listing
             </Button>
           </div>
         )}
