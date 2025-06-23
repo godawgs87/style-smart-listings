@@ -71,7 +71,8 @@ const CreateListingContent = ({
         <ListingPreview
           listing={{
             ...listingData,
-            shippingCost
+            // Don't show shipping cost in preview until it's selected
+            shippingCost: undefined
           }}
           onEdit={onEdit}
           onExport={() => onExport()}
@@ -104,12 +105,17 @@ const CreateListingContent = ({
         <Button 
           onClick={onExport} 
           className="w-full gradient-bg text-white text-lg py-6"
-          disabled={isSaving}
+          disabled={isSaving || shippingCost === 0}
         >
           {isSaving ? (
             <>
               <div className="animate-spin w-5 h-5 border-3 border-white border-t-transparent rounded-full mr-3"></div>
               Saving Listing...
+            </>
+          ) : shippingCost === 0 ? (
+            <>
+              <Save className="w-5 h-5 mr-3" />
+              Select Shipping Option First
             </>
           ) : (
             <>
