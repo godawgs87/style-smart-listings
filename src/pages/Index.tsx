@@ -1,16 +1,16 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Camera, List, LogOut } from "lucide-react";
+import { Camera, List } from "lucide-react";
 import CreateListing from "./CreateListing";
 import ListingsManager from "./ListingsManager";
 import AuthForm from "@/components/AuthForm";
+import Navigation from "@/components/Navigation";
 import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
   const [currentView, setCurrentView] = useState<'dashboard' | 'create' | 'listings'>('dashboard');
-  const { user, loading, signOut } = useAuth();
+  const { user, loading } = useAuth();
 
   if (loading) {
     return (
@@ -51,10 +51,7 @@ const Index = () => {
           <h1 className="text-2xl font-bold text-gray-900">eBay Listing Helper</h1>
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-600">Welcome, {user.email}</span>
-            <Button variant="outline" size="sm" onClick={signOut}>
-              <LogOut className="w-4 h-4 mr-2" />
-              Sign Out
-            </Button>
+            <Navigation currentView={currentView} onNavigate={setCurrentView} />
           </div>
         </div>
       </div>
