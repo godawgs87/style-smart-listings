@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 import { ListingData } from '@/types/CreateListing';
 
 interface PriceAlertProps {
@@ -9,16 +9,14 @@ interface PriceAlertProps {
 }
 
 const PriceAlert = ({ listingData }: PriceAlertProps) => {
-  const isPriceHigh = listingData.condition?.toLowerCase().includes('used') && listingData.price > 100;
-
-  if (!isPriceHigh) return null;
+  // Show positive price research message instead of warning
+  if (!listingData.priceResearch) return null;
 
   return (
-    <Alert>
-      <AlertTriangle className="h-4 w-4" />
-      <AlertDescription>
-        <strong>Price Check:</strong> ${listingData.price} seems high for used condition. 
-        Consider checking sold listings on eBay for similar items to ensure competitive pricing.
+    <Alert className="border-green-200 bg-green-50">
+      <CheckCircle className="h-4 w-4 text-green-600" />
+      <AlertDescription className="text-green-800">
+        <strong>Price Research:</strong> ${listingData.price} {listingData.priceResearch}
       </AlertDescription>
     </Alert>
   );

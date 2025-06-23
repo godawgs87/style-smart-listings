@@ -15,6 +15,7 @@ export interface ListingData {
   };
   keywords?: string[];
   photos: string[];
+  priceResearch?: string; // New field for price research explanation
 }
 
 export interface CreateListingProps {

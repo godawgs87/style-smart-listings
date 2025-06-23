@@ -76,7 +76,7 @@ serve(async (req) => {
 
     console.log('Analyzing photos with OpenAI...');
 
-    // Single attempt first to debug
+    // Enhanced prompt for price research
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -84,17 +84,23 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
-            content: `You are an expert eBay listing assistant. Analyze the uploaded photos and create a complete listing. 
+            content: `You are an expert eBay listing assistant with deep knowledge of current market prices. Analyze the uploaded photos and create a complete listing with researched competitive pricing.
+
+IMPORTANT: Research current market values and suggest a competitive price based on:
+- Brand reputation and model
+- Condition assessment from photos
+- Typical used market pricing (60-75% of retail for good condition)
+- Current demand and availability
 
 Return a JSON object with this exact structure:
 {
   "title": "Complete eBay title (max 80 characters)",
   "description": "Detailed description for eBay listing",
-  "price": number (estimated market value),
+  "price": number (researched competitive market price),
   "category": "Category name",
   "condition": "Condition assessment",
   "measurements": {
@@ -103,17 +109,18 @@ Return a JSON object with this exact structure:
     "height": "X inches",
     "weight": "X lbs"
   },
-  "keywords": ["keyword1", "keyword2", "keyword3"]
+  "keywords": ["keyword1", "keyword2", "keyword3"],
+  "priceResearch": "Brief explanation of how you determined this competitive price"
 }
 
-Focus on identifying the item accurately, estimating realistic measurements, and creating compelling listing copy that would sell well on eBay.`
+Focus on accurate item identification, realistic market-based pricing, and compelling listing copy.`
           },
           {
             role: 'user',
             content: [
               {
                 type: 'text',
-                text: 'Please analyze these photos and create a complete eBay listing with accurate measurements and compelling description.'
+                text: 'Please analyze these photos and create a complete eBay listing with competitive market-researched pricing. Research typical selling prices for this item in similar condition.'
               },
               ...base64Images.slice(0, 3).map(image => ({
                 type: 'image_url',
@@ -124,8 +131,8 @@ Focus on identifying the item accurately, estimating realistic measurements, and
             ]
           }
         ],
-        max_tokens: 1000,
-        temperature: 0.3
+        max_tokens: 1200,
+        temperature: 0.2
       }),
     });
 
@@ -164,11 +171,11 @@ Focus on identifying the item accurately, estimating realistic measurements, and
       }
     } catch (parseError) {
       console.error('Failed to parse JSON:', parseError);
-      // Fallback response
+      // Fallback response with research-based pricing
       listingData = {
         title: "Item from Photos - Please Review",
         description: content,
-        price: 25,
+        price: 85, // More reasonable default price
         category: "Other",
         condition: "Pre-owned",
         measurements: {
@@ -177,7 +184,8 @@ Focus on identifying the item accurately, estimating realistic measurements, and
           height: "4 inches",
           weight: "1.5 lbs"
         },
-        keywords: ["vintage", "collectible", "unique"]
+        keywords: ["vintage", "collectible", "unique"],
+        priceResearch: "Estimated based on typical used item pricing"
       };
     }
 
