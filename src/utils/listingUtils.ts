@@ -11,3 +11,14 @@ export const getDimensions = () => {
     height: 12
   }; // Fixed dimensions for DeWalt blower
 };
+
+// Helper function to get consistent measurement strings
+export const getMeasurementStrings = () => {
+  const dims = getDimensions();
+  return {
+    length: `${dims.length} inches`,
+    width: `${dims.width} inches`, 
+    height: `${dims.height} inches`,
+    weight: `${getWeight()} lbs`
+  };
+};
