@@ -45,40 +45,25 @@ export const useListingSave = () => {
 
       console.log('User authenticated:', user.id);
 
-      // Compress photos to reduce payload size
-      const compressedPhotos = Array.isArray(listingData.photos) 
-        ? listingData.photos.slice(0, 5).map(photo => {
-            // If photo is very large, we'll skip it to prevent timeout
-            if (typeof photo === 'string' && photo.length > 500000) {
-              console.warn('Skipping large photo to prevent timeout');
-              return null;
-            }
-            return photo;
-          }).filter(Boolean)
-        : [];
-
-      console.log('Photos after compression:', compressedPhotos.length);
-
-      // Prepare minimal listing data
+      // Prepare listing data for database
       const listingForDb = {
         user_id: user.id,
-        title: String(listingData.title || '').substring(0, 200),
-        description: String(listingData.description || '').substring(0, 2000),
+        title: listingData.title || '',
+        description: listingData.description || '',
         price: Number(listingData.price) || 0,
-        category: String(listingData.category || '').substring(0, 100),
-        condition: String(listingData.condition || '').substring(0, 50),
+        category: listingData.category || '',
+        condition: listingData.condition || '',
         measurements: listingData.measurements || {},
-        keywords: Array.isArray(listingData.keywords) ? listingData.keywords.slice(0, 10) : [],
-        photos: compressedPhotos,
-        price_research: String(listingData.priceResearch || '').substring(0, 1000) || null,
+        keywords: listingData.keywords || [],
+        photos: listingData.photos || [],
+        price_research: listingData.priceResearch || null,
         shipping_cost: Number(shippingCost) || 9.95,
         status: 'draft'
       };
 
       console.log('Attempting to save listing to database...');
-      console.log('Payload size estimate:', JSON.stringify(listingForDb).length, 'characters');
 
-      // Single save attempt with shorter timeout expectation
+      // Save to database
       const { data, error } = await supabase
         .from('listings')
         .insert([listingForDb])
@@ -101,26 +86,18 @@ export const useListingSave = () => {
 
     } catch (error: any) {
       console.error('=== SAVE ERROR DETAILS ===');
-      console.error('Error type:', typeof error);
       console.error('Error message:', error?.message);
       console.error('Error code:', error?.code);
       console.error('Full error object:', error);
 
       let errorMessage = 'Failed to save listing.';
       
-      // Handle specific Supabase errors
-      if (error?.code === 'PGRST116') {
-        errorMessage = 'Database timeout. Try uploading fewer or smaller photos.';
-      } else if (error?.message?.includes('timeout')) {
-        errorMessage = 'Save operation timed out. Please try again with smaller photos.';
-      } else if (error?.message?.includes('JWT')) {
+      if (error?.message?.includes('JWT')) {
         errorMessage = 'Authentication expired. Please refresh and try again.';
       } else if (error?.message?.includes('permission') || error?.message?.includes('RLS')) {
         errorMessage = 'Permission denied. Please ensure you are signed in.';
       } else if (error?.code === '23505') {
         errorMessage = 'A listing with this information already exists.';
-      } else if (error?.message?.includes('value too long')) {
-        errorMessage = 'Some listing information is too long. Please shorten it.';
       }
 
       toast({
