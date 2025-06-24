@@ -8,8 +8,19 @@ CRITICAL INSTRUCTIONS:
 - Look for ANY text, labels, model numbers, brand names, or serial numbers visible in the photos
 - Pay special attention to rulers, measuring tapes, or size references in photos
 - Identify the exact brand, model, and specific product details
+- For measurements, if you can't determine exact values from photos, research typical dimensions/weight for the identified product
+- If you identify a specific product (brand + model), provide realistic measurements based on product specifications
 - Research current market prices for similar items
 - Write compelling, detailed descriptions that highlight key features and condition
+
+MEASUREMENT GUIDELINES:
+- If you identify a specific product, provide realistic measurements based on typical specifications
+- For pool cleaners, typical weights range from 8-15 lbs
+- For power tools, typical weights range from 2-8 lbs  
+- For electronics, check typical product specifications
+- Only use "N/A" if the product is completely unidentifiable
+- Always provide weight in "X lbs" format (e.g., "11.5 lbs")
+- Always provide dimensions in "X inches" format (e.g., "13 inches")
 
 Response format (exactly this structure):
 {
@@ -19,10 +30,10 @@ Response format (exactly this structure):
   "category": "Specific Category",
   "condition": "New/Used/Like New/Fair/Poor",
   "measurements": {
-    "length": "X inches/cm",
-    "width": "X inches/cm", 
-    "height": "X inches/cm",
-    "weight": "X lbs/oz"
+    "length": "X inches",
+    "width": "X inches", 
+    "height": "X inches",
+    "weight": "X lbs"
   },
   "keywords": ["brand", "model", "specific", "terms"],
   "priceResearch": "Detailed explanation of pricing research and market analysis",
@@ -32,7 +43,7 @@ Response format (exactly this structure):
   "defects": ["Any visible wear", "Missing parts", "Damage noted"],
   "includes": ["What's included in sale"]
 }`,
-    user: 'Analyze these photos in extreme detail. Look for any text, labels, model numbers, measurements, brand markings, or identifying features. Create a professional eBay listing with accurate pricing research. Respond with ONLY the JSON object.'
+    user: 'Analyze these photos in extreme detail. Look for any text, labels, model numbers, measurements, brand markings, or identifying features. If you identify a specific product (brand + model), research typical specifications for realistic measurements. Create a professional eBay listing with accurate pricing research. Respond with ONLY the JSON object.'
   };
 }
 
