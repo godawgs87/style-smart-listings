@@ -10,7 +10,14 @@ export const usePhotoAnalysis = () => {
   const { toast } = useToast();
 
   const analyzePhotos = async (photos: File[]): Promise<ListingData | null> => {
-    if (photos.length === 0) return null;
+    if (photos.length === 0) {
+      toast({
+        title: "No Photos",
+        description: "Please upload at least one photo to analyze.",
+        variant: "destructive"
+      });
+      return null;
+    }
     
     setIsAnalyzing(true);
     
@@ -21,6 +28,17 @@ export const usePhotoAnalysis = () => {
       // Convert photos to base64
       const base64Photos = await convertFilesToBase64(photos);
       console.log('Photos converted to base64, first photo size:', base64Photos[0]?.length || 0);
+      
+      // Validate base64 photos
+      if (!base64Photos || base64Photos.length === 0) {
+        throw new Error('Failed to convert photos to base64 format');
+      }
+      
+      // Check if photos are valid base64
+      const invalidPhotos = base64Photos.filter(photo => !photo || photo.length < 100);
+      if (invalidPhotos.length > 0) {
+        throw new Error('Some photos appear to be corrupted or too small');
+      }
       
       console.log('Calling analyze-photos function...');
       
@@ -43,6 +61,8 @@ export const usePhotoAnalysis = () => {
           throw new Error('Edge Function is not responding. Please try again in a moment.');
         } else if (error.message?.includes('FunctionsFetchError')) {
           throw new Error('Network error calling analysis function. Check your connection.');
+        } else if (error.message?.includes('non-2xx status code')) {
+          throw new Error('Analysis service encountered an error. Please try uploading different photos.');
         } else {
           throw new Error(`Analysis failed: ${error.message}`);
         }
@@ -89,6 +109,8 @@ export const usePhotoAnalysis = () => {
         errorMessage = 'Service temporarily unavailable. Please try again.';
       } else if (error?.message?.includes('Network error') || error?.message?.includes('not responding')) {
         errorMessage = 'Connection issue. Please check your internet and try again.';
+      } else if (error?.message?.includes('corrupted') || error?.message?.includes('base64')) {
+        errorMessage = 'Photo upload issue. Please try uploading the photos again.';
       }
       
       toast({

@@ -16,8 +16,37 @@ serve(async (req) => {
 
   try {
     console.log('=== ANALYZE PHOTOS FUNCTION START ===');
+    console.log('Request method:', req.method);
+    console.log('Request headers:', Object.fromEntries(req.headers.entries()));
     
-    const { photos } = await req.json();
+    // Check if request has a body
+    const contentType = req.headers.get('content-type');
+    console.log('Content-Type:', contentType);
+    
+    let requestBody;
+    try {
+      const requestText = await req.text();
+      console.log('Raw request text length:', requestText.length);
+      console.log('First 100 chars of request:', requestText.substring(0, 100));
+      
+      if (!requestText.trim()) {
+        throw new Error('Request body is empty');
+      }
+      
+      requestBody = JSON.parse(requestText);
+      console.log('Successfully parsed JSON, photos array length:', requestBody?.photos?.length || 0);
+    } catch (parseError) {
+      console.error('JSON parsing error:', parseError);
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'Invalid or empty request body. Please ensure photos are properly uploaded.' 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    const { photos } = requestBody;
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
     console.log('=== DEBUG INFO ===');
@@ -25,11 +54,23 @@ serve(async (req) => {
     console.log('Photos received:', photos?.length || 0);
 
     if (!photos || photos.length === 0) {
-      throw new Error('No photos provided for analysis');
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'No photos provided for analysis' 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'OpenAI API key not configured' 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Convert first photo to base64 for analysis
