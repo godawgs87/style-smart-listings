@@ -24,15 +24,11 @@ export const useListingSave = () => {
     setIsSaving(true);
     
     try {
-      // Check if user is authenticated with timeout
-      const { data: { user }, error: authError } = await Promise.race([
-        supabase.auth.getUser(),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Authentication timeout')), 5000)
-        )
-      ]) as any;
+      // Check if user is authenticated
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
       
       if (authError || !user) {
+        console.error('Authentication error:', authError);
         toast({
           title: "Authentication Required",
           description: "Please sign in to save your listing.",
@@ -41,58 +37,59 @@ export const useListingSave = () => {
         return false;
       }
 
-      // Prepare listing data for Supabase
+      console.log('User authenticated:', user.id);
+
+      // Prepare listing data for Supabase with proper validation
       const listingForDb = {
         user_id: user.id,
-        title: listingData.title?.substring(0, 255) || '', // Limit title length
-        description: listingData.description?.substring(0, 5000) || '', // Limit description length
+        title: String(listingData.title || '').substring(0, 255),
+        description: String(listingData.description || '').substring(0, 5000),
         price: Number(listingData.price) || 0,
-        category: listingData.category?.substring(0, 100) || '',
-        condition: listingData.condition?.substring(0, 50) || '',
+        category: String(listingData.category || '').substring(0, 100),
+        condition: String(listingData.condition || '').substring(0, 50),
         measurements: listingData.measurements || {},
-        keywords: Array.isArray(listingData.keywords) ? listingData.keywords.slice(0, 20) : [], // Limit keywords
-        photos: Array.isArray(listingData.photos) ? listingData.photos.slice(0, 10) : [], // Limit photos
-        price_research: listingData.priceResearch?.substring(0, 2000) || null, // Limit research text
+        keywords: Array.isArray(listingData.keywords) ? listingData.keywords.slice(0, 20) : [],
+        photos: Array.isArray(listingData.photos) ? listingData.photos.slice(0, 10) : [],
+        price_research: String(listingData.priceResearch || '').substring(0, 2000) || null,
         shipping_cost: Number(shippingCost) || 9.95,
         status: 'draft'
       };
 
-      console.log('Saving listing to Supabase:', {
+      console.log('Prepared listing data:', {
         title: listingForDb.title,
         price: listingForDb.price,
         shipping_cost: listingForDb.shipping_cost,
-        user_id: listingForDb.user_id
+        user_id: listingForDb.user_id,
+        photos_count: listingForDb.photos.length,
+        keywords_count: listingForDb.keywords.length
       });
 
-      // Save to Supabase with timeout
-      const { data, error } = await Promise.race([
-        supabase
-          .from('listings')
-          .insert([listingForDb])
-          .select()
-          .single(),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Database operation timeout')), 10000)
-        )
-      ]) as any;
+      // Save to Supabase
+      const { data, error } = await supabase
+        .from('listings')
+        .insert([listingForDb])
+        .select()
+        .single();
 
       if (error) {
         console.error('Supabase save error:', error);
         
+        let errorMessage = 'Failed to save listing. Please try again.';
+        
         // Handle specific error types
-        if (error.message?.includes('timeout') || error.message?.includes('statement timeout')) {
-          toast({
-            title: "Save Timeout",
-            description: "The save operation took too long. Please try again in a moment.",
-            variant: "destructive"
-          });
-        } else {
-          toast({
-            title: "Save Failed",
-            description: `Failed to save listing: ${error.message}`,
-            variant: "destructive"
-          });
+        if (error.message?.includes('duplicate key')) {
+          errorMessage = 'A listing with this information already exists.';
+        } else if (error.message?.includes('permission denied') || error.message?.includes('RLS')) {
+          errorMessage = 'You do not have permission to save listings. Please sign in again.';
+        } else if (error.message?.includes('value too long')) {
+          errorMessage = 'Some of your listing information is too long. Please shorten it and try again.';
         }
+        
+        toast({
+          title: "Save Failed",
+          description: errorMessage,
+          variant: "destructive"
+        });
         return false;
       }
 
@@ -109,20 +106,21 @@ export const useListingSave = () => {
       console.error('=== SAVE ERROR ===');
       console.error('Error:', error);
 
-      // Handle timeout errors specifically
-      if (error.message?.includes('timeout')) {
-        toast({
-          title: "Connection Timeout",
-          description: "The save operation timed out. Please check your connection and try again.",
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Save Failed",
-          description: `Failed to save listing: ${error?.message || 'Unknown error'}`,
-          variant: "destructive"
-        });
+      let errorMessage = 'Failed to save listing.';
+      
+      if (error.message?.includes('NetworkError') || error.message?.includes('fetch')) {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      } else if (error.message?.includes('timeout')) {
+        errorMessage = 'Request timed out. Please try again.';
+      } else if (error.message?.includes('auth')) {
+        errorMessage = 'Authentication error. Please sign in again.';
       }
+
+      toast({
+        title: "Save Failed",
+        description: `${errorMessage} ${error?.message ? `(${error.message})` : ''}`,
+        variant: "destructive"
+      });
 
       return false;
     } finally {
