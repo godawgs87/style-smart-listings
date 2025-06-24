@@ -24,9 +24,12 @@ export const usePhotoAnalysis = () => {
       
       console.log('Calling analyze-photos function...');
       
-      // Use Supabase function invocation instead of fetch
+      // Use Supabase function invocation with better error handling
       const { data, error } = await supabase.functions.invoke('analyze-photos', {
-        body: { photos: base64Photos }
+        body: { photos: base64Photos },
+        headers: {
+          'Content-Type': 'application/json',
+        }
       });
 
       console.log('Function response data:', data);
@@ -34,7 +37,15 @@ export const usePhotoAnalysis = () => {
       
       if (error) {
         console.error('Function call failed:', error);
-        throw new Error(`Analysis failed: ${error.message}`);
+        
+        // Handle specific function errors
+        if (error.message?.includes('FunctionsRelayError')) {
+          throw new Error('Edge Function is not responding. Please try again in a moment.');
+        } else if (error.message?.includes('FunctionsFetchError')) {
+          throw new Error('Network error calling analysis function. Check your connection.');
+        } else {
+          throw new Error(`Analysis failed: ${error.message}`);
+        }
       }
 
       if (data?.success && data?.listing) {
@@ -74,6 +85,10 @@ export const usePhotoAnalysis = () => {
         errorMessage = 'Rate limit exceeded. Please wait a moment and try again.';
       } else if (error?.message?.includes('API key')) {
         errorMessage = 'API configuration issue. Please contact support.';
+      } else if (error?.message?.includes('Edge Function')) {
+        errorMessage = 'Service temporarily unavailable. Please try again.';
+      } else if (error?.message?.includes('Network error') || error?.message?.includes('not responding')) {
+        errorMessage = 'Connection issue. Please check your internet and try again.';
       }
       
       toast({

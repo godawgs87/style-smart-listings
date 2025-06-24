@@ -15,12 +15,22 @@ serve(async (req) => {
   }
 
   try {
+    console.log('=== ANALYZE PHOTOS FUNCTION START ===');
+    
     const { photos } = await req.json();
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
     console.log('=== DEBUG INFO ===');
     console.log('OpenAI API Key exists:', !!openAIApiKey);
     console.log('Photos received:', photos?.length || 0);
+
+    if (!photos || photos.length === 0) {
+      throw new Error('No photos provided for analysis');
+    }
+
+    if (!openAIApiKey) {
+      throw new Error('OpenAI API key not configured');
+    }
 
     // Convert first photo to base64 for analysis
     const base64Images = photos.map((photo: string) => {
@@ -31,6 +41,8 @@ serve(async (req) => {
 
     const listingData = await analyzePhotosWithOpenAI(openAIApiKey, base64Images);
 
+    console.log('Analysis completed successfully');
+
     return new Response(JSON.stringify({ 
       success: true, 
       listing: listingData 
@@ -39,11 +51,15 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Error in analyze-photos function:', error);
+    console.error('=== ERROR IN ANALYZE-PHOTOS FUNCTION ===');
+    console.error('Error type:', error?.constructor?.name);
+    console.error('Error message:', error?.message);
+    console.error('Full error:', error);
     
+    // Return structured error response
     return new Response(JSON.stringify({ 
       success: false, 
-      error: error.message
+      error: error?.message || 'Unknown error occurred'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
