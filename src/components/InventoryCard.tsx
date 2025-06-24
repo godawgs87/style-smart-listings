@@ -103,7 +103,7 @@ const InventoryCard = ({
         {item.category && <Badge variant="secondary" className="text-xs">{item.category}</Badge>}
         {item.condition && <Badge variant="outline" className="text-xs">{item.condition}</Badge>}
         {item.status && (
-          <Badge variant={item.status === 'active' ? 'default' : item.status === 'sold' ? 'success' : 'secondary'} className="text-xs">
+          <Badge variant={item.status === 'active' ? 'default' : item.status === 'sold' ? 'default' : 'secondary'} className={`text-xs ${item.status === 'sold' ? 'bg-green-600 text-white' : ''}`}>
             {item.status}
           </Badge>
         )}
