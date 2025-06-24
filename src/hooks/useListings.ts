@@ -32,6 +32,7 @@ interface Listing {
 export const useListings = () => {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const transformListing = (supabaseListing: SupabaseListing): Listing => {
@@ -43,13 +44,15 @@ export const useListings = () => {
 
   const fetchListings = async () => {
     try {
-      const { data, error } = await supabase
+      setError(null);
+      const { data, error: fetchError } = await supabase
         .from('listings')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching listings:', error);
+      if (fetchError) {
+        console.error('Error fetching listings:', fetchError);
+        setError('Failed to load listings');
         toast({
           title: "Error",
           description: "Failed to load listings",
@@ -62,6 +65,7 @@ export const useListings = () => {
       setListings(transformedListings);
     } catch (error) {
       console.error('Error:', error);
+      setError('Failed to load listings');
       toast({
         title: "Error",
         description: "Failed to load listings",
@@ -106,6 +110,46 @@ export const useListings = () => {
     }
   };
 
+  const updateListing = async (id: string, updateData: Partial<Listing>) => {
+    try {
+      const { error } = await supabase
+        .from('listings')
+        .update({ 
+          ...updateData, 
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error updating listing:', error);
+        toast({
+          title: "Error",
+          description: "Failed to update listing",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      setListings(prev => prev.map(l => 
+        l.id === id ? { ...l, ...updateData } : l
+      ));
+      
+      toast({
+        title: "Success",
+        description: "Listing updated successfully"
+      });
+      return true;
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update listing",
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
+
   const updateListingStatus = async (id: string, status: string, additionalData?: any) => {
     try {
       const updateData = { status, updated_at: new Date().toISOString(), ...additionalData };
@@ -130,6 +174,11 @@ export const useListings = () => {
     }
   };
 
+  const refetch = () => {
+    setLoading(true);
+    fetchListings();
+  };
+
   useEffect(() => {
     fetchListings();
   }, []);
@@ -137,8 +186,11 @@ export const useListings = () => {
   return {
     listings,
     loading,
+    error,
     fetchListings,
+    refetch,
     deleteListing,
+    updateListing,
     updateListingStatus
   };
 };

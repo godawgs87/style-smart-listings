@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
@@ -24,7 +25,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { toast } from "@/hooks/use-toast"
-import { CopyToClipboard } from 'react-copy-to-clipboard';
 
 interface ListingsManagerProps {
   onBack: () => void;
@@ -77,10 +77,12 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
   };
 
   const handleCopyToClipboard = (text: string, title: string) => {
-    toast({
-      title: "Copied to clipboard",
-      description: `Successfully copied ${title} to clipboard.`,
-    })
+    navigator.clipboard.writeText(text).then(() => {
+      toast({
+        title: "Copied to clipboard",
+        description: `Successfully copied ${title} to clipboard.`,
+      });
+    });
   };
 
   if (loading) {
@@ -141,7 +143,7 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
                 <TableHead className="w-[50px]">
                   <Checkbox
                     checked={selectedListings.length === listings?.length}
-                    onChange={() => {
+                    onCheckedChange={() => {
                       if (selectedListings.length === listings?.length) {
                         setSelectedListings([]);
                       } else {
@@ -189,12 +191,10 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
                         <DropdownMenuItem onClick={() => handleEditListing(listing)}>
                           <Edit className="mr-2 h-4 w-4" /> Edit
                         </DropdownMenuItem>
-                        <CopyToClipboard text={listing.description} onCopy={() => handleCopyToClipboard(listing.description, "description")}>
-                          <DropdownMenuItem>
-                            <Copy className="mr-2 h-4 w-4" />
-                            Copy Description
-                          </DropdownMenuItem>
-                        </CopyToClipboard>
+                        <DropdownMenuItem onClick={() => handleCopyToClipboard(listing.description || '', "description")}>
+                          <Copy className="mr-2 h-4 w-4" />
+                          Copy Description
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => handleDeleteListing(listing.id)}>
                           <Trash className="mr-2 h-4 w-4" /> Delete
@@ -235,12 +235,10 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
                       <DropdownMenuItem onClick={() => handleEditListing(listing)}>
                         <Edit className="mr-2 h-4 w-4" /> Edit
                       </DropdownMenuItem>
-                      <CopyToClipboard text={listing.description} onCopy={() => handleCopyToClipboard(listing.description, "description")}>
-                        <DropdownMenuItem>
-                          <Copy className="mr-2 h-4 w-4" />
-                          Copy Description
-                        </DropdownMenuItem>
-                      </CopyToClipboard>
+                      <DropdownMenuItem onClick={() => handleCopyToClipboard(listing.description || '', "description")}>
+                        <Copy className="mr-2 h-4 w-4" />
+                        Copy Description
+                      </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={() => handleDeleteListing(listing.id)}>
                         <Trash className="mr-2 h-4 w-4" /> Delete

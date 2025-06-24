@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
@@ -61,15 +62,30 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
     setShippingCost(option.cost || 0);
   };
 
-  const getWeight = () => {
-    return listingData?.measurements?.weight || 1;
+  const getWeight = (): number => {
+    const weight = listingData?.measurements?.weight;
+    if (typeof weight === 'string') {
+      const parsed = parseFloat(weight);
+      return isNaN(parsed) ? 1 : parsed;
+    }
+    return typeof weight === 'number' ? weight : 1;
   };
 
-  const getDimensions = () => {
+  const getDimensions = (): { length: number; width: number; height: number } => {
+    const measurements = listingData?.measurements;
+    
+    const parseValue = (value: string | number | undefined, defaultValue: number): number => {
+      if (typeof value === 'string') {
+        const parsed = parseFloat(value);
+        return isNaN(parsed) ? defaultValue : parsed;
+      }
+      return typeof value === 'number' ? value : defaultValue;
+    };
+
     return {
-      length: listingData?.measurements?.length || 12,
-      width: listingData?.measurements?.width || 12,
-      height: listingData?.measurements?.height || 6
+      length: parseValue(measurements?.length, 12),
+      width: parseValue(measurements?.width, 12),
+      height: parseValue(measurements?.height, 6)
     };
   };
 
@@ -83,7 +99,11 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
       
       <div className="max-w-4xl mx-auto p-4">
         {!isMobile && (
-          <CreateListingSteps currentStep={currentStep} />
+          <CreateListingSteps 
+            currentStep={currentStep} 
+            photos={photos}
+            listingData={listingData}
+          />
         )}
         
         <CreateListingContent
