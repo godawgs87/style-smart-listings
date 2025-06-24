@@ -1,10 +1,11 @@
+
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { 
-  FileTemplate, 
+  File, 
   Plus, 
   Edit, 
   Trash2, 
@@ -129,7 +130,7 @@ const ListingTemplates = ({ onSelectTemplate, onCreateTemplate }: ListingTemplat
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <FileTemplate className="w-5 h-5 text-purple-600" />
+            <File className="w-5 h-5 text-purple-600" />
             <h3 className="text-lg font-semibold">Listing Templates</h3>
           </div>
           <Button
