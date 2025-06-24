@@ -1,12 +1,12 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Camera, List, Settings, LogOut, ArrowLeft } from 'lucide-react';
+import { Camera, List, Settings, LogOut, ArrowLeft, Package } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
 interface MobileNavigationProps {
   currentView: string;
-  onNavigate: (view: 'dashboard' | 'create' | 'listings') => void;
+  onNavigate: (view: 'dashboard' | 'create' | 'listings' | 'inventory') => void;
   showBack?: boolean;
   onBack?: () => void;
   title?: string;
@@ -61,6 +61,16 @@ const MobileNavigation = ({
           <Camera className="w-5 h-5 mb-1" />
           <span className="text-xs">Create</span>
         </Button>
+
+        <Button
+          variant={currentView === 'inventory' ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => onNavigate('inventory')}
+          className="flex flex-col items-center p-3 min-h-16"
+        >
+          <Package className="w-5 h-5 mb-1" />
+          <span className="text-xs">Inventory</span>
+        </Button>
         
         <Button
           variant={currentView === 'listings' ? 'default' : 'ghost'}
@@ -79,17 +89,7 @@ const MobileNavigation = ({
           className="flex flex-col items-center p-3 min-h-16"
         >
           <Settings className="w-5 h-5 mb-1" />
-          <span className="text-xs">Admin</span>
-        </Button>
-        
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={signOut}
-          className="flex flex-col items-center p-3 min-h-16"
-        >
-          <LogOut className="w-5 h-5 mb-1" />
-          <span className="text-xs">Sign Out</span>
+          <span className="text-xs">Settings</span>
         </Button>
       </div>
     </div>

@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useState } from "react";
 import Index from "./pages/Index";
 import AdminDashboard from "./pages/AdminDashboard";
+import InventoryManager from "./pages/InventoryManager";
 import NotFound from "./pages/NotFound";
 
 const App = () => {
@@ -21,6 +22,7 @@ const App = () => {
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/admin" element={<AdminDashboard onBack={() => window.history.back()} />} />
+            <Route path="/inventory" element={<InventoryManager onBack={() => window.history.back()} />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

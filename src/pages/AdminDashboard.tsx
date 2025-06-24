@@ -7,10 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { 
-  Settings, 
-  Package, 
   DollarSign, 
-  TrendingUp, 
   Save,
   User,
   Bell,
@@ -33,8 +30,6 @@ const AdminDashboard = ({ onBack }: AdminDashboardProps) => {
     autoCalculateShipping: true,
     enableEmailNotifications: true,
     enableDesktopNotifications: false,
-    defaultCondition: 'Used',
-    defaultCategory: 'Electronics',
   });
 
   const [ebayConnection, setEbayConnection] = useState({
@@ -191,33 +186,6 @@ const AdminDashboard = ({ onBack }: AdminDashboardProps) => {
                 </Button>
               </div>
             )}
-          </div>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center mb-4">
-            <Package className="w-5 h-5 mr-2" />
-            <h2 className="text-xl font-bold">Listing Defaults</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="defaultCondition">Default Condition</Label>
-              <Input
-                type="text"
-                id="defaultCondition"
-                value={settings.defaultCondition}
-                onChange={(e) => setSettings({ ...settings, defaultCondition: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="defaultCategory">Default Category</Label>
-              <Input
-                type="text"
-                id="defaultCategory"
-                value={settings.defaultCategory}
-                onChange={(e) => setSettings({ ...settings, defaultCategory: e.target.value })}
-              />
-            </div>
           </div>
         </Card>
 

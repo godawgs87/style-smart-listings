@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Settings, List, Camera, LogOut, Menu } from 'lucide-react';
+import { Settings, List, Camera, LogOut, Menu, Package } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
@@ -13,7 +13,7 @@ import {
 
 interface NavigationProps {
   currentView?: string;
-  onNavigate?: (view: 'dashboard' | 'create' | 'listings') => void;
+  onNavigate?: (view: 'dashboard' | 'create' | 'listings' | 'inventory') => void;
 }
 
 const Navigation = ({ currentView, onNavigate }: NavigationProps) => {
@@ -24,7 +24,7 @@ const Navigation = ({ currentView, onNavigate }: NavigationProps) => {
     if (path.startsWith('/')) {
       window.location.href = path;
     } else if (onNavigate) {
-      onNavigate(path as 'dashboard' | 'create' | 'listings');
+      onNavigate(path as 'dashboard' | 'create' | 'listings' | 'inventory');
     }
   };
 
@@ -41,13 +41,17 @@ const Navigation = ({ currentView, onNavigate }: NavigationProps) => {
             <Camera className="w-4 h-4 mr-2" />
             Create
           </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => handleNavigation('inventory')}>
+            <Package className="w-4 h-4 mr-2" />
+            Inventory
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => handleNavigation('listings')}>
             <List className="w-4 h-4 mr-2" />
             Listings
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => handleNavigation('/admin')}>
             <Settings className="w-4 h-4 mr-2" />
-            Admin
+            Settings
           </DropdownMenuItem>
           <DropdownMenuItem onClick={signOut}>
             <LogOut className="w-4 h-4 mr-2" />
@@ -68,6 +72,15 @@ const Navigation = ({ currentView, onNavigate }: NavigationProps) => {
         <Camera className="w-4 h-4 mr-2" />
         Create
       </Button>
+
+      <Button
+        variant={currentView === 'inventory' ? 'default' : 'outline'}
+        size="sm"
+        onClick={() => handleNavigation('inventory')}
+      >
+        <Package className="w-4 h-4 mr-2" />
+        Inventory
+      </Button>
       
       <Button
         variant={currentView === 'listings' ? 'default' : 'outline'}
@@ -84,7 +97,7 @@ const Navigation = ({ currentView, onNavigate }: NavigationProps) => {
         onClick={() => handleNavigation('/admin')}
       >
         <Settings className="w-4 h-4 mr-2" />
-        Admin
+        Settings
       </Button>
       
       <Button
