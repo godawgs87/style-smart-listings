@@ -32,6 +32,14 @@ interface Listing {
   condition: string | null;
   status: string | null;
   shipping_cost: number | null;
+  measurements: {
+    length?: string;
+    width?: string;
+    height?: string;
+    weight?: string;
+  } | null;
+  keywords: string[] | null;
+  price_research: string | null;
   created_at: string;
 }
 
@@ -98,6 +106,24 @@ const ListingsTable = ({
     }));
   };
 
+  const updateMeasurement = (listingId: string, measurementField: string, value: string) => {
+    setEditData(prev => ({
+      ...prev,
+      [listingId]: {
+        ...prev[listingId],
+        measurements: {
+          ...((prev[listingId]?.measurements as any) || {}),
+          [measurementField]: value
+        }
+      }
+    }));
+  };
+
+  const updateKeywords = (listingId: string, value: string) => {
+    const keywords = value.split(',').map(k => k.trim()).filter(k => k.length > 0);
+    updateEditData(listingId, 'keywords', keywords);
+  };
+
   return (
     <div className="border rounded-lg overflow-hidden">
       <ScrollArea className="w-full">
@@ -117,6 +143,9 @@ const ListingsTable = ({
               <TableHead className="w-[100px]">Condition</TableHead>
               <TableHead className="w-[100px]">Status</TableHead>
               <TableHead className="w-[100px]">Shipping</TableHead>
+              <TableHead className="min-w-[200px]">Measurements</TableHead>
+              <TableHead className="min-w-[200px]">Keywords</TableHead>
+              <TableHead className="min-w-[150px]">Price Research</TableHead>
               <TableHead className="w-[100px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -248,6 +277,75 @@ const ListingsTable = ({
                       />
                     ) : (
                       <div className="text-sm">${listing.shipping_cost || 0}</div>
+                    )}
+                  </TableCell>
+
+                  <TableCell>
+                    {isEditing ? (
+                      <div className="space-y-1">
+                        <Input
+                          placeholder="Length"
+                          value={(currentData.measurements as any)?.length || ''}
+                          onChange={(e) => updateMeasurement(listing.id, 'length', e.target.value)}
+                          className="text-xs"
+                        />
+                        <Input
+                          placeholder="Width"
+                          value={(currentData.measurements as any)?.width || ''}
+                          onChange={(e) => updateMeasurement(listing.id, 'width', e.target.value)}
+                          className="text-xs"
+                        />
+                        <Input
+                          placeholder="Height"
+                          value={(currentData.measurements as any)?.height || ''}
+                          onChange={(e) => updateMeasurement(listing.id, 'height', e.target.value)}
+                          className="text-xs"
+                        />
+                        <Input
+                          placeholder="Weight"
+                          value={(currentData.measurements as any)?.weight || ''}
+                          onChange={(e) => updateMeasurement(listing.id, 'weight', e.target.value)}
+                          className="text-xs"
+                        />
+                      </div>
+                    ) : (
+                      <div className="text-xs space-y-1">
+                        {listing.measurements?.length && <div>L: {listing.measurements.length}</div>}
+                        {listing.measurements?.width && <div>W: {listing.measurements.width}</div>}
+                        {listing.measurements?.height && <div>H: {listing.measurements.height}</div>}
+                        {listing.measurements?.weight && <div>Wt: {listing.measurements.weight}</div>}
+                      </div>
+                    )}
+                  </TableCell>
+
+                  <TableCell>
+                    {isEditing ? (
+                      <Textarea
+                        placeholder="keyword1, keyword2, keyword3"
+                        value={currentData.keywords?.join(', ') || ''}
+                        onChange={(e) => updateKeywords(listing.id, e.target.value)}
+                        className="min-h-[40px]"
+                      />
+                    ) : (
+                      <div className="text-xs">
+                        {listing.keywords?.slice(0, 3).join(', ')}
+                        {listing.keywords && listing.keywords.length > 3 && '...'}
+                      </div>
+                    )}
+                  </TableCell>
+
+                  <TableCell>
+                    {isEditing ? (
+                      <Textarea
+                        placeholder="Price research notes"
+                        value={currentData.price_research || ''}
+                        onChange={(e) => updateEditData(listing.id, 'price_research', e.target.value)}
+                        className="min-h-[40px]"
+                      />
+                    ) : (
+                      <div className="text-xs text-gray-600">
+                        {listing.price_research?.substring(0, 50)}...
+                      </div>
                     )}
                   </TableCell>
 
