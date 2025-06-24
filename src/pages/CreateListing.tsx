@@ -1,142 +1,91 @@
-
 import React, { useState } from 'react';
-import MobileHeader from '@/components/MobileHeader';
-import CreateListingSteps from '@/components/create-listing/CreateListingSteps';
-import CreateListingContent from '@/components/create-listing/CreateListingContent';
-import AutomatedListingAssistant from '@/components/AutomatedListingAssistant';
-import { Button } from '@/components/ui/button';
-import { Brain } from 'lucide-react';
-import { Step, ListingData, CreateListingProps } from '@/types/CreateListing';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/hooks/useAuth';
 import { usePhotoAnalysis } from '@/hooks/usePhotoAnalysis';
 import { useListingSave } from '@/hooks/useListingSave';
-import { getWeightFromListing, getDimensionsFromListing } from '@/utils/listingUtils';
-import { sanitizeListingData } from '@/utils/listingDataValidator';
+import StreamlinedHeader from '@/components/StreamlinedHeader';
+import MobileNavigation from '@/components/MobileNavigation';
+import CreateListingContent from '@/components/create-listing/CreateListingContent';
+import CreateListingSteps from '@/components/create-listing/CreateListingSteps';
+import { Step, ListingData } from '@/types/CreateListing';
+
+interface CreateListingProps {
+  onBack: () => void;
+  onViewListings: () => void;
+}
 
 const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
   const [currentStep, setCurrentStep] = useState<Step>('photos');
   const [photos, setPhotos] = useState<File[]>([]);
-  const [listingData, setListingData] = useState<ListingData | null>(null);
   const [shippingCost, setShippingCost] = useState(0);
-  const [showAssistant, setShowAssistant] = useState(false);
+  const [listingData, setListingData] = useState<ListingData | null>(null);
   
-  const { isAnalyzing, analyzePhotos } = usePhotoAnalysis();
-  const { isSaving, saveListing } = useListingSave();
+  const isMobile = useIsMobile();
+  const { user } = useAuth();
+  const { analyzePhotos, isAnalyzing } = usePhotoAnalysis();
+  const { saveListing, isSaving } = useListingSave();
 
   const handlePhotosChange = (newPhotos: File[]) => {
-    console.log('Photos changed:', newPhotos.length);
     setPhotos(newPhotos);
   };
 
   const handleAnalyze = async () => {
-    console.log('Starting photo analysis...');
+    if (photos.length === 0) return;
+    
     const result = await analyzePhotos(photos);
     if (result) {
-      console.log('Analysis successful, setting listing data');
       setListingData(result);
       setCurrentStep('preview');
-    } else {
-      console.error('Analysis failed');
+    }
+  };
+
+  const handleEdit = () => {
+    setCurrentStep('preview');
+  };
+
+  const handleExport = async () => {
+    if (!listingData) return;
+    
+    if (currentStep === 'preview') {
+      setCurrentStep('shipping');
+      return;
+    }
+    
+    const success = await saveListing(listingData, shippingCost);
+    if (success) {
+      onViewListings();
     }
   };
 
   const handleShippingSelect = (option: any) => {
-    console.log('Shipping option selected:', option);
-    setShippingCost(Number(option.cost) || 0);
+    setShippingCost(option.cost || 0);
   };
 
-  const handlePreviewExport = () => {
-    console.log('Moving from preview to shipping step');
-    setCurrentStep('shipping');
+  const getWeight = () => {
+    return listingData?.measurements?.weight || 1;
   };
 
-  const handleSaveListing = async () => {
-    if (!listingData) {
-      console.error('No listing data to save');
-      return;
-    }
-    
-    console.log('=== SAVE LISTING INITIATED ===');
-    console.log('Original listing data:', listingData);
-    console.log('Shipping cost:', shippingCost);
-    
-    // Sanitize data before saving
-    const sanitizedData = sanitizeListingData(listingData);
-    console.log('Sanitized listing data:', sanitizedData);
-    
-    const success = await saveListing(sanitizedData, shippingCost);
-    
-    if (success) {
-      console.log('Save successful, navigating...');
-      // Small delay to ensure toast is visible
-      setTimeout(() => {
-        if (onViewListings) {
-          console.log('Navigating to listings manager');
-          onViewListings();
-        } else {
-          console.log('Going back to previous screen');
-          onBack();
-        }
-      }, 1500);
-    } else {
-      console.log('Save failed');
-    }
+  const getDimensions = () => {
+    return {
+      length: listingData?.measurements?.length || 12,
+      width: listingData?.measurements?.width || 12,
+      height: listingData?.measurements?.height || 6
+    };
   };
-
-  const handleUpdateListing = (updates: Partial<ListingData>) => {
-    if (listingData) {
-      console.log('Updating listing data with:', updates);
-      setListingData({ ...listingData, ...updates });
-    }
-  };
-
-  // Show assistant if requested
-  if (showAssistant && listingData) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <MobileHeader 
-          title="Listing Assistant" 
-          showBack 
-          onBack={() => setShowAssistant(false)}
-        />
-        <div className="p-4">
-          <AutomatedListingAssistant
-            currentListing={listingData}
-            onUpdateListing={handleUpdateListing}
-            onClose={() => setShowAssistant(false)}
-          />
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <MobileHeader 
-        title="Create Listing" 
-        showBack 
+    <div className={`min-h-screen bg-gray-50 ${isMobile ? 'pb-20' : ''}`}>
+      <StreamlinedHeader
+        title="Create New Listing"
+        showBack
         onBack={onBack}
-        rightAction={
-          listingData && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowAssistant(true)}
-              className="text-purple-600"
-            >
-              <Brain className="w-4 h-4 mr-1" />
-              Assistant
-            </Button>
-          )
-        }
       />
-
-      <CreateListingSteps 
-        currentStep={currentStep}
-        photos={photos}
-        listingData={listingData}
-      />
-
-      <div className="p-4 space-y-4">
+      
+      <div className="max-w-4xl mx-auto p-4">
+        {!isMobile && (
+          <CreateListingSteps currentStep={currentStep} />
+        )}
+        
         <CreateListingContent
           currentStep={currentStep}
           photos={photos}
@@ -146,13 +95,23 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
           isSaving={isSaving}
           onPhotosChange={handlePhotosChange}
           onAnalyze={handleAnalyze}
-          onEdit={() => setCurrentStep('photos')}
-          onExport={currentStep === 'preview' ? handlePreviewExport : handleSaveListing}
+          onEdit={handleEdit}
+          onExport={handleExport}
           onShippingSelect={handleShippingSelect}
-          getWeight={() => getWeightFromListing(listingData)}
-          getDimensions={() => getDimensionsFromListing(listingData)}
+          getWeight={getWeight}
+          getDimensions={getDimensions}
         />
       </div>
+
+      {isMobile && (
+        <MobileNavigation
+          currentView="create"
+          onNavigate={() => {}} // Disabled during creation flow
+          showBack
+          onBack={onBack}
+          title="Create Listing"
+        />
+      )}
     </div>
   );
 };

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -5,12 +6,15 @@ import { Camera, List } from "lucide-react";
 import CreateListing from "./CreateListing";
 import ListingsManager from "./ListingsManager";
 import AuthForm from "@/components/AuthForm";
-import Navigation from "@/components/Navigation";
+import StreamlinedHeader from "@/components/StreamlinedHeader";
+import MobileNavigation from "@/components/MobileNavigation";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Index = () => {
   const [currentView, setCurrentView] = useState<'dashboard' | 'create' | 'listings'>('dashboard');
   const { user, loading } = useAuth();
+  const isMobile = useIsMobile();
 
   if (loading) {
     return (
@@ -45,16 +49,13 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">eBay Listing Helper</h1>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-600">Welcome, {user.email}</span>
-            <Navigation currentView={currentView} onNavigate={setCurrentView} />
-          </div>
-        </div>
-      </div>
+    <div className={`min-h-screen bg-gray-50 ${isMobile ? 'pb-20' : ''}`}>
+      <StreamlinedHeader
+        title="eBay Listing Helper"
+        userEmail={user.email}
+        currentView={currentView}
+        onNavigate={setCurrentView}
+      />
 
       <div className="max-w-4xl mx-auto p-6 space-y-8">
         <div className="text-center">
@@ -108,6 +109,13 @@ const Index = () => {
           </div>
         </div>
       </div>
+
+      {isMobile && (
+        <MobileNavigation
+          currentView={currentView}
+          onNavigate={setCurrentView}
+        />
+      )}
     </div>
   );
 };
