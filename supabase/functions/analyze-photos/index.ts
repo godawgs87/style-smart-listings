@@ -1,4 +1,5 @@
 
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { analyzePhotosWithOpenAI } from './utils/openaiClient.ts';
@@ -19,29 +20,15 @@ serve(async (req) => {
     console.log('Request method:', req.method);
     console.log('Request headers:', Object.fromEntries(req.headers.entries()));
     
-    // Get request body as text first to debug
-    const requestText = await req.text();
-    console.log('Raw request text length:', requestText.length);
-    console.log('First 200 chars of request:', requestText.substring(0, 200));
-    
-    if (!requestText || requestText.trim() === '') {
-      console.error('Empty request body received');
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: 'Request body is empty. Please ensure photos are properly uploaded.' 
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    
     let requestBody;
     try {
-      requestBody = JSON.parse(requestText);
-      console.log('Successfully parsed JSON, photos array length:', requestBody?.photos?.length || 0);
+      // Parse JSON body directly
+      requestBody = await req.json();
+      console.log('Successfully parsed JSON directly');
+      console.log('Request body type:', typeof requestBody);
+      console.log('Photos array length:', requestBody?.photos?.length || 0);
     } catch (parseError) {
       console.error('JSON parsing error:', parseError);
-      console.error('Request text that failed to parse:', requestText);
       return new Response(JSON.stringify({ 
         success: false, 
         error: 'Invalid JSON in request body. Please try again.' 

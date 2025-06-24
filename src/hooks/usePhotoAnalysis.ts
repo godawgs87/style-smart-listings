@@ -42,19 +42,16 @@ export const usePhotoAnalysis = () => {
       
       console.log('Calling analyze-photos function...');
       
-      // Prepare the request payload
+      // Prepare the request payload - DO NOT stringify, supabase client handles this
       const requestPayload = { 
         photos: base64Photos 
       };
       
       console.log('Request payload prepared, photos count:', requestPayload.photos.length);
       
-      // Use Supabase function invocation with proper JSON serialization
+      // Use Supabase function invocation - body should be plain object, not JSON string
       const { data, error } = await supabase.functions.invoke('analyze-photos', {
-        body: JSON.stringify(requestPayload),
-        headers: {
-          'Content-Type': 'application/json',
-        }
+        body: requestPayload
       });
 
       console.log('Function response data:', data);
