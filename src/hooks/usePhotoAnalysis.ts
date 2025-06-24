@@ -24,10 +24,37 @@ export const usePhotoAnalysis = () => {
     try {
       console.log('=== PHOTO ANALYSIS DEBUG ===');
       console.log('Starting photo analysis with', photos.length, 'photos');
+      console.log('Photos array:', photos.map(p => ({ name: p.name, size: p.size, type: p.type })));
+      
+      // Validate photos first
+      const validPhotos = photos.filter(photo => {
+        if (!photo || photo.size === 0) {
+          console.error('Invalid photo found:', photo);
+          return false;
+        }
+        if (!photo.type.startsWith('image/')) {
+          console.error('Non-image file found:', photo.type);
+          return false;
+        }
+        return true;
+      });
+      
+      if (validPhotos.length === 0) {
+        throw new Error('No valid image files found');
+      }
+      
+      console.log('Valid photos count:', validPhotos.length);
       
       // Convert photos to base64
-      const base64Photos = await convertFilesToBase64(photos);
-      console.log('Photos converted to base64, first photo size:', base64Photos[0]?.length || 0);
+      let base64Photos;
+      try {
+        base64Photos = await convertFilesToBase64(validPhotos);
+        console.log('Photos converted to base64, count:', base64Photos.length);
+        console.log('First photo preview (first 100 chars):', base64Photos[0]?.substring(0, 100));
+      } catch (conversionError) {
+        console.error('Photo conversion failed:', conversionError);
+        throw new Error('Failed to process photos. Please try uploading different photos.');
+      }
       
       // Validate base64 photos
       if (!base64Photos || base64Photos.length === 0) {
@@ -42,14 +69,21 @@ export const usePhotoAnalysis = () => {
       
       console.log('Calling analyze-photos function...');
       
-      // Prepare the request payload - DO NOT stringify, supabase client handles this
+      // Prepare the request payload with thorough validation
       const requestPayload = { 
         photos: base64Photos 
       };
       
-      console.log('Request payload prepared, photos count:', requestPayload.photos.length);
+      console.log('Request payload prepared:');
+      console.log('- Photos count:', requestPayload.photos.length);
+      console.log('- Payload size estimate:', JSON.stringify(requestPayload).length, 'chars');
       
-      // Use Supabase function invocation - body should be plain object, not JSON string
+      // Validate payload before sending
+      if (!requestPayload.photos || requestPayload.photos.length === 0) {
+        throw new Error('Request payload is invalid - no photos data');
+      }
+      
+      // Use Supabase function invocation
       const { data, error } = await supabase.functions.invoke('analyze-photos', {
         body: requestPayload
       });
@@ -115,6 +149,8 @@ export const usePhotoAnalysis = () => {
         errorMessage = 'Connection issue. Please check your internet and try again.';
       } else if (error?.message?.includes('corrupted') || error?.message?.includes('base64')) {
         errorMessage = 'Photo upload issue. Please try uploading the photos again.';
+      } else if (error?.message?.includes('convert') || error?.message?.includes('process')) {
+        errorMessage = 'Photo processing failed. Please try different photos or smaller file sizes.';
       }
       
       toast({
