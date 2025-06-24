@@ -19,27 +19,32 @@ serve(async (req) => {
     console.log('Request method:', req.method);
     console.log('Request headers:', Object.fromEntries(req.headers.entries()));
     
-    // Check if request has a body
-    const contentType = req.headers.get('content-type');
-    console.log('Content-Type:', contentType);
+    // Get request body as text first to debug
+    const requestText = await req.text();
+    console.log('Raw request text length:', requestText.length);
+    console.log('First 200 chars of request:', requestText.substring(0, 200));
+    
+    if (!requestText || requestText.trim() === '') {
+      console.error('Empty request body received');
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'Request body is empty. Please ensure photos are properly uploaded.' 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     
     let requestBody;
     try {
-      const requestText = await req.text();
-      console.log('Raw request text length:', requestText.length);
-      console.log('First 100 chars of request:', requestText.substring(0, 100));
-      
-      if (!requestText.trim()) {
-        throw new Error('Request body is empty');
-      }
-      
       requestBody = JSON.parse(requestText);
       console.log('Successfully parsed JSON, photos array length:', requestBody?.photos?.length || 0);
     } catch (parseError) {
       console.error('JSON parsing error:', parseError);
+      console.error('Request text that failed to parse:', requestText);
       return new Response(JSON.stringify({ 
         success: false, 
-        error: 'Invalid or empty request body. Please ensure photos are properly uploaded.' 
+        error: 'Invalid JSON in request body. Please try again.' 
       }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -52,6 +57,10 @@ serve(async (req) => {
     console.log('=== DEBUG INFO ===');
     console.log('OpenAI API Key exists:', !!openAIApiKey);
     console.log('Photos received:', photos?.length || 0);
+    
+    if (photos && photos.length > 0) {
+      console.log('First photo preview (first 100 chars):', photos[0]?.substring(0, 100));
+    }
 
     if (!photos || photos.length === 0) {
       return new Response(JSON.stringify({ 
