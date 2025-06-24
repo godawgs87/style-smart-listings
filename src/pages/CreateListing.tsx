@@ -10,6 +10,7 @@ import { Step, ListingData, CreateListingProps } from '@/types/CreateListing';
 import { usePhotoAnalysis } from '@/hooks/usePhotoAnalysis';
 import { useListingSave } from '@/hooks/useListingSave';
 import { getWeightFromListing, getDimensionsFromListing } from '@/utils/listingUtils';
+import { sanitizeListingData } from '@/utils/listingDataValidator';
 
 const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
   const [currentStep, setCurrentStep] = useState<Step>('photos');
@@ -22,34 +23,50 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
   const { isSaving, saveListing } = useListingSave();
 
   const handlePhotosChange = (newPhotos: File[]) => {
+    console.log('Photos changed:', newPhotos.length);
     setPhotos(newPhotos);
   };
 
   const handleAnalyze = async () => {
+    console.log('Starting photo analysis...');
     const result = await analyzePhotos(photos);
     if (result) {
+      console.log('Analysis successful, setting listing data');
       setListingData(result);
       setCurrentStep('preview');
+    } else {
+      console.error('Analysis failed');
     }
   };
 
   const handleShippingSelect = (option: any) => {
-    console.log('Selected shipping:', option);
-    console.log('Setting shipping cost to:', option.cost);
-    setShippingCost(option.cost);
+    console.log('Shipping option selected:', option);
+    setShippingCost(Number(option.cost) || 0);
   };
 
   const handlePreviewExport = () => {
-    console.log('Moving to shipping step');
+    console.log('Moving from preview to shipping step');
     setCurrentStep('shipping');
   };
 
   const handleSaveListing = async () => {
-    if (!listingData) return;
+    if (!listingData) {
+      console.error('No listing data to save');
+      return;
+    }
     
-    console.log('Attempting to save with shipping cost:', shippingCost);
-    const success = await saveListing(listingData, shippingCost);
+    console.log('=== SAVE LISTING INITIATED ===');
+    console.log('Original listing data:', listingData);
+    console.log('Shipping cost:', shippingCost);
+    
+    // Sanitize data before saving
+    const sanitizedData = sanitizeListingData(listingData);
+    console.log('Sanitized listing data:', sanitizedData);
+    
+    const success = await saveListing(sanitizedData, shippingCost);
+    
     if (success) {
+      console.log('Save successful, navigating...');
       // Small delay to ensure toast is visible
       setTimeout(() => {
         if (onViewListings) {
@@ -59,12 +76,15 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
           console.log('Going back to previous screen');
           onBack();
         }
-      }, 1000);
+      }, 1500);
+    } else {
+      console.log('Save failed');
     }
   };
 
   const handleUpdateListing = (updates: Partial<ListingData>) => {
     if (listingData) {
+      console.log('Updating listing data with:', updates);
       setListingData({ ...listingData, ...updates });
     }
   };

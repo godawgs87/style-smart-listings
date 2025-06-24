@@ -10,12 +10,7 @@ export const useListingSave = () => {
 
   const saveListing = async (listingData: ListingData, shippingCost: number): Promise<boolean> => {
     console.log('=== SAVE LISTING START ===');
-    console.log('Listing data:', {
-      title: listingData.title,
-      price: listingData.price,
-      photos_count: listingData.photos?.length,
-      shipping_cost: shippingCost
-    });
+    console.log('Raw input data:', { listingData, shippingCost });
     
     if (!listingData) {
       console.error('No listing data provided');
@@ -30,8 +25,13 @@ export const useListingSave = () => {
     setIsSaving(true);
     
     try {
-      // Check authentication
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      // Get current user with timeout
+      const { data: { user }, error: authError } = await Promise.race([
+        supabase.auth.getUser(),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Auth timeout')), 5000)
+        )
+      ]) as any;
       
       if (authError || !user) {
         console.error('Authentication error:', authError);
@@ -45,34 +45,50 @@ export const useListingSave = () => {
 
       console.log('User authenticated:', user.id);
 
-      // Prepare listing data exactly matching the existing successful listings format
-      const listingForDb = {
+      // Clean and prepare data - ensure proper types
+      const cleanedData = {
         user_id: user.id,
-        title: listingData.title || '',
-        description: listingData.description || null,
-        price: listingData.price || 0,
-        category: listingData.category || null,
-        condition: listingData.condition || null,
-        measurements: listingData.measurements || {},
-        keywords: listingData.keywords || null,
-        photos: listingData.photos || null,
-        price_research: listingData.priceResearch || null,
-        shipping_cost: shippingCost || 9.95,
+        title: String(listingData.title || '').trim(),
+        description: listingData.description ? String(listingData.description).trim() : null,
+        price: Number(listingData.price) || 0,
+        category: listingData.category ? String(listingData.category).trim() : null,
+        condition: listingData.condition ? String(listingData.condition).trim() : null,
+        measurements: listingData.measurements && typeof listingData.measurements === 'object' 
+          ? listingData.measurements 
+          : {},
+        keywords: Array.isArray(listingData.keywords) && listingData.keywords.length > 0 
+          ? listingData.keywords 
+          : null,
+        photos: Array.isArray(listingData.photos) && listingData.photos.length > 0 
+          ? listingData.photos 
+          : null,
+        price_research: listingData.priceResearch ? String(listingData.priceResearch).trim() : null,
+        shipping_cost: Number(shippingCost) || 9.95,
         status: 'draft'
       };
 
-      console.log('Attempting to save listing to database...');
-      console.log('Final payload:', listingForDb);
+      console.log('Cleaned data for insert:', cleanedData);
 
-      // Use the same insert pattern as existing successful listings
-      const { data, error } = await supabase
+      // Insert with timeout and proper error handling
+      const insertPromise = supabase
         .from('listings')
-        .insert(listingForDb)
-        .select()
+        .insert(cleanedData)
+        .select('id, title, created_at')
         .single();
 
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Database operation timed out')), 10000)
+      );
+
+      const { data, error } = await Promise.race([insertPromise, timeoutPromise]) as any;
+
       if (error) {
-        console.error('Database save error:', error);
+        console.error('Database insert error:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        });
         throw error;
       }
 
@@ -80,28 +96,32 @@ export const useListingSave = () => {
 
       toast({
         title: "Listing Saved! ✅",
-        description: `Your ${listingData.title} listing has been saved successfully.`
+        description: `Your "${listingData.title}" listing has been saved successfully.`
       });
 
       return true;
 
     } catch (error: any) {
-      console.error('=== SAVE ERROR DETAILS ===');
+      console.error('=== COMPREHENSIVE SAVE ERROR ===');
+      console.error('Error type:', typeof error);
       console.error('Error message:', error?.message);
       console.error('Error code:', error?.code);
       console.error('Error details:', error?.details);
-      console.error('Full error object:', error);
+      console.error('Error hint:', error?.hint);
+      console.error('Full error:', error);
 
-      let errorMessage = 'Failed to save listing.';
+      let errorMessage = 'Failed to save listing. Please try again.';
       
-      if (error?.message?.includes('JWT') || error?.message?.includes('token')) {
-        errorMessage = 'Authentication expired. Please refresh and try again.';
-      } else if (error?.message?.includes('permission') || error?.code === 'PGRST116') {
-        errorMessage = 'Permission denied. Please ensure you are signed in properly.';
+      if (error?.message?.includes('timeout') || error?.message === 'Database operation timed out') {
+        errorMessage = 'Save operation timed out. Please check your connection and try again.';
+      } else if (error?.message?.includes('JWT') || error?.message?.includes('token')) {
+        errorMessage = 'Session expired. Please refresh the page and try again.';
+      } else if (error?.code === 'PGRST116' || error?.message?.includes('permission')) {
+        errorMessage = 'Permission denied. Please ensure you are properly signed in.';
       } else if (error?.code === '23505') {
-        errorMessage = 'A listing with this information already exists.';
-      } else if (error?.message?.includes('timeout') || error?.code === '57014') {
-        errorMessage = 'Database operation timed out. Please try again.';
+        errorMessage = 'A similar listing already exists.';
+      } else if (error?.code === '23502') {
+        errorMessage = 'Required listing information is missing.';
       }
 
       toast({

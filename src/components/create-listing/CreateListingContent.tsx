@@ -12,6 +12,7 @@ import PhotoAnalysisLoading from './PhotoAnalysisLoading';
 import PriceAlert from './PriceAlert';
 import PricingTip from './PricingTip';
 import { Step, ListingData } from '@/types/CreateListing';
+import { validateListingData } from '@/utils/listingDataValidator';
 
 interface CreateListingContentProps {
   currentStep: Step;
@@ -44,14 +45,11 @@ const CreateListingContent = ({
   getWeight,
   getDimensions
 }: CreateListingContentProps) => {
-  console.log('=== CreateListingContent DEBUG ===');
+  console.log('=== CreateListingContent Render ===');
   console.log('Current step:', currentStep);
+  console.log('Listing data valid:', !!listingData);
   console.log('Shipping cost:', shippingCost);
-  console.log('Shipping cost type:', typeof shippingCost);
   console.log('Is saving:', isSaving);
-  console.log('Is saving type:', typeof isSaving);
-  console.log('Button should be disabled:', isSaving || shippingCost <= 0);
-  console.log('shippingCost <= 0:', shippingCost <= 0);
 
   if (currentStep === 'photos') {
     return (
@@ -84,7 +82,6 @@ const CreateListingContent = ({
           <ListingPreview
             listing={{
               ...listingData,
-              // Don't show shipping cost in preview until it's selected
               shippingCost: undefined
             }}
             onEdit={onEdit}
@@ -96,12 +93,15 @@ const CreateListingContent = ({
   }
 
   if (currentStep === 'shipping' && listingData) {
-    const buttonDisabled = isSaving || shippingCost <= 0;
-    console.log('=== BUTTON STATE DEBUG ===');
-    console.log('Button disabled calculated:', buttonDisabled);
-    console.log('isSaving:', isSaving);
-    console.log('shippingCost:', shippingCost);
-    console.log('shippingCost <= 0:', shippingCost <= 0);
+    // Validate listing data before allowing save
+    const validation = validateListingData(listingData);
+    const canSave = validation.isValid && shippingCost > 0 && !isSaving;
+    
+    console.log('=== SAVE BUTTON STATE ===');
+    console.log('Validation result:', validation);
+    console.log('Shipping cost valid:', shippingCost > 0);
+    console.log('Not saving:', !isSaving);
+    console.log('Can save:', canSave);
     
     return (
       <ScrollArea className="h-[calc(100vh-200px)]">
@@ -112,6 +112,20 @@ const CreateListingContent = ({
               Actual rates may vary. For exact pricing, use carrier websites or shipping software.
             </AlertDescription>
           </Alert>
+          
+          {!validation.isValid && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Listing Issues:</strong>
+                <ul className="mt-2 list-disc list-inside">
+                  {validation.errors.map((error, index) => (
+                    <li key={index}>{error}</li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
           
           <Card className="p-6">
             <h2 className="text-xl font-bold mb-4">Shipping Calculator</h2>
@@ -126,17 +140,23 @@ const CreateListingContent = ({
           
           <Button 
             onClick={() => {
-              console.log('=== BUTTON CLICKED ===');
-              console.log('Calling onExport...');
+              console.log('=== SAVE BUTTON CLICKED ===');
+              console.log('Final validation check:', validation);
+              console.log('Shipping cost check:', shippingCost);
               onExport();
             }} 
             className="w-full gradient-bg text-white text-lg py-6"
-            disabled={buttonDisabled}
+            disabled={!canSave}
           >
             {isSaving ? (
               <>
                 <div className="animate-spin w-5 h-5 border-3 border-white border-t-transparent rounded-full mr-3"></div>
                 Saving Listing...
+              </>
+            ) : !validation.isValid ? (
+              <>
+                <AlertTriangle className="w-5 h-5 mr-3" />
+                Fix Issues Above
               </>
             ) : shippingCost <= 0 ? (
               <>
@@ -152,9 +172,14 @@ const CreateListingContent = ({
           </Button>
           
           {isSaving && (
-            <p className="text-center text-sm text-gray-600">
-              Please wait while we save your listing...
-            </p>
+            <div className="text-center space-y-2">
+              <p className="text-sm text-gray-600">
+                Saving your listing to the database...
+              </p>
+              <p className="text-xs text-gray-500">
+                This may take a few moments
+              </p>
+            </div>
           )}
         </div>
       </ScrollArea>
