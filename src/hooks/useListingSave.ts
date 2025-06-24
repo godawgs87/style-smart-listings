@@ -45,33 +45,34 @@ export const useListingSave = () => {
 
       console.log('User authenticated:', user.id);
 
-      // Prepare listing data for database
+      // Prepare listing data exactly matching the existing successful listings format
       const listingForDb = {
         user_id: user.id,
         title: listingData.title || '',
-        description: listingData.description || '',
-        price: Number(listingData.price) || 0,
-        category: listingData.category || '',
-        condition: listingData.condition || '',
+        description: listingData.description || null,
+        price: listingData.price || 0,
+        category: listingData.category || null,
+        condition: listingData.condition || null,
         measurements: listingData.measurements || {},
-        keywords: listingData.keywords || [],
-        photos: listingData.photos || [],
+        keywords: listingData.keywords || null,
+        photos: listingData.photos || null,
         price_research: listingData.priceResearch || null,
-        shipping_cost: Number(shippingCost) || 9.95,
+        shipping_cost: shippingCost || 9.95,
         status: 'draft'
       };
 
       console.log('Attempting to save listing to database...');
+      console.log('Final payload:', listingForDb);
 
-      // Save to database
+      // Use the same insert pattern as existing successful listings
       const { data, error } = await supabase
         .from('listings')
-        .insert([listingForDb])
+        .insert(listingForDb)
         .select()
         .single();
 
       if (error) {
-        console.error('Save error:', error);
+        console.error('Database save error:', error);
         throw error;
       }
 
@@ -88,16 +89,19 @@ export const useListingSave = () => {
       console.error('=== SAVE ERROR DETAILS ===');
       console.error('Error message:', error?.message);
       console.error('Error code:', error?.code);
+      console.error('Error details:', error?.details);
       console.error('Full error object:', error);
 
       let errorMessage = 'Failed to save listing.';
       
-      if (error?.message?.includes('JWT')) {
+      if (error?.message?.includes('JWT') || error?.message?.includes('token')) {
         errorMessage = 'Authentication expired. Please refresh and try again.';
-      } else if (error?.message?.includes('permission') || error?.message?.includes('RLS')) {
-        errorMessage = 'Permission denied. Please ensure you are signed in.';
+      } else if (error?.message?.includes('permission') || error?.code === 'PGRST116') {
+        errorMessage = 'Permission denied. Please ensure you are signed in properly.';
       } else if (error?.code === '23505') {
         errorMessage = 'A listing with this information already exists.';
+      } else if (error?.message?.includes('timeout') || error?.code === '57014') {
+        errorMessage = 'Database operation timed out. Please try again.';
       }
 
       toast({
