@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,7 +9,13 @@ export const useListingSave = () => {
   const { toast } = useToast();
 
   const saveListing = async (listingData: ListingData, shippingCost: number): Promise<boolean> => {
-    console.log('=== SAVE LISTING TO SUPABASE ===');
+    console.log('=== SAVE LISTING START ===');
+    console.log('Listing data:', {
+      title: listingData.title,
+      price: listingData.price,
+      photos_count: listingData.photos?.length,
+      shipping_cost: shippingCost
+    });
     
     if (!listingData) {
       console.error('No listing data provided');
@@ -23,7 +30,7 @@ export const useListingSave = () => {
     setIsSaving(true);
     
     try {
-      // Check if user is authenticated first
+      // Check authentication
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       
       if (authError || !user) {
@@ -38,108 +45,87 @@ export const useListingSave = () => {
 
       console.log('User authenticated:', user.id);
 
-      // Optimize photos array - limit size and compress if needed
-      const optimizedPhotos = Array.isArray(listingData.photos) 
-        ? listingData.photos.slice(0, 8).map(photo => {
-            // Keep photos but ensure they're not too large
-            if (typeof photo === 'string' && photo.length > 1000000) {
-              console.warn('Large photo detected, may cause timeout');
+      // Compress photos to reduce payload size
+      const compressedPhotos = Array.isArray(listingData.photos) 
+        ? listingData.photos.slice(0, 5).map(photo => {
+            // If photo is very large, we'll skip it to prevent timeout
+            if (typeof photo === 'string' && photo.length > 500000) {
+              console.warn('Skipping large photo to prevent timeout');
+              return null;
             }
             return photo;
-          })
+          }).filter(Boolean)
         : [];
 
-      // Prepare optimized listing data for Supabase
+      console.log('Photos after compression:', compressedPhotos.length);
+
+      // Prepare minimal listing data
       const listingForDb = {
         user_id: user.id,
-        title: String(listingData.title || '').substring(0, 255),
-        description: String(listingData.description || '').substring(0, 3000), // Reduced from 5000
+        title: String(listingData.title || '').substring(0, 200),
+        description: String(listingData.description || '').substring(0, 2000),
         price: Number(listingData.price) || 0,
         category: String(listingData.category || '').substring(0, 100),
         condition: String(listingData.condition || '').substring(0, 50),
         measurements: listingData.measurements || {},
-        keywords: Array.isArray(listingData.keywords) ? listingData.keywords.slice(0, 15) : [], // Reduced from 20
-        photos: optimizedPhotos,
-        price_research: String(listingData.priceResearch || '').substring(0, 1500) || null, // Reduced from 2000
+        keywords: Array.isArray(listingData.keywords) ? listingData.keywords.slice(0, 10) : [],
+        photos: compressedPhotos,
+        price_research: String(listingData.priceResearch || '').substring(0, 1000) || null,
         shipping_cost: Number(shippingCost) || 9.95,
         status: 'draft'
       };
 
-      console.log('Prepared optimized listing data:', {
-        title: listingForDb.title,
-        price: listingForDb.price,
-        shipping_cost: listingForDb.shipping_cost,
-        user_id: listingForDb.user_id,
-        photos_count: listingForDb.photos.length,
-        keywords_count: listingForDb.keywords.length,
-        description_length: listingForDb.description.length
-      });
+      console.log('Attempting to save listing to database...');
+      console.log('Payload size estimate:', JSON.stringify(listingForDb).length, 'characters');
 
-      // Save to Supabase with retry logic
-      let attempt = 0;
-      const maxAttempts = 2;
-      
-      while (attempt < maxAttempts) {
-        attempt++;
-        console.log(`Save attempt ${attempt}/${maxAttempts}`);
-        
-        try {
-          const { data, error } = await supabase
-            .from('listings')
-            .insert([listingForDb])
-            .select()
-            .single();
+      // Single save attempt with shorter timeout expectation
+      const { data, error } = await supabase
+        .from('listings')
+        .insert([listingForDb])
+        .select()
+        .single();
 
-          if (error) {
-            throw error;
-          }
-
-          console.log('Successfully saved listing on attempt', attempt, ':', data);
-
-          toast({
-            title: "Listing Saved! ✅",
-            description: `Your ${listingData.title} listing has been saved to your account.`
-          });
-
-          return true;
-
-        } catch (attemptError: any) {
-          console.error(`Save attempt ${attempt} failed:`, attemptError);
-          
-          if (attempt === maxAttempts) {
-            throw attemptError; // Throw on final attempt
-          }
-          
-          // Wait before retrying
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
+      if (error) {
+        console.error('Save error:', error);
+        throw error;
       }
 
-      return false;
+      console.log('Successfully saved listing:', data);
+
+      toast({
+        title: "Listing Saved! ✅",
+        description: `Your ${listingData.title} listing has been saved successfully.`
+      });
+
+      return true;
 
     } catch (error: any) {
-      console.error('=== SAVE ERROR ===');
-      console.error('Error:', error);
+      console.error('=== SAVE ERROR DETAILS ===');
+      console.error('Error type:', typeof error);
+      console.error('Error message:', error?.message);
+      console.error('Error code:', error?.code);
+      console.error('Full error object:', error);
 
       let errorMessage = 'Failed to save listing.';
       
-      if (error.message?.includes('timeout') || error.message?.includes('Timeout')) {
-        errorMessage = 'Save operation timed out. This may be due to large photos. Please try again with smaller images.';
-      } else if (error.message?.includes('NetworkError') || error.message?.includes('fetch')) {
-        errorMessage = 'Network error. Please check your connection and try again.';
-      } else if (error.message?.includes('duplicate key')) {
+      // Handle specific Supabase errors
+      if (error?.code === 'PGRST116') {
+        errorMessage = 'Database timeout. Try uploading fewer or smaller photos.';
+      } else if (error?.message?.includes('timeout')) {
+        errorMessage = 'Save operation timed out. Please try again with smaller photos.';
+      } else if (error?.message?.includes('JWT')) {
+        errorMessage = 'Authentication expired. Please refresh and try again.';
+      } else if (error?.message?.includes('permission') || error?.message?.includes('RLS')) {
+        errorMessage = 'Permission denied. Please ensure you are signed in.';
+      } else if (error?.code === '23505') {
         errorMessage = 'A listing with this information already exists.';
-      } else if (error.message?.includes('permission denied') || error.message?.includes('RLS')) {
-        errorMessage = 'You do not have permission to save listings. Please sign in again.';
-      } else if (error.message?.includes('value too long')) {
-        errorMessage = 'Some of your listing information is too long. Please shorten it and try again.';
-      } else if (error.message?.includes('auth')) {
-        errorMessage = 'Authentication error. Please sign in again.';
+      } else if (error?.message?.includes('value too long')) {
+        errorMessage = 'Some listing information is too long. Please shorten it.';
       }
 
       toast({
         title: "Save Failed",
-        description: `${errorMessage} ${error?.message ? `(${error.message})` : ''}`,
+        description: errorMessage,
         variant: "destructive"
       });
 
