@@ -3,6 +3,9 @@ import React, { useState } from 'react';
 import MobileHeader from '@/components/MobileHeader';
 import CreateListingSteps from '@/components/create-listing/CreateListingSteps';
 import CreateListingContent from '@/components/create-listing/CreateListingContent';
+import AutomatedListingAssistant from '@/components/AutomatedListingAssistant';
+import { Button } from '@/components/ui/button';
+import { Brain } from 'lucide-react';
 import { Step, ListingData, CreateListingProps } from '@/types/CreateListing';
 import { usePhotoAnalysis } from '@/hooks/usePhotoAnalysis';
 import { useListingSave } from '@/hooks/useListingSave';
@@ -13,6 +16,7 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
   const [photos, setPhotos] = useState<File[]>([]);
   const [listingData, setListingData] = useState<ListingData | null>(null);
   const [shippingCost, setShippingCost] = useState(0);
+  const [showAssistant, setShowAssistant] = useState(false);
   
   const { isAnalyzing, analyzePhotos } = usePhotoAnalysis();
   const { isSaving, saveListing } = useListingSave();
@@ -59,12 +63,51 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
     }
   };
 
+  const handleUpdateListing = (updates: Partial<ListingData>) => {
+    if (listingData) {
+      setListingData({ ...listingData, ...updates });
+    }
+  };
+
+  // Show assistant if requested
+  if (showAssistant && listingData) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <MobileHeader 
+          title="Listing Assistant" 
+          showBack 
+          onBack={() => setShowAssistant(false)}
+        />
+        <div className="p-4">
+          <AutomatedListingAssistant
+            currentListing={listingData}
+            onUpdateListing={handleUpdateListing}
+            onClose={() => setShowAssistant(false)}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <MobileHeader 
         title="Create Listing" 
         showBack 
         onBack={onBack}
+        rightElement={
+          listingData && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowAss assistant(true)}
+              className="text-purple-600"
+            >
+              <Brain className="w-4 h-4 mr-1" />
+              Assistant
+            </Button>
+          )
+        }
       />
 
       <CreateListingSteps 
