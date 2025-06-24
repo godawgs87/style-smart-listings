@@ -45,12 +45,6 @@ const CreateListingContent = ({
   getWeight,
   getDimensions
 }: CreateListingContentProps) => {
-  console.log('=== CreateListingContent Render ===');
-  console.log('Current step:', currentStep);
-  console.log('Listing data valid:', !!listingData);
-  console.log('Shipping cost:', shippingCost);
-  console.log('Is saving:', isSaving);
-
   if (currentStep === 'photos') {
     return (
       <ScrollArea className="h-[calc(100vh-200px)]">
@@ -93,31 +87,17 @@ const CreateListingContent = ({
   }
 
   if (currentStep === 'shipping' && listingData) {
-    // Validate listing data before allowing save
     const validation = validateListingData(listingData);
     const canSave = validation.isValid && shippingCost > 0 && !isSaving;
-    
-    console.log('=== SAVE BUTTON STATE ===');
-    console.log('Validation result:', validation);
-    console.log('Shipping cost valid:', shippingCost > 0);
-    console.log('Not saving:', !isSaving);
-    console.log('Can save:', canSave);
     
     return (
       <ScrollArea className="h-[calc(100vh-200px)]">
         <div className="space-y-6 pr-4">
-          <Alert>
-            <AlertDescription>
-              <strong>Shipping Rates:</strong> These are calculated estimates based on package dimensions and weight using standard carrier pricing formulas. 
-              Actual rates may vary. For exact pricing, use carrier websites or shipping software.
-            </AlertDescription>
-          </Alert>
-          
           {!validation.isValid && (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                <strong>Listing Issues:</strong>
+                <strong>Please fix these issues:</strong>
                 <ul className="mt-2 list-disc list-inside">
                   {validation.errors.map((error, index) => (
                     <li key={index}>{error}</li>
@@ -128,7 +108,7 @@ const CreateListingContent = ({
           )}
           
           <Card className="p-6">
-            <h2 className="text-xl font-bold mb-4">Shipping Calculator</h2>
+            <h2 className="text-xl font-bold mb-4">Choose Shipping</h2>
             <ShippingCalculator
               weight={getWeight()}
               dimensions={getDimensions()}
@@ -139,19 +119,14 @@ const CreateListingContent = ({
           <PricingTip />
           
           <Button 
-            onClick={() => {
-              console.log('=== SAVE BUTTON CLICKED ===');
-              console.log('Final validation check:', validation);
-              console.log('Shipping cost check:', shippingCost);
-              onExport();
-            }} 
+            onClick={onExport} 
             className="w-full gradient-bg text-white text-lg py-6"
             disabled={!canSave}
           >
             {isSaving ? (
               <>
-                <div className="animate-spin w-5 h-5 border-3 border-white border-t-transparent rounded-full mr-3"></div>
-                Saving Listing...
+                <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-3"></div>
+                Saving...
               </>
             ) : !validation.isValid ? (
               <>
@@ -159,10 +134,7 @@ const CreateListingContent = ({
                 Fix Issues Above
               </>
             ) : shippingCost <= 0 ? (
-              <>
-                <Save className="w-5 h-5 mr-3" />
-                Select Shipping Option First
-              </>
+              'Select Shipping Option'
             ) : (
               <>
                 <Save className="w-5 h-5 mr-3" />
@@ -170,17 +142,6 @@ const CreateListingContent = ({
               </>
             )}
           </Button>
-          
-          {isSaving && (
-            <div className="text-center space-y-2">
-              <p className="text-sm text-gray-600">
-                Saving your listing to the database...
-              </p>
-              <p className="text-xs text-gray-500">
-                This may take a few moments
-              </p>
-            </div>
-          )}
         </div>
       </ScrollArea>
     );
