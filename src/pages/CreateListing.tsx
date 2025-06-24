@@ -95,12 +95,12 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
         title="Create Listing" 
         showBack 
         onBack={onBack}
-        rightElement={
+        rightAction={
           listingData && (
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setShowAss assistant(true)}
+              onClick={() => setShowAssistant(true)}
               className="text-purple-600"
             >
               <Brain className="w-4 h-4 mr-1" />
