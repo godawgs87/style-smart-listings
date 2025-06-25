@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -50,7 +49,12 @@ const Index = () => {
   }
 
   if (currentView === 'inventory') {
-    return <InventoryManager onBack={() => setCurrentView('dashboard')} />;
+    return (
+      <InventoryManager 
+        onBack={() => setCurrentView('dashboard')} 
+        onCreateListing={() => setCurrentView('create')} 
+      />
+    );
   }
 
   return (
