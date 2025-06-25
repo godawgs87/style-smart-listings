@@ -55,31 +55,58 @@ export const useListingData = () => {
 
   const fetchListings = async () => {
     try {
+      console.log('Starting to fetch listings...');
       setError(null);
+      
+      // Check if user is authenticated
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      console.log('Current user:', user?.id);
+      
+      if (authError) {
+        console.error('Auth error:', authError);
+        setError('Authentication error');
+        toast({
+          title: "Authentication Error",
+          description: "Please log in to view your listings",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (!user) {
+        console.log('No user logged in');
+        setError('Please log in to view your listings');
+        setListings([]);
+        return;
+      }
+
       const { data, error: fetchError } = await supabase
         .from('listings')
         .select('*')
         .order('created_at', { ascending: false });
+
+      console.log('Supabase query result:', { data, error: fetchError });
 
       if (fetchError) {
         console.error('Error fetching listings:', fetchError);
         setError('Failed to load listings');
         toast({
           title: "Error",
-          description: "Failed to load listings",
+          description: `Failed to load listings: ${fetchError.message}`,
           variant: "destructive"
         });
         return;
       }
 
       const transformedListings = (data || []).map(transformListing);
+      console.log('Transformed listings:', transformedListings.length, 'items');
       setListings(transformedListings);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Unexpected error:', error);
       setError('Failed to load listings');
       toast({
         title: "Error",
-        description: "Failed to load listings",
+        description: "Failed to load listings - unexpected error",
         variant: "destructive"
       });
     } finally {
