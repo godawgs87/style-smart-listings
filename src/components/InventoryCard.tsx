@@ -1,12 +1,15 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Edit, Eye, Trash2, DollarSign, Calendar, MapPin } from 'lucide-react';
+import { Edit, Eye, Trash2, Calendar, DollarSign } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import ListingEditor from '@/components/ListingEditor';
+import ListingPreview from '@/components/ListingPreview';
 
-interface InventoryItem {
+interface Item {
   id: string;
   title: string;
   description: string | null;
@@ -14,19 +17,34 @@ interface InventoryItem {
   purchase_price?: number;
   purchase_date?: string;
   source_location?: string;
+  source_type?: string;
+  cost_basis?: number;
+  fees_paid?: number;
+  net_profit?: number;
+  sold_date?: string;
+  sold_price?: number;
+  days_to_sell?: number;
+  performance_notes?: string;
   category: string | null;
   condition: string | null;
+  measurements: {
+    length?: string;
+    width?: string;
+    height?: string;
+    weight?: string;
+  };
+  keywords: string[] | null;
+  photos: string[] | null;
+  price_research: string | null;
+  shipping_cost: number | null;
   status: string | null;
-  sold_price?: number;
-  sold_date?: string;
-  days_to_sell?: number;
-  net_profit?: number;
-  photos: string[];
   created_at: string;
+  updated_at: string;
+  user_id: string;
 }
 
 interface InventoryCardProps {
-  item: InventoryItem;
+  item: Item;
   isBulkMode: boolean;
   isSelected: boolean;
   onSelect: (checked: boolean) => void;
@@ -44,127 +62,215 @@ const InventoryCard = ({
   onPreview,
   onDelete
 }: InventoryCardProps) => {
-  const calculateProfit = () => {
-    if (item.sold_price && item.purchase_price) {
-      return item.sold_price - item.purchase_price;
-    }
-    if (item.purchase_price) {
-      return item.price - item.purchase_price;
-    }
-    return null;
+  const [showPreview, setShowPreview] = useState(false);
+  const [showEditor, setShowEditor] = useState(false);
+
+  const handlePreview = () => {
+    setShowPreview(true);
   };
 
-  const profit = item.net_profit || calculateProfit();
-  const profitMargin = profit && item.purchase_price ? ((profit / item.purchase_price) * 100) : null;
-  const daysListed = item.created_at ? Math.floor((new Date().getTime() - new Date(item.created_at).getTime()) / (1000 * 3600 * 24)) : 0;
+  const handleEdit = () => {
+    setShowEditor(true);
+  };
+
+  const handleSaveEdit = (updatedListing: any) => {
+    setShowEditor(false);
+    // TODO: Update the item in the parent component
+    console.log('Updated listing:', updatedListing);
+  };
+
+  const getStatusColor = (status: string | null) => {
+    switch (status) {
+      case 'active':
+        return 'default';
+      case 'sold':
+        return 'secondary';
+      case 'draft':
+        return 'outline';
+      default:
+        return 'secondary';
+    }
+  };
+
+  const profit = item.sold_price ? (item.sold_price - (item.purchase_price || item.price)) : null;
 
   return (
-    <Card className="p-4 flex flex-col h-full">
-      {/* Header */}
-      <div className="flex justify-between items-start mb-3">
-        <div className="flex items-start gap-3 flex-1 min-w-0">
-          {isBulkMode && (
-            <Checkbox
-              checked={isSelected}
-              onCheckedChange={onSelect}
-              className="mt-1 flex-shrink-0"
-            />
-          )}
-          <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 leading-tight mb-1">
+    <>
+      <Card className="p-4 hover:shadow-md transition-shadow">
+        {/* Header with checkbox and actions */}
+        <div className="flex justify-between items-start mb-3">
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            {isBulkMode && (
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={onSelect}
+                className="mt-1 flex-shrink-0"
+              />
+            )}
+            <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 leading-tight">
               {item.title}
             </h3>
-            {item.photos && item.photos.length > 0 && (
+          </div>
+          {!isBulkMode && (
+            <div className="flex space-x-1 flex-shrink-0 ml-2">
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="h-8 w-8" 
+                onClick={handleEdit}
+                title="Edit item"
+              >
+                <Edit className="w-3 h-3" />
+              </Button>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="h-8 w-8" 
+                onClick={handlePreview}
+                title="Preview item"
+              >
+                <Eye className="w-3 h-3" />
+              </Button>
+              <Button 
+                variant="destructive" 
+                size="icon" 
+                className="h-8 w-8" 
+                onClick={onDelete}
+                title="Delete item"
+              >
+                <Trash2 className="w-3 h-3" />
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="space-y-3 flex-1">
+          {/* Main photo */}
+          {item.photos && item.photos.length > 0 && (
+            <div className="w-full h-32 bg-gray-100 rounded-lg overflow-hidden">
               <img 
                 src={item.photos[0]} 
                 alt={item.title}
-                className="w-full h-32 object-cover rounded mb-2"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
               />
+            </div>
+          )}
+
+          {/* Badges */}
+          <div className="flex flex-wrap gap-1">
+            {item.category && (
+              <Badge variant="secondary" className="text-xs">{item.category}</Badge>
+            )}
+            {item.condition && (
+              <Badge variant="outline" className="text-xs">{item.condition}</Badge>
+            )}
+            {item.status && (
+              <Badge variant={getStatusColor(item.status)} className="text-xs">
+                {item.status}
+              </Badge>
             )}
           </div>
-        </div>
-        {!isBulkMode && (
-          <div className="flex space-x-1 flex-shrink-0 ml-2">
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={onEdit}>
-              <Edit className="w-3 h-3" />
-            </Button>
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={onPreview}>
-              <Eye className="w-3 h-3" />
-            </Button>
-            <Button variant="destructive" size="icon" className="h-8 w-8" onClick={onDelete}>
-              <Trash2 className="w-3 h-3" />
-            </Button>
-          </div>
-        )}
-      </div>
 
-      {/* Badges */}
-      <div className="flex flex-wrap gap-1 mb-3">
-        {item.category && <Badge variant="secondary" className="text-xs">{item.category}</Badge>}
-        {item.condition && <Badge variant="outline" className="text-xs">{item.condition}</Badge>}
-        {item.status && (
-          <Badge variant={item.status === 'active' ? 'default' : item.status === 'sold' ? 'default' : 'secondary'} className={`text-xs ${item.status === 'sold' ? 'bg-green-600 text-white' : ''}`}>
-            {item.status}
-          </Badge>
-        )}
-      </div>
-
-      {/* Financial Info */}
-      <div className="space-y-2 mb-3">
-        <div className="flex justify-between items-center">
-          <span className="text-xs text-gray-500">Listed Price</span>
-          <span className="text-sm font-bold text-green-600">${item.price}</span>
-        </div>
-        
-        {item.purchase_price && (
-          <div className="flex justify-between items-center">
-            <span className="text-xs text-gray-500">Cost Basis</span>
-            <span className="text-sm font-medium">${item.purchase_price}</span>
-          </div>
-        )}
-
-        {profit && (
-          <div className="flex justify-between items-center">
-            <span className="text-xs text-gray-500">Profit</span>
-            <span className={`text-sm font-bold ${profit > 0 ? 'text-green-600' : 'text-red-600'}`}>
-              ${profit.toFixed(2)}
-              {profitMargin && ` (${profitMargin.toFixed(1)}%)`}
-            </span>
-          </div>
-        )}
-
-        {item.sold_price && (
-          <div className="flex justify-between items-center">
-            <span className="text-xs text-gray-500">Sold For</span>
-            <span className="text-sm font-bold text-blue-600">${item.sold_price}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Source & Timing Info */}
-      <div className="space-y-1 text-xs text-gray-500 mt-auto">
-        {item.source_location && (
-          <div className="flex items-center gap-1">
-            <MapPin className="w-3 h-3" />
-            <span>{item.source_location}</span>
-          </div>
-        )}
-        
-        {item.purchase_date && (
-          <div className="flex items-center gap-1">
-            <Calendar className="w-3 h-3" />
-            <span>Purchased: {new Date(item.purchase_date).toLocaleDateString()}</span>
-          </div>
-        )}
-
-        <div className="flex justify-between items-center">
-          <span>Listed: {daysListed} days ago</span>
-          {item.days_to_sell && (
-            <span>Sold in: {item.days_to_sell} days</span>
+          {/* Description */}
+          {item.description && (
+            <p className="text-xs text-gray-700 line-clamp-2">
+              {item.description.substring(0, 80)}...
+            </p>
           )}
+
+          {/* Financial info */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-500">Sale Price</span>
+              <span className="text-sm font-bold text-green-600">${item.price}</span>
+            </div>
+            
+            {item.purchase_price && (
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-500">Cost</span>
+                <span className="text-sm text-gray-700">${item.purchase_price}</span>
+              </div>
+            )}
+            
+            {profit !== null && (
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-500">Profit</span>
+                <span className={`text-sm font-medium ${profit > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  ${profit.toFixed(2)}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Dates */}
+          <div className="flex items-center gap-4 text-xs text-gray-500">
+            <div className="flex items-center gap-1">
+              <Calendar className="w-3 h-3" />
+              <span>Added {new Date(item.created_at).toLocaleDateString()}</span>
+            </div>
+          </div>
         </div>
-      </div>
-    </Card>
+      </Card>
+
+      {/* Preview Dialog */}
+      <Dialog open={showPreview} onOpenChange={setShowPreview}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Item Preview</DialogTitle>
+          </DialogHeader>
+          <ListingPreview
+            listing={{
+              title: item.title,
+              description: item.description || '',
+              price: item.price,
+              category: item.category || '',
+              condition: item.condition || '',
+              measurements: item.measurements,
+              keywords: item.keywords || [],
+              photos: item.photos || [],
+              priceResearch: item.price_research || '',
+              shippingCost: item.shipping_cost || 0
+            }}
+            onEdit={() => {
+              setShowPreview(false);
+              setShowEditor(true);
+            }}
+            onExport={() => {
+              setShowPreview(false);
+              // TODO: Handle export/publish action
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={showEditor} onOpenChange={setShowEditor}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Item</DialogTitle>
+          </DialogHeader>
+          <ListingEditor
+            listing={{
+              title: item.title,
+              description: item.description || '',
+              price: item.price,
+              category: item.category || '',
+              condition: item.condition || '',
+              measurements: item.measurements,
+              keywords: item.keywords || [],
+              photos: item.photos || [],
+              priceResearch: item.price_research || ''
+            }}
+            onSave={handleSaveEdit}
+            onCancel={() => setShowEditor(false)}
+          />
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 

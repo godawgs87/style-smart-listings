@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Save, AlertTriangle } from 'lucide-react';
+import { Save, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import PhotoUpload from '@/components/PhotoUpload';
@@ -28,6 +28,8 @@ interface CreateListingContentProps {
   onShippingSelect: (option: any) => void;
   getWeight: () => number;
   getDimensions: () => { length: number; width: number; height: number };
+  onBack?: () => void;
+  backButtonText?: string;
 }
 
 const CreateListingContent = ({
@@ -43,13 +45,23 @@ const CreateListingContent = ({
   onExport,
   onShippingSelect,
   getWeight,
-  getDimensions
+  getDimensions,
+  onBack,
+  backButtonText
 }: CreateListingContentProps) => {
   if (currentStep === 'photos') {
     return (
       <ScrollArea className="h-[calc(100vh-200px)]">
         <Card className="p-6">
-          <h2 className="text-xl font-bold mb-4">Upload Item Photos</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold">Upload Item Photos</h2>
+            {onBack && (
+              <Button variant="outline" onClick={onBack} className="flex items-center gap-2">
+                <ArrowLeft className="w-4 h-4" />
+                {backButtonText}
+              </Button>
+            )}
+          </div>
           <PhotoUpload onPhotosChange={onPhotosChange} />
           
           {photos.length > 0 && (
@@ -72,6 +84,14 @@ const CreateListingContent = ({
     return (
       <ScrollArea className="h-[calc(100vh-200px)]">
         <div className="space-y-6 pr-4">
+          {onBack && (
+            <div className="flex justify-start">
+              <Button variant="outline" onClick={onBack} className="flex items-center gap-2">
+                <ArrowLeft className="w-4 h-4" />
+                {backButtonText}
+              </Button>
+            </div>
+          )}
           <PriceAlert listingData={listingData} />
           <ListingPreview
             listing={{
@@ -93,6 +113,15 @@ const CreateListingContent = ({
     return (
       <ScrollArea className="h-[calc(100vh-200px)]">
         <div className="space-y-6 pr-4">
+          {onBack && (
+            <div className="flex justify-start">
+              <Button variant="outline" onClick={onBack} className="flex items-center gap-2">
+                <ArrowLeft className="w-4 h-4" />
+                {backButtonText}
+              </Button>
+            </div>
+          )}
+          
           {!validation.isValid && (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />

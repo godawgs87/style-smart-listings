@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
 import { usePhotoAnalysis } from '@/hooks/usePhotoAnalysis';
@@ -20,6 +20,7 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
   const [photos, setPhotos] = useState<File[]>([]);
   const [shippingCost, setShippingCost] = useState(0);
   const [listingData, setListingData] = useState<ListingData | null>(null);
+  const [draftId, setDraftId] = useState<string | null>(null);
   
   const isMobile = useIsMobile();
   const { user } = useAuth();
@@ -36,6 +37,13 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
     const result = await analyzePhotos(photos);
     if (result) {
       setListingData(result);
+      
+      // Auto-create draft after analysis
+      const draftSuccess = await saveListing(result, 0, 'draft');
+      if (draftSuccess) {
+        console.log('Draft auto-saved after analysis');
+      }
+      
       setCurrentStep('preview');
     }
   };
@@ -52,9 +60,19 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
       return;
     }
     
-    const success = await saveListing(listingData, shippingCost);
+    const success = await saveListing(listingData, shippingCost, 'active');
     if (success) {
       onViewListings();
+    }
+  };
+
+  const handleBack = () => {
+    if (currentStep === 'shipping') {
+      setCurrentStep('preview');
+    } else if (currentStep === 'preview') {
+      setCurrentStep('photos');
+    } else {
+      onBack();
     }
   };
 
@@ -89,12 +107,18 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
     };
   };
 
+  const getBackButtonText = () => {
+    if (currentStep === 'shipping') return 'Back to Preview';
+    if (currentStep === 'preview') return 'Back to Photos';
+    return 'Back to Dashboard';
+  };
+
   return (
     <div className={`min-h-screen bg-gray-50 ${isMobile ? 'pb-20' : ''}`}>
       <StreamlinedHeader
         title="Create New Listing"
         showBack
-        onBack={onBack}
+        onBack={handleBack}
       />
       
       <div className="max-w-4xl mx-auto p-4">
@@ -120,15 +144,17 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
           onShippingSelect={handleShippingSelect}
           getWeight={getWeight}
           getDimensions={getDimensions}
+          onBack={handleBack}
+          backButtonText={getBackButtonText()}
         />
       </div>
 
       {isMobile && (
         <MobileNavigation
           currentView="create"
-          onNavigate={() => {}} // Disabled during creation flow
+          onNavigate={() => {}}
           showBack
-          onBack={onBack}
+          onBack={handleBack}
           title="Create Listing"
         />
       )}
