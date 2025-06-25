@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
@@ -39,9 +38,10 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
       setListingData(result);
       
       // Auto-create draft after analysis
-      const draftSuccess = await saveListing(result, 0, 'draft');
-      if (draftSuccess) {
-        console.log('Draft auto-saved after analysis');
+      const saveResult = await saveListing(result, 0, 'draft');
+      if (saveResult.success && saveResult.listingId) {
+        setDraftId(saveResult.listingId);
+        console.log('Draft auto-saved after analysis with ID:', saveResult.listingId);
       }
       
       setCurrentStep('preview');
@@ -60,8 +60,9 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
       return;
     }
     
-    const success = await saveListing(listingData, shippingCost, 'active');
-    if (success) {
+    // Update the existing draft to active status instead of creating new listing
+    const success = await saveListing(listingData, shippingCost, 'active', draftId || undefined);
+    if (success.success) {
       onViewListings();
     }
   };
