@@ -1,10 +1,11 @@
 
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Edit, Settings, Eye, EyeOff } from 'lucide-react';
 import ListingEditor from './ListingEditor';
+import ListingDetails from './listing-preview/ListingDetails';
+import ListingFeatures from './listing-preview/ListingFeatures';
 
 interface ListingData {
   title: string;
@@ -63,8 +64,21 @@ const ListingPreview = ({ listing, onEdit, onExport }: ListingPreviewProps) => {
     <div className="space-y-6">
       <Card className="p-6">
         <div className="flex justify-between items-start mb-4">
-          <h2 className="text-xl font-bold text-gray-900 pr-4">{currentListing.title}</h2>
-          <div className="flex space-x-2">
+          <div className="flex-1">
+            <ListingDetails
+              title={currentListing.title}
+              price={currentListing.price}
+              shippingCost={currentListing.shippingCost}
+              category={currentListing.category}
+              condition={currentListing.condition}
+              brand={currentListing.brand}
+              model={currentListing.model}
+              keywords={currentListing.keywords}
+              description={currentListing.description}
+              measurements={currentListing.measurements}
+            />
+          </div>
+          <div className="flex space-x-2 ml-4">
             <Button variant="outline" size="sm" onClick={handleAdminClick}>
               <Settings className="w-4 h-4 mr-2" />
               Admin
@@ -76,102 +90,12 @@ const ListingPreview = ({ listing, onEdit, onExport }: ListingPreviewProps) => {
           </div>
         </div>
         
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div>
-            <span className="text-sm text-gray-500">Price</span>
-            <p className="text-2xl font-bold text-green-600">${currentListing.price}</p>
-          </div>
-          <div>
-            <span className="text-sm text-gray-500">Shipping</span>
-            <p className="text-lg font-semibold">${currentListing.shippingCost?.toFixed(2) || '9.95'}</p>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-2 mb-4">
-          <Badge variant="secondary">{currentListing.category}</Badge>
-          <Badge variant="outline">{currentListing.condition}</Badge>
-          {currentListing.brand && (
-            <Badge variant="outline" className="bg-blue-50">{currentListing.brand}</Badge>
-          )}
-          {currentListing.model && (
-            <Badge variant="outline" className="bg-purple-50">{currentListing.model}</Badge>
-          )}
-          {currentListing.keywords?.slice(0, 3).map((keyword, index) => (
-            <Badge key={index} variant="outline" className="text-xs">
-              {keyword}
-            </Badge>
-          ))}
-        </div>
-
         <div className="space-y-4">
-          <div>
-            <h3 className="font-medium text-gray-900 mb-2">Description</h3>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              {currentListing.description}
-            </p>
-          </div>
-
-          <div>
-            <h3 className="font-medium text-gray-900 mb-2">Measurements</h3>
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              {currentListing.measurements.length && (
-                <span>Length: {currentListing.measurements.length}</span>
-              )}
-              {currentListing.measurements.width && (
-                <span>Width: {currentListing.measurements.width}</span>
-              )}
-              {currentListing.measurements.height && (
-                <span>Height: {currentListing.measurements.height}</span>
-              )}
-              {currentListing.measurements.weight && (
-                <span>Weight: {currentListing.measurements.weight}</span>
-              )}
-            </div>
-          </div>
-
-          {/* Features */}
-          {currentListing.features && currentListing.features.length > 0 && (
-            <div>
-              <h3 className="font-medium text-gray-900 mb-2">Key Features</h3>
-              <div className="flex flex-wrap gap-1">
-                {currentListing.features.map((feature, index) => (
-                  <Badge key={index} variant="outline" className="text-xs bg-green-50">
-                    ✓ {feature}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* What's Included */}
-          {currentListing.includes && currentListing.includes.length > 0 && (
-            <div>
-              <h3 className="font-medium text-gray-900 mb-2">What's Included</h3>
-              <div className="text-sm text-gray-700">
-                {currentListing.includes.map((item, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                    {item}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Defects/Issues */}
-          {currentListing.defects && currentListing.defects.length > 0 && (
-            <div>
-              <h3 className="font-medium text-gray-900 mb-2 text-red-700">Issues/Defects</h3>
-              <div className="text-sm text-red-600">
-                {currentListing.defects.map((defect, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-                    {defect}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <ListingFeatures
+            features={currentListing.features}
+            includes={currentListing.includes}
+            defects={currentListing.defects}
+          />
 
           {/* Advanced Details Toggle */}
           <div>

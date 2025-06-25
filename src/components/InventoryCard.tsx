@@ -4,10 +4,8 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Edit, Eye, Trash2, Calendar, DollarSign } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import ListingEditor from '@/components/ListingEditor';
-import ListingPreview from '@/components/ListingPreview';
+import { Edit, Eye, Trash2, Calendar } from 'lucide-react';
+import InventoryCardDialogs from './inventory/InventoryCardDialogs';
 
 interface Item {
   id: string;
@@ -15,16 +13,6 @@ interface Item {
   description: string | null;
   price: number;
   purchase_price?: number;
-  purchase_date?: string;
-  source_location?: string;
-  source_type?: string;
-  cost_basis?: number;
-  fees_paid?: number;
-  net_profit?: number;
-  sold_date?: string;
-  sold_price?: number;
-  days_to_sell?: number;
-  performance_notes?: string;
   category: string | null;
   condition: string | null;
   measurements: {
@@ -39,8 +27,7 @@ interface Item {
   shipping_cost: number | null;
   status: string | null;
   created_at: string;
-  updated_at: string;
-  user_id: string;
+  sold_price?: number;
 }
 
 interface InventoryCardProps {
@@ -65,17 +52,8 @@ const InventoryCard = ({
   const [showPreview, setShowPreview] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
 
-  const handlePreview = () => {
-    setShowPreview(true);
-  };
-
-  const handleEdit = () => {
-    setShowEditor(true);
-  };
-
   const handleSaveEdit = (updatedListing: any) => {
     setShowEditor(false);
-    // TODO: Update the item in the parent component
     console.log('Updated listing:', updatedListing);
   };
 
@@ -117,7 +95,7 @@ const InventoryCard = ({
                 variant="outline" 
                 size="icon" 
                 className="h-8 w-8" 
-                onClick={handleEdit}
+                onClick={() => setShowEditor(true)}
                 title="Edit item"
               >
                 <Edit className="w-3 h-3" />
@@ -126,7 +104,7 @@ const InventoryCard = ({
                 variant="outline" 
                 size="icon" 
                 className="h-8 w-8" 
-                onClick={handlePreview}
+                onClick={() => setShowPreview(true)}
                 title="Preview item"
               >
                 <Eye className="w-3 h-3" />
@@ -216,60 +194,14 @@ const InventoryCard = ({
         </div>
       </Card>
 
-      {/* Preview Dialog */}
-      <Dialog open={showPreview} onOpenChange={setShowPreview}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Item Preview</DialogTitle>
-          </DialogHeader>
-          <ListingPreview
-            listing={{
-              title: item.title,
-              description: item.description || '',
-              price: item.price,
-              category: item.category || '',
-              condition: item.condition || '',
-              measurements: item.measurements,
-              keywords: item.keywords || [],
-              photos: item.photos || [],
-              priceResearch: item.price_research || '',
-              shippingCost: item.shipping_cost || 0
-            }}
-            onEdit={() => {
-              setShowPreview(false);
-              setShowEditor(true);
-            }}
-            onExport={() => {
-              setShowPreview(false);
-              // TODO: Handle export/publish action
-            }}
-          />
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Dialog */}
-      <Dialog open={showEditor} onOpenChange={setShowEditor}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Item</DialogTitle>
-          </DialogHeader>
-          <ListingEditor
-            listing={{
-              title: item.title,
-              description: item.description || '',
-              price: item.price,
-              category: item.category || '',
-              condition: item.condition || '',
-              measurements: item.measurements,
-              keywords: item.keywords || [],
-              photos: item.photos || [],
-              priceResearch: item.price_research || ''
-            }}
-            onSave={handleSaveEdit}
-            onCancel={() => setShowEditor(false)}
-          />
-        </DialogContent>
-      </Dialog>
+      <InventoryCardDialogs
+        item={item}
+        showPreview={showPreview}
+        setShowPreview={setShowPreview}
+        showEditor={showEditor}
+        setShowEditor={setShowEditor}
+        onSaveEdit={handleSaveEdit}
+      />
     </>
   );
 };
