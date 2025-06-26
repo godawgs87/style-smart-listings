@@ -57,7 +57,7 @@ export const useDatabaseQuery = () => {
   }> => {
     const { statusFilter, limit, searchTerm, categoryFilter } = options;
 
-    console.log('🚀 Starting ultra-optimized database fetch...');
+    console.log('🚀 Starting optimized indexed query...');
     console.log('📋 Query options:', { statusFilter, limit, searchTerm, categoryFilter });
 
     // Test connection first
@@ -68,11 +68,7 @@ export const useDatabaseQuery = () => {
     }
 
     try {
-      console.log('🔨 Building ultra-optimized query...');
-      
-      // Use the most aggressive optimization - start with minimal fields and small limit
-      const effectiveLimit = Math.min(limit, 10); // Start with very small batches
-      console.log(`📉 Using reduced limit: ${effectiveLimit} (requested: ${limit})`);
+      console.log('🔨 Building optimized indexed query...');
       
       let query = supabase
         .from('listings')
@@ -109,46 +105,44 @@ export const useDatabaseQuery = () => {
           source_type,
           performance_notes,
           consignor_name
-        `)
-        .order('created_at', { ascending: false });
+        `);
 
-      // Apply most restrictive filters first to reduce dataset
+      // Apply filters in optimal order to leverage indexes
+      // First filter by status (uses idx_listings_user_status_created)
       if (statusFilter && statusFilter !== 'all') {
         query = query.eq('status', statusFilter);
-        console.log('✅ Applied status filter first:', statusFilter);
-      } else {
-        // If no status filter, default to draft to reduce initial load
-        query = query.eq('status', 'draft');
-        console.log('✅ Applied default status filter: draft (to reduce initial load)');
+        console.log('✅ Applied status filter (indexed):', statusFilter);
       }
 
+      // Then filter by category (uses idx_listings_user_category)
       if (categoryFilter && categoryFilter !== 'all') {
         query = query.eq('category', categoryFilter);
-        console.log('✅ Applied category filter:', categoryFilter);
+        console.log('✅ Applied category filter (indexed):', categoryFilter);
       }
 
+      // Apply search filter using GIN index for full-text search
       if (searchTerm && searchTerm.trim()) {
-        query = query.ilike('title', `%${searchTerm}%`);
-        console.log('✅ Applied search filter:', searchTerm);
+        query = query.textSearch('title', searchTerm, {
+          type: 'websearch',
+          config: 'english'
+        });
+        console.log('✅ Applied full-text search (GIN indexed):', searchTerm);
       }
 
-      // Apply the reduced limit
-      query = query.limit(effectiveLimit);
-      console.log('✅ Applied ultra-conservative limit:', effectiveLimit);
+      // Order by created_at DESC (leverages all our composite indexes)
+      query = query.order('created_at', { ascending: false });
 
-      console.log('⏳ Executing ultra-optimized main query...');
+      // Apply limit last
+      query = query.limit(limit);
+      console.log('✅ Applied limit:', limit);
+
+      console.log('⏳ Executing optimized indexed query...');
       const startTime = Date.now();
       
-      // Add a timeout to the query
-      const queryPromise = query;
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Query timeout - switching to fallback')), 8000); // 8 second timeout
-      });
-      
-      const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
+      const { data, error } = await query;
       
       const duration = Date.now() - startTime;
-      console.log(`⏱️ Ultra-optimized query executed in ${duration}ms`);
+      console.log(`⏱️ Indexed query executed in ${duration}ms`);
 
       if (error) {
         console.error('❌ Main query error:', {
@@ -175,7 +169,7 @@ export const useDatabaseQuery = () => {
         return { listings: [], error: null };
       }
 
-      console.log(`✅ Successfully fetched ${data.length} listings with ultra-optimized query`);
+      console.log(`✅ Successfully fetched ${data.length} listings with indexed query`);
       
       const transformedListings = data.map(transformListing);
       console.log(`🔄 Transformed ${transformedListings.length} listings`);
@@ -195,11 +189,6 @@ export const useDatabaseQuery = () => {
         stack: error.stack,
         name: error.name
       });
-      
-      if (error.message?.includes('Query timeout')) {
-        console.log('⏰ Query timed out - treating as connection error');
-        return { listings: [], error: 'CONNECTION_ERROR' };
-      }
       
       if (error.message?.includes('JWT') || 
           error.message?.includes('authentication') ||
