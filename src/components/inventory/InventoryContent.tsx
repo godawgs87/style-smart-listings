@@ -17,7 +17,7 @@ interface InventoryContentProps {
   onSelectAll: (checked: boolean) => void;
   onUpdateListing: (listingId: string, updates: any) => void;
   onDeleteListing: (listingId: string) => void;
-  onDuplicateListing?: (item: Listing) => void;
+  onDuplicateListing?: (item: Listing) => Promise<Listing | null>;
   onRetry?: () => void;
 }
 
