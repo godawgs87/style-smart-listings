@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Separator } from '@/components/ui/separator';
 
 interface ShippingCalculatorProps {
   itemWeight?: number;
@@ -24,11 +25,12 @@ const ShippingCalculator = ({
   const [weight, setWeight] = useState(itemWeight);
   const [dimensions, setDimensions] = useState(itemDimensions);
   const [isLocalPickup, setIsLocalPickup] = useState(false);
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
 
   const calculateShipping = () => {
     if (isLocalPickup) {
       return [
-        { service: 'Local Pickup', cost: 0, days: '0-1' }
+        { service: 'Local Pickup', cost: 0, days: '0-1', description: 'Free local pickup' }
       ];
     }
 
@@ -41,56 +43,77 @@ const ShippingCalculator = ({
       { 
         service: 'USPS Ground Advantage', 
         cost: baseRate + (billableWeight * 0.5), 
-        days: '2-5' 
+        days: '2-5',
+        description: 'Most economical option'
       },
       { 
         service: 'USPS Priority Mail', 
         cost: baseRate + (billableWeight * 1.2), 
-        days: '1-3' 
+        days: '1-3',
+        description: 'Faster delivery with tracking'
       },
       { 
         service: 'UPS Ground', 
         cost: baseRate + (billableWeight * 0.8), 
-        days: '1-5' 
+        days: '1-5',
+        description: 'Reliable ground shipping'
       }
     ];
   };
 
   const shippingOptions = calculateShipping();
 
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Shipping Calculator</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center space-x-2">
-          <Checkbox 
-            id="local-pickup"
-            checked={isLocalPickup}
-            onCheckedChange={(checked) => setIsLocalPickup(checked as boolean)}
-          />
-          <Label htmlFor="local-pickup">Local Pickup Only (Free)</Label>
-        </div>
+  const handleSelectOption = (option: any) => {
+    setSelectedOption(option.service);
+    onShippingSelect({
+      service: option.service,
+      cost: option.cost,
+      estimatedDays: option.days
+    });
+  };
 
-        {!isLocalPickup && (
-          <>
-            <div className="grid grid-cols-2 gap-4">
+  return (
+    <div className="space-y-6">
+      {/* Pickup Option */}
+      <div className="flex items-center space-x-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+        <Checkbox 
+          id="local-pickup"
+          checked={isLocalPickup}
+          onCheckedChange={(checked) => setIsLocalPickup(checked as boolean)}
+        />
+        <div>
+          <Label htmlFor="local-pickup" className="text-sm font-medium">
+            Local Pickup Only (Free)
+          </Label>
+          <p className="text-xs text-gray-600">Buyer picks up item locally</p>
+        </div>
+      </div>
+
+      {!isLocalPickup && (
+        <>
+          <Separator />
+          
+          {/* Item Details */}
+          <div className="space-y-4">
+            <h4 className="font-medium text-gray-900">Item Specifications</h4>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="weight">Weight (lbs)</Label>
+                <Label htmlFor="weight" className="text-sm">Weight (lbs)</Label>
                 <Input
                   id="weight"
                   type="number"
                   step="0.1"
                   value={weight}
                   onChange={(e) => setWeight(parseFloat(e.target.value) || 0)}
+                  className="mt-1"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="length">Length (in)</Label>
+                <Label htmlFor="length" className="text-sm">Length (in)</Label>
                 <Input
                   id="length"
                   type="number"
@@ -99,10 +122,11 @@ const ShippingCalculator = ({
                     ...prev,
                     length: parseInt(e.target.value) || 0
                   }))}
+                  className="mt-1"
                 />
               </div>
               <div>
-                <Label htmlFor="width">Width (in)</Label>
+                <Label htmlFor="width" className="text-sm">Width (in)</Label>
                 <Input
                   id="width"
                   type="number"
@@ -111,10 +135,11 @@ const ShippingCalculator = ({
                     ...prev,
                     width: parseInt(e.target.value) || 0
                   }))}
+                  className="mt-1"
                 />
               </div>
               <div>
-                <Label htmlFor="height">Height (in)</Label>
+                <Label htmlFor="height" className="text-sm">Height (in)</Label>
                 <Input
                   id="height"
                   type="number"
@@ -123,38 +148,58 @@ const ShippingCalculator = ({
                     ...prev,
                     height: parseInt(e.target.value) || 0
                   }))}
+                  className="mt-1"
                 />
               </div>
             </div>
-          </>
-        )}
+          </div>
 
-        <div className="space-y-2">
-          <h4 className="font-medium">Shipping Options:</h4>
+          <Separator />
+        </>
+      )}
+
+      {/* Shipping Options */}
+      <div className="space-y-3">
+        <h4 className="font-medium text-gray-900">
+          {isLocalPickup ? 'Pickup Option' : 'Shipping Options'}
+        </h4>
+        
+        <div className="space-y-3">
           {shippingOptions.map((option, index) => (
-            <div key={index} className="flex justify-between items-center p-2 border rounded">
-              <div>
-                <span className="font-medium">{option.service}</span>
-                <span className="text-sm text-gray-500 ml-2">({option.days} business days)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="font-bold">${option.cost.toFixed(2)}</span>
-                <Button
-                  size="sm"
-                  onClick={() => onShippingSelect({
-                    service: option.service,
-                    cost: option.cost,
-                    estimatedDays: option.days
-                  })}
-                >
-                  Select
-                </Button>
+            <div 
+              key={index} 
+              className={`flex items-center justify-between p-4 border rounded-lg cursor-pointer transition-colors ${
+                selectedOption === option.service 
+                  ? 'border-blue-500 bg-blue-50' 
+                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+              }`}
+              onClick={() => handleSelectOption(option)}
+            >
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-gray-900">{option.service}</span>
+                  <span className="font-bold text-lg">${option.cost.toFixed(2)}</span>
+                </div>
+                <div className="flex items-center justify-between mt-1">
+                  <span className="text-sm text-gray-600">{option.description}</span>
+                  <span className="text-sm text-gray-500">
+                    {option.days} {option.service !== 'Local Pickup' ? 'business days' : 'days'}
+                  </span>
+                </div>
               </div>
             </div>
           ))}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+
+      {selectedOption && (
+        <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+          <p className="text-sm text-green-700">
+            ✓ Selected: <strong>{selectedOption}</strong>
+          </p>
+        </div>
+      )}
+    </div>
   );
 };
 

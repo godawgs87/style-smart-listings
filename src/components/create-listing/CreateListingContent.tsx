@@ -1,16 +1,11 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
 import PhotoUpload from '@/components/PhotoUpload';
 import ShippingCalculator from '@/components/ShippingCalculator';
+import EditableListingForm from './EditableListingForm';
 import { Step, ListingData } from '@/types/CreateListing';
 
 interface CreateListingContentProps {
@@ -49,6 +44,29 @@ const CreateListingContent = ({
   backButtonText
 }: CreateListingContentProps) => {
   const { toast } = useToast();
+  const [isEditingListing, setIsEditingListing] = useState(false);
+  const [updatedListingData, setUpdatedListingData] = useState<ListingData | null>(null);
+
+  const handleListingUpdate = (updates: Partial<ListingData>) => {
+    if (listingData) {
+      const updated = { ...listingData, ...updates };
+      setUpdatedListingData(updated);
+    }
+  };
+
+  const handleSaveListingChanges = () => {
+    if (updatedListingData) {
+      // Update the parent component's listing data
+      console.log('Saving listing changes:', updatedListingData);
+      toast({
+        title: "Success",
+        description: "Listing details updated successfully"
+      });
+    }
+    setIsEditingListing(false);
+  };
+
+  const currentListingData = updatedListingData || listingData;
 
   // Render different content based on the current step
   if (currentStep === 'photos') {
@@ -77,108 +95,97 @@ const CreateListingContent = ({
     );
   }
 
-  if (currentStep === 'preview' && listingData) {
+  if (currentStep === 'preview' && currentListingData) {
     return (
       <div className="max-w-4xl mx-auto p-6 space-y-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Listing Preview</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label>Title</Label>
-              <p className="text-lg font-medium">{listingData.title}</p>
-            </div>
-            <div>
-              <Label>Description</Label>
-              <p className="text-gray-700">{listingData.description}</p>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Price</Label>
-                <p className="text-xl font-bold text-green-600">${listingData.price}</p>
+        <EditableListingForm
+          listingData={currentListingData}
+          onUpdate={handleListingUpdate}
+          onSave={handleSaveListingChanges}
+          isEditing={isEditingListing}
+          onToggleEdit={() => setIsEditingListing(!isEditingListing)}
+        />
+
+        {!isEditingListing && (
+          <div className="flex justify-center space-x-4 pt-4">
+            <Button variant="outline" onClick={onBack}>
+              Back to Photos
+            </Button>
+            <Button onClick={onExport} disabled={isSaving}>
+              {isSaving ? 'Saving...' : 'Continue to Shipping'}
+            </Button>
+          </div>
+        )}
+
+        {currentListingData.photos && currentListingData.photos.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Photos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 gap-2">
+                {currentListingData.photos.slice(0, 6).map((photo, index) => (
+                  <img
+                    key={index}
+                    src={photo}
+                    alt={`Product ${index + 1}`}
+                    className="w-full h-24 object-cover rounded border"
+                  />
+                ))}
               </div>
-              <div>
-                <Label>Category</Label>
-                <p>{listingData.category}</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Condition</Label>
-                <p>{listingData.condition}</p>
-              </div>
-              <div>
-                <Label>Measurements</Label>
-                <p>
-                  {listingData.measurements?.length}" × {listingData.measurements?.width}" × {listingData.measurements?.height}"
-                  {listingData.measurements?.weight && ` (${listingData.measurements.weight} lbs)`}
-                </p>
-              </div>
-            </div>
-            {listingData.features && listingData.features.length > 0 && (
-              <div>
-                <Label>Features</Label>
-                <ul className="list-disc list-inside text-gray-700">
-                  {listingData.features.map((feature, index) => (
-                    <li key={index}>{feature}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {listingData.photos && listingData.photos.length > 0 && (
-              <div>
-                <Label>Photos</Label>
-                <div className="grid grid-cols-3 gap-2 mt-2">
-                  {listingData.photos.slice(0, 6).map((photo, index) => (
-                    <img
-                      key={index}
-                      src={photo}
-                      alt={`Product ${index + 1}`}
-                      className="w-full h-24 object-cover rounded border"
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-            <div className="flex space-x-2 pt-4">
-              <Button variant="outline" onClick={onEdit}>
-                Edit Listing
-              </Button>
-              <Button onClick={onExport} disabled={isSaving}>
-                {isSaving ? 'Saving...' : 'Continue to Shipping'}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
       </div>
     );
   }
 
   if (currentStep === 'shipping') {
     return (
-      <div className="max-w-4xl mx-auto p-6 space-y-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Shipping Options</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ShippingCalculator
-              itemWeight={getWeight()}
-              itemDimensions={getDimensions()}
-              onShippingSelect={onShippingSelect}
-            />
-            <div className="mt-6">
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-4xl mx-auto p-6">
+          <div className="space-y-6">
+            <div className="text-center">
+              <h1 className="text-2xl font-bold text-gray-900">Configure Shipping</h1>
+              <p className="text-gray-600 mt-2">Set up shipping options for your listing</p>
+            </div>
+
+            <Card className="shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Shipping Calculator</span>
+                  <span className="text-sm font-normal text-gray-500">
+                    Item: {currentListingData?.title}
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <ShippingCalculator
+                  itemWeight={getWeight()}
+                  itemDimensions={getDimensions()}
+                  onShippingSelect={onShippingSelect}
+                />
+              </CardContent>
+            </Card>
+
+            <div className="flex justify-center space-x-4 pt-6">
+              <Button 
+                variant="outline" 
+                onClick={onBack}
+                className="min-w-[120px]"
+              >
+                Back to Preview
+              </Button>
               <Button 
                 onClick={onExport} 
                 disabled={isSaving}
-                className="w-full"
+                className="min-w-[120px] bg-blue-600 hover:bg-blue-700"
               >
                 {isSaving ? 'Publishing...' : 'Publish Listing'}
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     );
   }

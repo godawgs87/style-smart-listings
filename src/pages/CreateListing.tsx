@@ -35,10 +35,23 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
     
     const result = await analyzePhotos(photos);
     if (result) {
-      setListingData(result);
+      // Initialize with default consignment values
+      const enrichedResult = {
+        ...result,
+        is_consignment: false,
+        consignment_percentage: undefined,
+        consignor_name: undefined,
+        consignor_contact: undefined,
+        purchase_price: undefined,
+        purchase_date: undefined,
+        source_location: undefined,
+        source_type: undefined
+      };
+      
+      setListingData(enrichedResult);
       
       // Auto-create draft after analysis
-      const saveResult = await saveListing(result, 0, 'draft');
+      const saveResult = await saveListing(enrichedResult, 0, 'draft');
       if (saveResult.success && saveResult.listingId) {
         setDraftId(saveResult.listingId);
         console.log('Draft auto-saved after analysis with ID:', saveResult.listingId);
