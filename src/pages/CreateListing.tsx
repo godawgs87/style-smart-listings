@@ -21,11 +21,36 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
   const [shippingCost, setShippingCost] = useState(0);
   const [listingData, setListingData] = useState<ListingData | null>(null);
   const [draftId, setDraftId] = useState<string | null>(null);
+  const [isAutoSaving, setIsAutoSaving] = useState(false);
   
   const isMobile = useIsMobile();
   const { user } = useAuth();
   const { analyzePhotos, isAnalyzing } = usePhotoAnalysis();
   const { saveListing, isSaving } = useListingSave();
+
+  // Auto-save draft whenever listingData changes (debounced)
+  useEffect(() => {
+    if (!listingData || isAnalyzing || isSaving || isAutoSaving) return;
+    
+    const autoSaveTimer = setTimeout(async () => {
+      setIsAutoSaving(true);
+      console.log('Auto-saving draft with current data:', listingData);
+      
+      try {
+        const saveResult = await saveListing(listingData, shippingCost, 'draft', draftId || undefined);
+        if (saveResult.success && saveResult.listingId && !draftId) {
+          setDraftId(saveResult.listingId);
+          console.log('Draft auto-saved with ID:', saveResult.listingId);
+        }
+      } catch (error) {
+        console.error('Auto-save failed:', error);
+      } finally {
+        setIsAutoSaving(false);
+      }
+    }, 2000); // Auto-save after 2 seconds of no changes
+
+    return () => clearTimeout(autoSaveTimer);
+  }, [listingData, shippingCost, draftId, isAnalyzing, isSaving, isAutoSaving, saveListing]);
 
   const handlePhotosChange = (newPhotos: File[]) => {
     setPhotos(newPhotos);
@@ -36,35 +61,29 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
     
     const result = await analyzePhotos(photos);
     if (result) {
-      // Initialize with default consignment values
+      // Preserve any existing sourcing data when merging analysis results
       const enrichedResult = {
         ...result,
-        is_consignment: false,
-        consignment_percentage: undefined,
-        consignor_name: undefined,
-        consignor_contact: undefined,
-        purchase_price: undefined,
-        purchase_date: undefined,
-        source_location: undefined,
-        source_type: undefined
+        // Preserve existing sourcing data if it exists
+        is_consignment: listingData?.is_consignment || false,
+        consignment_percentage: listingData?.consignment_percentage,
+        consignor_name: listingData?.consignor_name,
+        consignor_contact: listingData?.consignor_contact,
+        purchase_price: listingData?.purchase_price,
+        purchase_date: listingData?.purchase_date,
+        source_location: listingData?.source_location,
+        source_type: listingData?.source_type
       };
       
+      console.log('Analysis complete, preserving existing data:', enrichedResult);
       setListingData(enrichedResult);
-      
-      // Auto-create draft after analysis
-      try {
-        const saveResult = await saveListing(enrichedResult, 0, 'draft');
-        if (saveResult.success && saveResult.listingId) {
-          setDraftId(saveResult.listingId);
-          console.log('Draft auto-saved after analysis with ID:', saveResult.listingId);
-        }
-      } catch (error) {
-        console.error('Error saving draft:', error);
-        // Continue to preview even if draft save fails
-      }
-      
       setCurrentStep('preview');
     }
+  };
+
+  const handleListingDataChange = (updates: Partial<ListingData>) => {
+    console.log('Updating listing data:', updates);
+    setListingData(prev => prev ? { ...prev, ...updates } : null);
   };
 
   const handleEdit = () => {
@@ -164,12 +183,13 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
           isAnalyzing={isAnalyzing}
           listingData={listingData}
           shippingCost={shippingCost}
-          isSaving={isSaving}
+          isSaving={isSaving || isAutoSaving}
           onPhotosChange={handlePhotosChange}
           onAnalyze={handleAnalyze}
           onEdit={handleEdit}
           onExport={handleExport}
           onShippingSelect={handleShippingSelect}
+          onListingDataChange={handleListingDataChange}
           getWeight={getWeight}
           getDimensions={getDimensions}
           onBack={handleBack}
