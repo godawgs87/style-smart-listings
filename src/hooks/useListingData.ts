@@ -1,7 +1,6 @@
-
 import { useState, useEffect, useRef } from 'react';
 import type { Listing } from '@/types/Listing';
-import { useDatabaseQuery } from './listing-data/useDatabaseQuery';
+import { useLightweightQuery } from './listing-data/useLightweightQuery';
 import { useFallbackData } from './listing-data/useFallbackData';
 import { useToast } from '@/hooks/use-toast';
 
@@ -21,7 +20,7 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
   const { toast } = useToast();
 
   const { statusFilter, limit = 20, searchTerm, categoryFilter } = options;
-  const { fetchFromDatabase } = useDatabaseQuery();
+  const { fetchLightweightListings } = useLightweightQuery();
   const { loadFallbackData } = useFallbackData();
 
   const fetchListings = async (isManualRetry = false) => {
@@ -38,7 +37,7 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
       setUsingFallback(false);
     }
 
-    const { listings: fetchedListings, error: fetchError } = await fetchFromDatabase({
+    const { listings: fetchedListings, error: fetchError } = await fetchLightweightListings({
       statusFilter,
       limit,
       searchTerm,
@@ -88,12 +87,10 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
         setError('Database connection failed.');
         setListings([]);
         setUsingFallback(false);
-        
-        // NO MORE AUTO RETRY - user must manually retry
       }
       
     } else {
-      console.log('✅ Fetch successful');
+      console.log('✅ Lightweight fetch successful');
       failureCount.current = 0;
       setListings(fetchedListings);
       setError(null);
