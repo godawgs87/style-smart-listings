@@ -16,7 +16,7 @@ export const useInventoryManager = () => {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [isBulkMode, setIsBulkMode] = useState(false);
 
-  // Pass server-side filters to the data layer
+  // Ultra-conservative data fetching - reduced limit further
   const { 
     listings, 
     loading, 
@@ -27,7 +27,7 @@ export const useInventoryManager = () => {
     updateListingStatus, 
     refetch 
   } = useListings({ 
-    limit: 25,
+    limit: 5, // Reduced from 25 to 5
     statusFilter,
     searchTerm: searchTerm.trim(),
     categoryFilter

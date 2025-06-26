@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, AlertTriangle, Settings } from 'lucide-react';
+import { RefreshCw, AlertTriangle, Settings, Database } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
 import { useToast } from '@/hooks/use-toast';
@@ -16,24 +16,42 @@ const InventoryTimeoutError = ({ onBack, onRetry }: InventoryTimeoutErrorProps) 
   const { toast } = useToast();
 
   const handleQuickRetry = () => {
-    console.log('Quick retry with current settings...');
+    console.log('Quick retry with ultra-minimal settings...');
+    localStorage.removeItem('inventory_emergency_mode');
     toast({
       title: "Retrying...",
-      description: "Loading inventory with current filters."
+      description: "Loading with minimal data set."
     });
     onRetry();
   };
 
-  const handleOptimizedRetry = () => {
-    console.log('Optimized retry with reduced data...');
+  const handleEmergencyMode = () => {
+    console.log('Activating emergency mode with absolute minimal data...');
     toast({
-      title: "Loading optimized view...",
-      description: "Using reduced dataset for faster loading."
+      title: "Emergency mode activated",
+      description: "Loading only 5 items with basic information."
     });
     
-    // Clear any existing filters and use minimal data
+    // Set emergency mode flag
     localStorage.setItem('inventory_emergency_mode', 'true');
     onRetry();
+  };
+
+  const handleClearCache = () => {
+    console.log('Clearing all cache and reloading...');
+    // Clear all related localStorage
+    localStorage.removeItem('inventory_emergency_mode');
+    localStorage.clear();
+    
+    toast({
+      title: "Cache cleared",
+      description: "Attempting fresh load..."
+    });
+    
+    // Force a fresh reload
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
   };
 
   return (
@@ -48,29 +66,44 @@ const InventoryTimeoutError = ({ onBack, onRetry }: InventoryTimeoutErrorProps) 
         <div className="text-center py-12">
           <div className="max-w-md mx-auto">
             <AlertTriangle className="w-16 h-16 mx-auto text-red-500 mb-4" />
-            <h3 className="text-xl font-semibold mb-2 text-red-700">Database Connection Timeout</h3>
+            <h3 className="text-xl font-semibold mb-2 text-red-700">Persistent Database Timeout</h3>
             <p className="text-red-600 mb-6">
-              The database query is taking too long to complete. This usually happens when there's a large amount of data or slow server response.
+              The database is consistently timing out even with minimal data requests. This indicates a serious performance issue.
             </p>
             
-            <div className="space-y-4">
+            <div className="space-y-3">
               <Button onClick={handleQuickRetry} className="w-full" variant="default">
                 <RefreshCw className="w-4 h-4 mr-2" />
-                Quick Retry
+                Try Again (Minimal Data)
               </Button>
               
-              <Button onClick={handleOptimizedRetry} className="w-full" variant="outline">
+              <Button onClick={handleEmergencyMode} className="w-full" variant="outline">
+                <Database className="w-4 h-4 mr-2" />
+                Emergency Mode (5 Items Only)
+              </Button>
+              
+              <Button onClick={handleClearCache} className="w-full" variant="secondary">
                 <Settings className="w-4 h-4 mr-2" />
-                Load Minimal Data
+                Clear Cache & Reload
               </Button>
               
-              <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-left">
-                <h4 className="font-medium text-yellow-800 mb-2">Troubleshooting Tips:</h4>
-                <ul className="text-sm text-yellow-700 space-y-1">
-                  <li>• Try using filters to reduce the amount of data</li>
-                  <li>• Check your internet connection stability</li>
-                  <li>• Consider using the search function to find specific items</li>
-                  <li>• The database may be under heavy load - try again in a few minutes</li>
+              <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg text-left">
+                <h4 className="font-medium text-red-800 mb-2">Critical Performance Issue Detected:</h4>
+                <ul className="text-sm text-red-700 space-y-1">
+                  <li>• Database queries are timing out consistently</li>
+                  <li>• This may indicate server overload or network issues</li>
+                  <li>• Emergency mode will load only essential data</li>
+                  <li>• Consider contacting support if this persists</li>
+                </ul>
+              </div>
+              
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-left">
+                <h4 className="font-medium text-blue-800 mb-2">What Emergency Mode Does:</h4>
+                <ul className="text-sm text-blue-700 space-y-1">
+                  <li>• Loads only 5 most recent items</li>
+                  <li>• Fetches only title, price, and status</li>
+                  <li>• Removes all complex filters</li>
+                  <li>• Uses shortest possible timeout</li>
                 </ul>
               </div>
             </div>
