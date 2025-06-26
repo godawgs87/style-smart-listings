@@ -44,7 +44,6 @@ const CreateListingContent = ({
   backButtonText
 }: CreateListingContentProps) => {
   const { toast } = useToast();
-  const [isEditingListing, setIsEditingListing] = useState(false);
   const [updatedListingData, setUpdatedListingData] = useState<ListingData | null>(null);
 
   const handleListingUpdate = (updates: Partial<ListingData>) => {
@@ -56,14 +55,12 @@ const CreateListingContent = ({
 
   const handleSaveListingChanges = () => {
     if (updatedListingData) {
-      // Update the parent component's listing data
       console.log('Saving listing changes:', updatedListingData);
       toast({
         title: "Success",
         description: "Listing details updated successfully"
       });
     }
-    setIsEditingListing(false);
   };
 
   const currentListingData = updatedListingData || listingData;
@@ -102,20 +99,18 @@ const CreateListingContent = ({
           listingData={currentListingData}
           onUpdate={handleListingUpdate}
           onSave={handleSaveListingChanges}
-          isEditing={isEditingListing}
-          onToggleEdit={() => setIsEditingListing(!isEditingListing)}
+          isEditing={true}
+          onToggleEdit={() => {}}
         />
 
-        {!isEditingListing && (
-          <div className="flex justify-center space-x-4 pt-4">
-            <Button variant="outline" onClick={onBack}>
-              Back to Photos
-            </Button>
-            <Button onClick={onExport} disabled={isSaving}>
-              {isSaving ? 'Saving...' : 'Continue to Shipping'}
-            </Button>
-          </div>
-        )}
+        <div className="flex justify-center space-x-4 pt-4">
+          <Button variant="outline" onClick={onBack}>
+            Back to Photos
+          </Button>
+          <Button onClick={onExport} disabled={isSaving}>
+            {isSaving ? 'Saving...' : 'Continue to Shipping'}
+          </Button>
+        </div>
 
         {currentListingData.photos && currentListingData.photos.length > 0 && (
           <Card>

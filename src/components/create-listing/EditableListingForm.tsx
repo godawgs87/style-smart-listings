@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Plus, X } from 'lucide-react';
@@ -69,48 +68,11 @@ const EditableListingForm = ({
     onUpdate({ [field]: value });
   };
 
-  if (!isEditing) {
-    return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h2 className="text-xl font-bold">Listing Details</h2>
-          <Button onClick={onToggleEdit} variant="outline">
-            Edit Details
-          </Button>
-        </div>
-        
-        <div className="grid gap-4">
-          <div>
-            <Label className="text-sm font-medium text-gray-600">Title</Label>
-            <p className="text-lg font-medium">{listingData.title}</p>
-          </div>
-          <div>
-            <Label className="text-sm font-medium text-gray-600">Description</Label>
-            <p className="text-gray-700">{listingData.description}</p>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label className="text-sm font-medium text-gray-600">Price</Label>
-              <p className="text-xl font-bold text-green-600">${listingData.price}</p>
-            </div>
-            <div>
-              <Label className="text-sm font-medium text-gray-600">Category</Label>
-              <p>{listingData.category}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold">Edit Listing Details</h2>
-        <div className="space-x-2">
-          <Button onClick={onToggleEdit} variant="outline">Cancel</Button>
-          <Button onClick={onSave}>Save Changes</Button>
-        </div>
+      <div className="text-center">
+        <h2 className="text-2xl font-bold text-gray-900">Review & Edit Listing Details</h2>
+        <p className="text-gray-600 mt-2">All fields are optional - customize your listing as needed</p>
       </div>
 
       {/* Basic Information */}
