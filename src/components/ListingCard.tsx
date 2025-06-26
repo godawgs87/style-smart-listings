@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Edit, Eye, Trash2 } from 'lucide-react';
+import ListingImagePreview from '@/components/ListingImagePreview';
 
 interface Listing {
   id: string;
@@ -15,6 +16,7 @@ interface Listing {
   condition: string | null;
   status: string | null;
   shipping_cost: number | null;
+  photos: string[] | null;
   created_at: string;
 }
 
@@ -49,9 +51,11 @@ const ListingCard = ({
               className="mt-1 flex-shrink-0"
             />
           )}
-          <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 leading-tight">
-            {listing.title}
-          </h3>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 leading-tight">
+              {listing.title}
+            </h3>
+          </div>
         </div>
         {!isBulkMode && (
           <div className="flex space-x-1 flex-shrink-0 ml-2">
@@ -83,12 +87,22 @@ const ListingCard = ({
         )}
       </div>
 
+      {/* Image Preview */}
+      <div className="mb-3 flex justify-center">
+        <div className="w-24 h-24">
+          <ListingImagePreview 
+            photos={listing.photos} 
+            title={listing.title}
+          />
+        </div>
+      </div>
+
       {/* Content */}
       <div className="space-y-3 flex-1">
         {/* Badges */}
         <div className="flex flex-wrap gap-1">
-          <Badge variant="secondary" className="text-xs">{listing.category}</Badge>
-          <Badge variant="outline" className="text-xs">{listing.condition}</Badge>
+          <Badge variant="secondary" className="text-xs">{listing.category || 'Uncategorized'}</Badge>
+          <Badge variant="outline" className="text-xs">{listing.condition || 'N/A'}</Badge>
           {listing.status && (
             <Badge variant={listing.status === 'active' ? 'default' : 'secondary'} className="text-xs">
               {listing.status}
@@ -98,11 +112,16 @@ const ListingCard = ({
 
         {/* Description */}
         <p className="text-xs text-gray-700 line-clamp-3">
-          {listing.description?.substring(0, 80)}...
+          {listing.description?.substring(0, 80) || 'No description available'}...
         </p>
 
-        {/* Price */}
-        <p className="text-sm font-bold text-green-600">${listing.price}</p>
+        {/* Price and Shipping */}
+        <div className="space-y-1">
+          <p className="text-sm font-bold text-green-600">${listing.price}</p>
+          <p className="text-xs text-gray-500">
+            Shipping: ${listing.shipping_cost || 9.95}
+          </p>
+        </div>
       </div>
     </Card>
   );

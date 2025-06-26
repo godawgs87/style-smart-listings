@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
@@ -44,6 +45,16 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
   const handleDeleteListing = async (listingId: string) => {
     await deleteListing(listingId);
     setSelectedListings(prev => prev.filter(id => id !== listingId));
+  };
+
+  const handlePreviewListing = (listing: any) => {
+    console.log('Preview listing:', listing);
+    // TODO: Implement preview functionality
+  };
+
+  const handleEditListing = (listing: any) => {
+    console.log('Edit listing:', listing);
+    // TODO: Implement edit functionality
   };
 
   const handleBulkDelete = async () => {
@@ -131,6 +142,8 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
           onSelectAll={handleSelectAll}
           onUpdateListing={handleUpdateListing}
           onDeleteListing={handleDeleteListing}
+          onPreviewListing={handlePreviewListing}
+          onEditListing={handleEditListing}
         />
 
         {filteredListings.length === 0 && !loading && !error && (

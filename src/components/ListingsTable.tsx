@@ -22,6 +22,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Edit, Save, X, Trash2, Eye } from 'lucide-react';
 import ListingImagePreview from '@/components/ListingImagePreview';
+import ColumnCustomizer from '@/components/ColumnCustomizer';
 
 interface Listing {
   id: string;
@@ -51,6 +52,8 @@ interface ListingsTableProps {
   onSelectAll: (checked: boolean) => void;
   onUpdateListing: (listingId: string, updates: Partial<Listing>) => void;
   onDeleteListing: (listingId: string) => void;
+  onPreviewListing?: (listing: Listing) => void;
+  onEditListing?: (listing: Listing) => void;
 }
 
 const ListingsTable = ({
@@ -59,14 +62,35 @@ const ListingsTable = ({
   onSelectListing,
   onSelectAll,
   onUpdateListing,
-  onDeleteListing
+  onDeleteListing,
+  onPreviewListing,
+  onEditListing
 }: ListingsTableProps) => {
   const [editingRows, setEditingRows] = useState<Set<string>>(new Set());
   const [editData, setEditData] = useState<Record<string, Partial<Listing>>>({});
+  const [visibleColumns, setVisibleColumns] = useState({
+    image: true,
+    title: true,
+    price: true,
+    status: true,
+    category: true,
+    condition: true,
+    shipping: true,
+    measurements: false,
+    keywords: false,
+    description: false
+  });
 
   const categories = ['Electronics', 'Clothing', 'Home & Garden', 'Sports', 'Books', 'Toys', 'Other'];
   const conditions = ['New', 'Like New', 'Good', 'Fair', 'Poor'];
   const statuses = ['draft', 'active', 'sold', 'archived'];
+
+  const handleColumnToggle = (column: keyof typeof visibleColumns) => {
+    setVisibleColumns(prev => ({
+      ...prev,
+      [column]: !prev[column]
+    }));
+  };
 
   const startEditing = (listingId: string) => {
     const listing = listings.find(l => l.id === listingId);
@@ -125,8 +149,32 @@ const ListingsTable = ({
     updateEditData(listingId, 'keywords', keywords);
   };
 
+  const handlePreview = (listing: Listing) => {
+    if (onPreviewListing) {
+      onPreviewListing(listing);
+    } else {
+      console.log('Preview listing:', listing.id);
+    }
+  };
+
+  const handleEdit = (listing: Listing) => {
+    if (onEditListing) {
+      onEditListing(listing);
+    } else {
+      startEditing(listing.id);
+    }
+  };
+
   return (
     <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
+      {/* Column Customizer */}
+      <div className="p-4 border-b bg-gray-50">
+        <ColumnCustomizer
+          visibleColumns={visibleColumns}
+          onColumnToggle={handleColumnToggle}
+        />
+      </div>
+
       <div className="overflow-x-auto">
         <div className="min-w-[1000px]">
           <Table>
@@ -138,15 +186,38 @@ const ListingsTable = ({
                     onCheckedChange={onSelectAll}
                   />
                 </TableHead>
-                <TableHead className="w-16 sticky left-12 bg-gray-50 z-20 border-r">Image</TableHead>
-                <TableHead className="min-w-[250px] sticky left-28 bg-gray-50 z-20 border-r font-semibold">
-                  Product Details
-                </TableHead>
-                <TableHead className="w-[120px] font-semibold">Price</TableHead>
-                <TableHead className="w-[100px] font-semibold">Status</TableHead>
-                <TableHead className="w-[120px] font-semibold">Category</TableHead>
-                <TableHead className="w-[100px] font-semibold">Condition</TableHead>
-                <TableHead className="w-[100px]">Shipping</TableHead>
+                {visibleColumns.image && (
+                  <TableHead className="w-16 sticky left-12 bg-gray-50 z-20 border-r">Image</TableHead>
+                )}
+                {visibleColumns.title && (
+                  <TableHead className="min-w-[250px] sticky left-28 bg-gray-50 z-20 border-r font-semibold">
+                    Product Details
+                  </TableHead>
+                )}
+                {visibleColumns.price && (
+                  <TableHead className="w-[120px] font-semibold">Price</TableHead>
+                )}
+                {visibleColumns.status && (
+                  <TableHead className="w-[100px] font-semibold">Status</TableHead>
+                )}
+                {visibleColumns.category && (
+                  <TableHead className="w-[120px] font-semibold">Category</TableHead>
+                )}
+                {visibleColumns.condition && (
+                  <TableHead className="w-[100px] font-semibold">Condition</TableHead>
+                )}
+                {visibleColumns.shipping && (
+                  <TableHead className="w-[100px]">Shipping</TableHead>
+                )}
+                {visibleColumns.measurements && (
+                  <TableHead className="w-[150px]">Measurements</TableHead>
+                )}
+                {visibleColumns.keywords && (
+                  <TableHead className="w-[150px]">Keywords</TableHead>
+                )}
+                {visibleColumns.description && (
+                  <TableHead className="w-[200px]">Description</TableHead>
+                )}
                 <TableHead className="w-[140px] sticky right-0 bg-gray-50 z-20 border-l font-semibold">
                   Actions
                 </TableHead>
@@ -175,171 +246,233 @@ const ListingsTable = ({
                     </TableCell>
                     
                     {/* Image Preview */}
-                    <TableCell className="sticky left-12 bg-inherit z-10 border-r p-2">
-                      <ListingImagePreview 
-                        photos={listing.photos} 
-                        title={listing.title}
-                      />
-                    </TableCell>
+                    {visibleColumns.image && (
+                      <TableCell className="sticky left-12 bg-inherit z-10 border-r p-2">
+                        <ListingImagePreview 
+                          photos={listing.photos} 
+                          title={listing.title}
+                        />
+                      </TableCell>
+                    )}
 
                     {/* Product Details */}
-                    <TableCell className="sticky left-28 bg-inherit z-10 border-r">
-                      {isEditing ? (
-                        <div className="space-y-2">
+                    {visibleColumns.title && (
+                      <TableCell className="sticky left-28 bg-inherit z-10 border-r">
+                        {isEditing ? (
+                          <div className="space-y-2">
+                            <Input
+                              value={currentData.title}
+                              onChange={(e) => updateEditData(listing.id, 'title', e.target.value)}
+                              placeholder="Title"
+                              className="font-medium"
+                            />
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            <div className="font-medium text-gray-900 line-clamp-2 text-sm leading-tight">
+                              {listing.title}
+                            </div>
+                          </div>
+                        )}
+                      </TableCell>
+                    )}
+
+                    {/* Price */}
+                    {visibleColumns.price && (
+                      <TableCell>
+                        {isEditing ? (
                           <Input
-                            value={currentData.title}
-                            onChange={(e) => updateEditData(listing.id, 'title', e.target.value)}
-                            placeholder="Title"
-                            className="font-medium"
+                            type="number"
+                            value={currentData.price}
+                            onChange={(e) => updateEditData(listing.id, 'price', parseFloat(e.target.value) || 0)}
+                            placeholder="Price"
+                            step="0.01"
+                            className="w-full"
                           />
+                        ) : (
+                          <div className="font-bold text-green-600 text-lg">${listing.price}</div>
+                        )}
+                      </TableCell>
+                    )}
+
+                    {/* Status */}
+                    {visibleColumns.status && (
+                      <TableCell>
+                        {isEditing ? (
+                          <Select
+                            value={currentData.status || ''}
+                            onValueChange={(value) => updateEditData(listing.id, 'status', value)}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {statuses.map(status => (
+                                <SelectItem key={status} value={status}>
+                                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Badge 
+                            variant={
+                              listing.status === 'active' ? 'default' : 
+                              listing.status === 'sold' ? 'secondary' : 
+                              listing.status === 'draft' ? 'outline' : 'secondary'
+                            }
+                            className={
+                              listing.status === 'active' ? 'bg-green-100 text-green-800 border-green-200' :
+                              listing.status === 'sold' ? 'bg-blue-100 text-blue-800 border-blue-200' :
+                              listing.status === 'draft' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
+                              ''
+                            }
+                          >
+                            {listing.status?.charAt(0).toUpperCase() + listing.status?.slice(1)}
+                          </Badge>
+                        )}
+                      </TableCell>
+                    )}
+
+                    {/* Category */}
+                    {visibleColumns.category && (
+                      <TableCell>
+                        {isEditing ? (
+                          <Select
+                            value={currentData.category || ''}
+                            onValueChange={(value) => updateEditData(listing.id, 'category', value)}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {categories.map(cat => (
+                                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Badge variant="secondary" className="text-xs">
+                            {listing.category || 'Uncategorized'}
+                          </Badge>
+                        )}
+                      </TableCell>
+                    )}
+
+                    {/* Condition */}
+                    {visibleColumns.condition && (
+                      <TableCell>
+                        {isEditing ? (
+                          <Select
+                            value={currentData.condition || ''}
+                            onValueChange={(value) => updateEditData(listing.id, 'condition', value)}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Condition" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {conditions.map(cond => (
+                                <SelectItem key={cond} value={cond}>{cond}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Badge variant="outline" className="text-xs">
+                            {listing.condition || 'N/A'}
+                          </Badge>
+                        )}
+                      </TableCell>
+                    )}
+
+                    {/* Shipping */}
+                    {visibleColumns.shipping && (
+                      <TableCell>
+                        {isEditing ? (
+                          <Input
+                            type="number"
+                            value={currentData.shipping_cost || 0}
+                            onChange={(e) => updateEditData(listing.id, 'shipping_cost', parseFloat(e.target.value) || 0)}
+                            placeholder="Shipping"
+                            step="0.01"
+                            className="w-full"
+                          />
+                        ) : (
+                          <div className="text-sm font-medium">${listing.shipping_cost || 9.95}</div>
+                        )}
+                      </TableCell>
+                    )}
+
+                    {/* Measurements */}
+                    {visibleColumns.measurements && (
+                      <TableCell>
+                        {isEditing ? (
+                          <div className="space-y-1">
+                            <Input
+                              placeholder="L x W x H"
+                              value={`${currentData.measurements?.length || ''} x ${currentData.measurements?.width || ''} x ${currentData.measurements?.height || ''}`}
+                              onChange={(e) => {
+                                const parts = e.target.value.split('x').map(p => p.trim());
+                                updateMeasurement(listing.id, 'length', parts[0] || '');
+                                updateMeasurement(listing.id, 'width', parts[1] || '');
+                                updateMeasurement(listing.id, 'height', parts[2] || '');
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <div className="text-xs text-gray-600">
+                            {listing.measurements?.length && listing.measurements?.width && listing.measurements?.height
+                              ? `${listing.measurements.length}" x ${listing.measurements.width}" x ${listing.measurements.height}"`
+                              : 'Not set'
+                            }
+                          </div>
+                        )}
+                      </TableCell>
+                    )}
+
+                    {/* Keywords */}
+                    {visibleColumns.keywords && (
+                      <TableCell>
+                        {isEditing ? (
+                          <Input
+                            placeholder="keyword, keyword"
+                            value={currentData.keywords?.join(', ') || ''}
+                            onChange={(e) => updateKeywords(listing.id, e.target.value)}
+                          />
+                        ) : (
+                          <div className="flex flex-wrap gap-1">
+                            {listing.keywords?.slice(0, 2).map((keyword, idx) => (
+                              <span key={idx} className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
+                                {keyword}
+                              </span>
+                            ))}
+                            {(listing.keywords?.length || 0) > 2 && (
+                              <span className="text-xs text-gray-400">+{(listing.keywords?.length || 0) - 2}</span>
+                            )}
+                          </div>
+                        )}
+                      </TableCell>
+                    )}
+
+                    {/* Description */}
+                    {visibleColumns.description && (
+                      <TableCell>
+                        {isEditing ? (
                           <Textarea
                             value={currentData.description || ''}
                             onChange={(e) => updateEditData(listing.id, 'description', e.target.value)}
                             placeholder="Description"
                             className="min-h-[60px] text-sm"
                           />
-                        </div>
-                      ) : (
-                        <div className="space-y-1">
-                          <div className="font-medium text-gray-900 line-clamp-2 text-sm leading-tight">
-                            {listing.title}
-                          </div>
-                          <div className="text-xs text-gray-600 line-clamp-2">
+                        ) : (
+                          <div className="text-xs text-gray-600 line-clamp-3">
                             {listing.description && listing.description.length > 0 
-                              ? listing.description.substring(0, 120) + '...'
+                              ? listing.description.substring(0, 100) + '...'
                               : 'No description'
                             }
                           </div>
-                          {listing.keywords && listing.keywords.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {listing.keywords.slice(0, 3).map((keyword, idx) => (
-                                <span key={idx} className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
-                                  {keyword}
-                                </span>
-                              ))}
-                              {listing.keywords.length > 3 && (
-                                <span className="text-xs text-gray-400">+{listing.keywords.length - 3}</span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </TableCell>
-
-                    {/* Price */}
-                    <TableCell>
-                      {isEditing ? (
-                        <Input
-                          type="number"
-                          value={currentData.price}
-                          onChange={(e) => updateEditData(listing.id, 'price', parseFloat(e.target.value) || 0)}
-                          placeholder="Price"
-                          step="0.01"
-                          className="w-full"
-                        />
-                      ) : (
-                        <div className="font-bold text-green-600 text-lg">${listing.price}</div>
-                      )}
-                    </TableCell>
-
-                    {/* Status */}
-                    <TableCell>
-                      {isEditing ? (
-                        <Select
-                          value={currentData.status || ''}
-                          onValueChange={(value) => updateEditData(listing.id, 'status', value)}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Status" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {statuses.map(status => (
-                              <SelectItem key={status} value={status}>
-                                {status.charAt(0).toUpperCase() + status.slice(1)}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <Badge 
-                          variant={
-                            listing.status === 'active' ? 'default' : 
-                            listing.status === 'sold' ? 'secondary' : 
-                            listing.status === 'draft' ? 'outline' : 'secondary'
-                          }
-                          className={
-                            listing.status === 'active' ? 'bg-green-100 text-green-800 border-green-200' :
-                            listing.status === 'sold' ? 'bg-blue-100 text-blue-800 border-blue-200' :
-                            listing.status === 'draft' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
-                            ''
-                          }
-                        >
-                          {listing.status?.charAt(0).toUpperCase() + listing.status?.slice(1)}
-                        </Badge>
-                      )}
-                    </TableCell>
-
-                    {/* Category */}
-                    <TableCell>
-                      {isEditing ? (
-                        <Select
-                          value={currentData.category || ''}
-                          onValueChange={(value) => updateEditData(listing.id, 'category', value)}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Category" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {categories.map(cat => (
-                              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <Badge variant="secondary" className="text-xs">
-                          {listing.category || 'Uncategorized'}
-                        </Badge>
-                      )}
-                    </TableCell>
-
-                    {/* Condition */}
-                    <TableCell>
-                      {isEditing ? (
-                        <Select
-                          value={currentData.condition || ''}
-                          onValueChange={(value) => updateEditData(listing.id, 'condition', value)}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Condition" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {conditions.map(cond => (
-                              <SelectItem key={cond} value={cond}>{cond}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <Badge variant="outline" className="text-xs">
-                          {listing.condition || 'N/A'}
-                        </Badge>
-                      )}
-                    </TableCell>
-
-                    {/* Shipping */}
-                    <TableCell>
-                      {isEditing ? (
-                        <Input
-                          type="number"
-                          value={currentData.shipping_cost || 0}
-                          onChange={(e) => updateEditData(listing.id, 'shipping_cost', parseFloat(e.target.value) || 0)}
-                          placeholder="Shipping"
-                          step="0.01"
-                          className="w-full"
-                        />
-                      ) : (
-                        <div className="text-sm font-medium">${listing.shipping_cost || 0}</div>
-                      )}
-                    </TableCell>
+                        )}
+                      </TableCell>
+                    )}
 
                     {/* Actions */}
                     <TableCell className="sticky right-0 bg-inherit z-10 border-l">
@@ -369,7 +502,7 @@ const ListingsTable = ({
                               size="icon"
                               variant="outline"
                               className="h-8 w-8 bg-blue-50 hover:bg-blue-100 border-blue-200"
-                              onClick={() => startEditing(listing.id)}
+                              onClick={() => handleEdit(listing)}
                             >
                               <Edit className="h-4 w-4 text-blue-600" />
                             </Button>
@@ -377,7 +510,7 @@ const ListingsTable = ({
                               size="icon"
                               variant="outline"
                               className="h-8 w-8 bg-gray-50 hover:bg-gray-100"
-                              onClick={() => console.log('Preview', listing.id)}
+                              onClick={() => handlePreview(listing)}
                             >
                               <Eye className="h-4 w-4 text-gray-600" />
                             </Button>
