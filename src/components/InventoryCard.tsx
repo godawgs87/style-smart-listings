@@ -44,6 +44,7 @@ interface InventoryCardProps {
   onEdit: () => void;
   onPreview: () => void;
   onDelete: () => void;
+  onDuplicate?: (item: Item) => void;
 }
 
 const InventoryCard = ({
@@ -53,7 +54,8 @@ const InventoryCard = ({
   onSelect,
   onEdit,
   onPreview,
-  onDelete
+  onDelete,
+  onDuplicate
 }: InventoryCardProps) => {
   const [showPreview, setShowPreview] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
@@ -61,6 +63,12 @@ const InventoryCard = ({
   const handleSaveEdit = (updatedListing: any) => {
     setShowEditor(false);
     console.log('Updated listing:', updatedListing);
+  };
+
+  const handleDuplicate = () => {
+    if (onDuplicate) {
+      onDuplicate(item);
+    }
   };
 
   const getStatusColor = (status: string | null) => {
@@ -98,6 +106,7 @@ const InventoryCard = ({
           onEdit={() => setShowEditor(true)}
           onPreview={() => setShowPreview(true)}
           onDelete={onDelete}
+          onDuplicate={handleDuplicate}
         />
 
         <div className="space-y-3 flex-1">

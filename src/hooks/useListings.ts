@@ -4,7 +4,7 @@ import { useListingOperations } from './useListingOperations';
 
 export const useListings = (options?: { statusFilter?: string; limit?: number }) => {
   const { listings, setListings, loading, error, fetchListings, refetch } = useListingData(options || {});
-  const { deleteListing: deleteOperation, updateListing: updateOperation, updateListingStatus } = useListingOperations();
+  const { deleteListing: deleteOperation, duplicateListing: duplicateOperation, updateListing: updateOperation, updateListingStatus } = useListingOperations();
 
   console.log('useListings hook - listings count:', listings.length, 'loading:', loading, 'error:', error);
 
@@ -14,6 +14,14 @@ export const useListings = (options?: { statusFilter?: string; limit?: number })
       setListings(prev => prev.filter(l => l.id !== id));
     }
     return success;
+  };
+
+  const duplicateListing = async (originalItem: any) => {
+    const newListing = await duplicateOperation(originalItem);
+    if (newListing) {
+      setListings(prev => [newListing, ...prev]);
+    }
+    return newListing;
   };
 
   const updateListing = async (id: string, updateData: any) => {
@@ -44,6 +52,7 @@ export const useListings = (options?: { statusFilter?: string; limit?: number })
     fetchListings,
     refetch,
     deleteListing,
+    duplicateListing,
     updateListing,
     updateListingStatus: updateListingStatusLocal
   };

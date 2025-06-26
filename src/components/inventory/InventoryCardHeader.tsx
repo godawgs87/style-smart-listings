@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Edit, Eye, Trash2 } from 'lucide-react';
+import { Edit, Eye, Trash2, Copy } from 'lucide-react';
 
 interface InventoryCardHeaderProps {
   title: string;
@@ -12,6 +12,7 @@ interface InventoryCardHeaderProps {
   onEdit: () => void;
   onPreview: () => void;
   onDelete: () => void;
+  onDuplicate?: () => void;
 }
 
 const InventoryCardHeader = ({
@@ -21,7 +22,8 @@ const InventoryCardHeader = ({
   onSelect,
   onEdit,
   onPreview,
-  onDelete
+  onDelete,
+  onDuplicate
 }: InventoryCardHeaderProps) => {
   return (
     <div className="flex justify-between items-start mb-3">
@@ -33,7 +35,7 @@ const InventoryCardHeader = ({
             className="mt-1 flex-shrink-0"
           />
         )}
-        <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 leading-tight">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 line-clamp-2 leading-tight">
           {title}
         </h3>
       </div>
@@ -57,6 +59,17 @@ const InventoryCardHeader = ({
           >
             <Eye className="w-3 h-3" />
           </Button>
+          {onDuplicate && (
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="h-8 w-8" 
+              onClick={onDuplicate}
+              title="Duplicate item"
+            >
+              <Copy className="w-3 h-3" />
+            </Button>
+          )}
           <Button 
             variant="destructive" 
             size="icon" 

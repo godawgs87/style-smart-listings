@@ -17,7 +17,7 @@ interface InventoryManagerProps {
 
 const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) => {
   const isMobile = useIsMobile();
-  const { listings, loading, error, deleteListing, updateListing } = useListings();
+  const { listings, loading, error, deleteListing, duplicateListing, updateListing } = useListings();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -119,6 +119,7 @@ const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) =>
           onSelectAll={handleSelectAll}
           onUpdateListing={updateListing}
           onDeleteListing={deleteListing}
+          onDuplicateListing={duplicateListing}
         />
       </div>
 

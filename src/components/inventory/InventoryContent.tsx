@@ -15,6 +15,7 @@ interface InventoryContentProps {
   onSelectAll: (checked: boolean) => void;
   onUpdateListing: (listingId: string, updates: any) => void;
   onDeleteListing: (listingId: string) => void;
+  onDuplicateListing?: (item: any) => void;
 }
 
 const InventoryContent = ({
@@ -27,7 +28,8 @@ const InventoryContent = ({
   onSelectItem,
   onSelectAll,
   onUpdateListing,
-  onDeleteListing
+  onDeleteListing,
+  onDuplicateListing
 }: InventoryContentProps) => {
   if (loading) {
     return (
@@ -69,6 +71,7 @@ const InventoryContent = ({
               onEdit={() => console.log('Edit', item.id)}
               onPreview={() => console.log('Preview', item.id)}
               onDelete={() => onDeleteListing(item.id)}
+              onDuplicate={onDuplicateListing ? () => onDuplicateListing(item) : undefined}
             />
           ))}
         </div>
