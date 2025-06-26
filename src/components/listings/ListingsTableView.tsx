@@ -31,6 +31,47 @@ interface Listing {
   photos: string[] | null;
   price_research: string | null;
   created_at: string;
+  // Enhanced fields
+  purchase_price?: number | null;
+  purchase_date?: string | null;
+  is_consignment?: boolean;
+  consignment_percentage?: number | null;
+  consignor_name?: string | null;
+  consignor_contact?: string | null;
+  source_type?: string | null;
+  source_location?: string | null;
+  cost_basis?: number | null;
+  fees_paid?: number | null;
+  net_profit?: number | null;
+  profit_margin?: number | null;
+  listed_date?: string | null;
+  sold_date?: string | null;
+  sold_price?: number | null;
+  days_to_sell?: number | null;
+  performance_notes?: string | null;
+}
+
+interface VisibleColumns {
+  image: boolean;
+  title: boolean;
+  price: boolean;
+  status: boolean;
+  category: boolean;
+  condition: boolean;
+  shipping: boolean;
+  measurements: boolean;
+  keywords: boolean;
+  description: boolean;
+  purchasePrice: boolean;
+  purchaseDate: boolean;
+  consignmentStatus: boolean;
+  sourceType: boolean;
+  sourceLocation: boolean;
+  costBasis: boolean;
+  netProfit: boolean;
+  profitMargin: boolean;
+  daysToSell: boolean;
+  performanceNotes: boolean;
 }
 
 interface ListingsTableViewProps {
@@ -54,7 +95,7 @@ const ListingsTableView = ({
   onPreviewListing,
   onEditListing
 }: ListingsTableViewProps) => {
-  const [visibleColumns, setVisibleColumns] = useState({
+  const [visibleColumns, setVisibleColumns] = useState<VisibleColumns>({
     image: true,
     title: true,
     price: true,
@@ -64,10 +105,20 @@ const ListingsTableView = ({
     shipping: true,
     measurements: false,
     keywords: false,
-    description: false
+    description: false,
+    purchasePrice: false,
+    purchaseDate: false,
+    consignmentStatus: false,
+    sourceType: false,
+    sourceLocation: false,
+    costBasis: false,
+    netProfit: false,
+    profitMargin: false,
+    daysToSell: false,
+    performanceNotes: false,
   });
 
-  const handleColumnToggle = (column: keyof typeof visibleColumns) => {
+  const handleColumnToggle = (column: keyof VisibleColumns) => {
     setVisibleColumns(prev => ({
       ...prev,
       [column]: !prev[column]
@@ -95,6 +146,8 @@ const ListingsTableView = ({
                     onCheckedChange={onSelectAll}
                   />
                 </TableHead>
+                
+                {/* Core columns */}
                 {visibleColumns.image && (
                   <TableHead className="w-16 sticky left-12 bg-gray-50 z-20 border-r">Image</TableHead>
                 )}
@@ -127,6 +180,39 @@ const ListingsTableView = ({
                 {visibleColumns.description && (
                   <TableHead className="w-[200px]">Description</TableHead>
                 )}
+                
+                {/* New financial columns */}
+                {visibleColumns.purchasePrice && (
+                  <TableHead className="w-[120px] font-semibold">Purchase Price</TableHead>
+                )}
+                {visibleColumns.purchaseDate && (
+                  <TableHead className="w-[120px]">Purchase Date</TableHead>
+                )}
+                {visibleColumns.consignmentStatus && (
+                  <TableHead className="w-[120px]">Consignment</TableHead>
+                )}
+                {visibleColumns.sourceType && (
+                  <TableHead className="w-[120px]">Source Type</TableHead>
+                )}
+                {visibleColumns.sourceLocation && (
+                  <TableHead className="w-[150px]">Source Location</TableHead>
+                )}
+                {visibleColumns.costBasis && (
+                  <TableHead className="w-[120px] font-semibold">Cost Basis</TableHead>
+                )}
+                {visibleColumns.netProfit && (
+                  <TableHead className="w-[120px] font-semibold">Net Profit</TableHead>
+                )}
+                {visibleColumns.profitMargin && (
+                  <TableHead className="w-[120px] font-semibold">Profit Margin</TableHead>
+                )}
+                {visibleColumns.daysToSell && (
+                  <TableHead className="w-[120px]">Days to Sell</TableHead>
+                )}
+                {visibleColumns.performanceNotes && (
+                  <TableHead className="w-[200px]">Performance Notes</TableHead>
+                )}
+                
                 <TableHead className="w-[140px] sticky right-0 bg-gray-50 z-20 border-l font-semibold">
                   Actions
                 </TableHead>

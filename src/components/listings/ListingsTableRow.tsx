@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -26,6 +25,24 @@ interface Listing {
   photos: string[] | null;
   price_research: string | null;
   created_at: string;
+  // Enhanced fields
+  purchase_price?: number | null;
+  purchase_date?: string | null;
+  is_consignment?: boolean;
+  consignment_percentage?: number | null;
+  consignor_name?: string | null;
+  consignor_contact?: string | null;
+  source_type?: string | null;
+  source_location?: string | null;
+  cost_basis?: number | null;
+  fees_paid?: number | null;
+  net_profit?: number | null;
+  profit_margin?: number | null;
+  listed_date?: string | null;
+  sold_date?: string | null;
+  sold_price?: number | null;
+  days_to_sell?: number | null;
+  performance_notes?: string | null;
 }
 
 interface VisibleColumns {
@@ -39,6 +56,16 @@ interface VisibleColumns {
   measurements: boolean;
   keywords: boolean;
   description: boolean;
+  purchasePrice: boolean;
+  purchaseDate: boolean;
+  consignmentStatus: boolean;
+  sourceType: boolean;
+  sourceLocation: boolean;
+  costBasis: boolean;
+  netProfit: boolean;
+  profitMargin: boolean;
+  daysToSell: boolean;
+  performanceNotes: boolean;
 }
 
 interface ListingsTableRowProps {
@@ -133,6 +160,24 @@ const ListingsTableRow = ({
 
   const displayComponents = ListingsTableRowDisplay({ listing });
 
+  // Helper function to format currency
+  const formatCurrency = (value: number | null | undefined) => {
+    if (!value) return '-';
+    return `$${value.toFixed(2)}`;
+  };
+
+  // Helper function to format percentage
+  const formatPercentage = (value: number | null | undefined) => {
+    if (!value) return '-';
+    return `${value.toFixed(1)}%`;
+  };
+
+  // Helper function to format date
+  const formatDate = (value: string | null | undefined) => {
+    if (!value) return '-';
+    return new Date(value).toLocaleDateString();
+  };
+
   return (
     <TableRow 
       className={`
@@ -148,7 +193,7 @@ const ListingsTableRow = ({
         />
       </TableCell>
       
-      {/* Image Preview */}
+      {/* Core columns */}
       {visibleColumns.image && (
         <TableCell className="sticky left-12 bg-inherit z-10 border-r p-2">
           <ListingImagePreview 
@@ -158,66 +203,152 @@ const ListingsTableRow = ({
         </TableCell>
       )}
 
-      {/* Product Details */}
       {visibleColumns.title && (
         <TableCell className="sticky left-28 bg-inherit z-10 border-r">
           {isEditing ? editComponents.title : displayComponents.title}
         </TableCell>
       )}
 
-      {/* Price */}
       {visibleColumns.price && (
         <TableCell>
           {isEditing ? editComponents.price : displayComponents.price}
         </TableCell>
       )}
 
-      {/* Status */}
       {visibleColumns.status && (
         <TableCell>
           {isEditing ? editComponents.status : displayComponents.status}
         </TableCell>
       )}
 
-      {/* Category */}
       {visibleColumns.category && (
         <TableCell>
           {isEditing ? editComponents.category : displayComponents.category}
         </TableCell>
       )}
 
-      {/* Condition */}
       {visibleColumns.condition && (
         <TableCell>
           {isEditing ? editComponents.condition : displayComponents.condition}
         </TableCell>
       )}
 
-      {/* Shipping */}
       {visibleColumns.shipping && (
         <TableCell>
           {isEditing ? editComponents.shipping : displayComponents.shipping}
         </TableCell>
       )}
 
-      {/* Measurements */}
       {visibleColumns.measurements && (
         <TableCell>
           {isEditing ? editComponents.measurements : displayComponents.measurements}
         </TableCell>
       )}
 
-      {/* Keywords */}
       {visibleColumns.keywords && (
         <TableCell>
           {isEditing ? editComponents.keywords : displayComponents.keywords}
         </TableCell>
       )}
 
-      {/* Description */}
       {visibleColumns.description && (
         <TableCell>
           {isEditing ? editComponents.description : displayComponents.description}
+        </TableCell>
+      )}
+
+      {/* New financial columns */}
+      {visibleColumns.purchasePrice && (
+        <TableCell>
+          <div className="font-medium">
+            {formatCurrency(listing.purchase_price)}
+          </div>
+        </TableCell>
+      )}
+
+      {visibleColumns.purchaseDate && (
+        <TableCell>
+          <div className="text-sm">
+            {formatDate(listing.purchase_date)}
+          </div>
+        </TableCell>
+      )}
+
+      {visibleColumns.consignmentStatus && (
+        <TableCell>
+          <div className="text-sm">
+            {listing.is_consignment ? (
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
+                Consignment ({listing.consignment_percentage}%)
+              </span>
+            ) : (
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
+                Owned
+              </span>
+            )}
+          </div>
+        </TableCell>
+      )}
+
+      {visibleColumns.sourceType && (
+        <TableCell>
+          <div className="text-sm capitalize">
+            {listing.source_type?.replace('_', ' ') || '-'}
+          </div>
+        </TableCell>
+      )}
+
+      {visibleColumns.sourceLocation && (
+        <TableCell>
+          <div className="text-sm truncate max-w-[150px]" title={listing.source_location || ''}>
+            {listing.source_location || '-'}
+          </div>
+        </TableCell>
+      )}
+
+      {visibleColumns.costBasis && (
+        <TableCell>
+          <div className="font-medium">
+            {formatCurrency(listing.cost_basis)}
+          </div>
+        </TableCell>
+      )}
+
+      {visibleColumns.netProfit && (
+        <TableCell>
+          <div className={`font-medium ${
+            listing.net_profit && listing.net_profit > 0 ? 'text-green-600' : 
+            listing.net_profit && listing.net_profit < 0 ? 'text-red-600' : ''
+          }`}>
+            {formatCurrency(listing.net_profit)}
+          </div>
+        </TableCell>
+      )}
+
+      {visibleColumns.profitMargin && (
+        <TableCell>
+          <div className={`font-medium ${
+            listing.profit_margin && listing.profit_margin > 0 ? 'text-green-600' : 
+            listing.profit_margin && listing.profit_margin < 0 ? 'text-red-600' : ''
+          }`}>
+            {formatPercentage(listing.profit_margin)}
+          </div>
+        </TableCell>
+      )}
+
+      {visibleColumns.daysToSell && (
+        <TableCell>
+          <div className="text-sm">
+            {listing.days_to_sell ? `${listing.days_to_sell} days` : '-'}
+          </div>
+        </TableCell>
+      )}
+
+      {visibleColumns.performanceNotes && (
+        <TableCell>
+          <div className="text-sm truncate max-w-[200px]" title={listing.performance_notes || ''}>
+            {listing.performance_notes || '-'}
+          </div>
         </TableCell>
       )}
 
