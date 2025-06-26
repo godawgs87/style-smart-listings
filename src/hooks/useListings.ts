@@ -1,6 +1,7 @@
 
 import { useListingData } from './useListingData';
 import { useListingOperations } from './useListingOperations';
+import type { Listing } from '@/types/Listing';
 
 export const useListings = (options?: { statusFilter?: string; limit?: number }) => {
   const { listings, setListings, loading, error, fetchListings, refetch } = useListingData(options || {});
@@ -16,16 +17,23 @@ export const useListings = (options?: { statusFilter?: string; limit?: number })
     return success;
   };
 
-  const duplicateListing = async (originalItem: any) => {
+  const duplicateListing = async (originalItem: Listing) => {
     const newListing = await duplicateOperation(originalItem);
     if (newListing) {
-      // Transform the newListing to match the Listing interface
-      const transformedListing = {
+      // Ensure the newListing matches the Listing interface structure
+      const transformedListing: Listing = {
         ...newListing,
-        measurements: newListing.measurements || {},
-        photos: newListing.photos || [],
-        keywords: newListing.keywords || [],
-        shipping_cost: newListing.shipping_cost
+        measurements: typeof newListing.measurements === 'object' && newListing.measurements !== null 
+          ? newListing.measurements as { length?: string; width?: string; height?: string; weight?: string; }
+          : {},
+        photos: Array.isArray(newListing.photos) ? newListing.photos : [],
+        keywords: Array.isArray(newListing.keywords) ? newListing.keywords : [],
+        shipping_cost: newListing.shipping_cost || null,
+        category: newListing.category || null,
+        condition: newListing.condition || null,
+        description: newListing.description || null,
+        price_research: newListing.price_research || null,
+        status: newListing.status || null
       };
       setListings(prev => [transformedListing, ...prev]);
     }
@@ -58,7 +66,7 @@ export const useListings = (options?: { statusFilter?: string; limit?: number })
     loading,
     error,
     fetchListings,
-    refactor,
+    refetch,
     deleteListing,
     duplicateListing,
     updateListing,
