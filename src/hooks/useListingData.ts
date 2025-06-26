@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { Listing } from '@/types/Listing';
 import { useDatabaseQuery } from './listing-data/useDatabaseQuery';
 import { useFallbackData } from './listing-data/useFallbackData';
+import { useToast } from '@/hooks/use-toast';
 
 interface UseListingDataOptions {
   statusFilter?: string;
@@ -17,7 +18,7 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
   const [error, setError] = useState<string | null>(null);
   const [usingFallback, setUsingFallback] = useState(false);
   const retryCountRef = useRef(0);
-  const maxRetries = 1; // Reduce retries to fail faster
+  const { toast } = useToast();
 
   const { statusFilter, limit = 20, searchTerm, categoryFilter } = options;
   const { fetchFromDatabase } = useDatabaseQuery();
@@ -25,15 +26,12 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
 
   const fetchListings = async (isRetry = false) => {
     try {
-      console.log(`Fetching listings (retry: ${isRetry}, count: ${retryCountRef.current})`);
+      console.log(`🔄 FETCH LISTINGS CALLED - retry: ${isRetry}, count: ${retryCountRef.current}`);
       setLoading(true);
       setError(null);
       
-      // Don't reset fallback state on retry unless specifically requested
-      if (!isRetry) {
-        setUsingFallback(false);
-        retryCountRef.current = 0;
-      }
+      // Always try database first, don't stay in fallback mode
+      setUsingFallback(false);
       
       const { listings: fetchedListings, error: fetchError } = await fetchFromDatabase({
         statusFilter,
@@ -43,10 +41,7 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
       });
 
       if (fetchError === 'CONNECTION_ERROR') {
-        console.log('Connection error detected');
-        
-        // Use fallback immediately instead of retrying
-        console.log('Using fallback data due to connection error');
+        console.log('🔌 Connection error - switching to fallback');
         setUsingFallback(true);
         const fallbackListings = loadFallbackData({
           statusFilter,
@@ -56,23 +51,37 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
         });
         setListings(fallbackListings);
         setError(null);
+        
+        if (!isRetry) {
+          toast({
+            title: "Database Unavailable",
+            description: "Switched to offline mode. Click 'Try Database Again' to reconnect.",
+            variant: "destructive"
+          });
+        }
       } else if (fetchError) {
-        // Real errors (not connection issues)
-        console.error('Database error:', fetchError);
+        console.error('❌ Database error:', fetchError);
         setError(fetchError);
         setListings([]);
         setUsingFallback(false);
       } else {
-        // Success
-        console.log('Database fetch successful');
+        console.log('✅ Database fetch successful - exiting offline mode');
         setListings(fetchedListings);
         setError(null);
         setUsingFallback(false);
         retryCountRef.current = 0;
+        
+        if (isRetry) {
+          toast({
+            title: "Connection Restored!",
+            description: "Successfully reconnected to database.",
+            variant: "default"
+          });
+        }
       }
       
     } catch (error: any) {
-      console.error('Unexpected error in fetchListings:', error);
+      console.error('💥 Unexpected error in fetchListings:', error);
       setError(error.message || 'An unexpected error occurred');
       setUsingFallback(false);
     } finally {
@@ -81,14 +90,14 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
   };
 
   const refetch = () => {
-    console.log('Manual refetch triggered - attempting database connection');
+    console.log('🔄 MANUAL REFETCH - forcing database retry');
     retryCountRef.current = 0;
     setUsingFallback(false);
-    fetchListings();
+    fetchListings(true);
   };
 
   const forceOfflineMode = () => {
-    console.log('Forcing offline mode');
+    console.log('🔌 FORCING OFFLINE MODE');
     setLoading(true);
     setUsingFallback(true);
     const fallbackListings = loadFallbackData({
@@ -103,9 +112,10 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
   };
 
   useEffect(() => {
+    console.log('🎯 useEffect triggered - filters changed');
     const timeoutId = setTimeout(() => {
       fetchListings();
-    }, 100); // Reduced debounce time
+    }, 100);
 
     return () => clearTimeout(timeoutId);
   }, [statusFilter, limit, searchTerm, categoryFilter]);
