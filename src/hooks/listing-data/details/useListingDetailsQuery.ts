@@ -20,6 +20,7 @@ export const useListingDetailsQuery = () => {
           shipping_cost,
           price_research,
           purchase_date,
+          purchase_price,
           is_consignment,
           consignment_percentage,
           cost_basis,
@@ -41,7 +42,7 @@ export const useListingDetailsQuery = () => {
         return { details: null, error: error.message };
       }
 
-      console.log('✅ Successfully fetched listing details');
+      console.log('✅ Successfully fetched listing details:', data);
       
       // Transform the data to match Listing interface
       const transformedDetails: Partial<Listing> = {
@@ -54,6 +55,7 @@ export const useListingDetailsQuery = () => {
         shipping_cost: data.shipping_cost || null,
         price_research: data.price_research,
         purchase_date: data.purchase_date,
+        purchase_price: data.purchase_price,
         is_consignment: data.is_consignment,
         consignment_percentage: data.consignment_percentage,
         cost_basis: data.cost_basis,

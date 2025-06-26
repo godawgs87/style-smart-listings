@@ -79,35 +79,73 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
     setSelectedListings(prev => prev.filter(id => id !== listingId));
   };
 
+  const transformListingForPreview = (listing: any, details: any = {}) => {
+    return {
+      title: listing.title || '',
+      description: details.description || listing.description || '',
+      price: listing.price || 0,
+      category: listing.category || '',
+      condition: listing.condition || '',
+      measurements: details.measurements || listing.measurements || {},
+      keywords: details.keywords || listing.keywords || [],
+      photos: details.photos || listing.photos || [],
+      priceResearch: details.price_research || listing.price_research || '',
+      shippingCost: details.shipping_cost || listing.shipping_cost || 0,
+      brand: details.brand || listing.brand || '',
+      model: details.model || listing.model || '',
+      features: details.features || listing.features || [],
+      defects: details.defects || listing.defects || [],
+      includes: details.includes || listing.includes || []
+    };
+  };
+
+  const transformListingForEdit = (listing: any, details: any = {}) => {
+    return {
+      title: listing.title || '',
+      description: details.description || listing.description || '',
+      price: listing.price || 0,
+      category: listing.category || '',
+      condition: listing.condition || '',
+      measurements: details.measurements || listing.measurements || {},
+      keywords: details.keywords || listing.keywords || [],
+      photos: details.photos || listing.photos || [],
+      priceResearch: details.price_research || listing.price_research || '',
+      purchase_price: details.purchase_price || listing.purchase_price,
+      purchase_date: details.purchase_date || listing.purchase_date,
+      source_location: details.source_location || listing.source_location,
+      source_type: details.source_type || listing.source_type,
+      is_consignment: details.is_consignment || listing.is_consignment,
+      consignment_percentage: details.consignment_percentage || listing.consignment_percentage,
+      consignor_name: details.consignor_name || listing.consignor_name,
+      consignor_contact: details.consignor_contact || listing.consignor_contact
+    };
+  };
+
   const handlePreviewListing = async (listing: any) => {
     console.log('Preview listing:', listing);
-    setSelectedListingForDialog(listing);
     
     // Load full details for preview
     const details = await loadDetails(listing.id);
-    if (details) {
-      setSelectedListingForDialog({
-        ...listing,
-        ...details
-      });
-    }
+    console.log('Loaded details for preview:', details);
     
+    const transformedListing = transformListingForPreview(listing, details);
+    console.log('Transformed listing for preview:', transformedListing);
+    
+    setSelectedListingForDialog(transformedListing);
     setShowPreviewDialog(true);
   };
 
   const handleEditListing = async (listing: any) => {
     console.log('Edit listing:', listing);
-    setSelectedListingForDialog(listing);
     
     // Load full details for editing
     const details = await loadDetails(listing.id);
-    if (details) {
-      setSelectedListingForDialog({
-        ...listing,
-        ...details
-      });
-    }
+    console.log('Loaded details for edit:', details);
     
+    const transformedListing = transformListingForEdit(listing, details);
+    console.log('Transformed listing for edit:', transformedListing);
+    
+    setSelectedListingForDialog({ ...transformedListing, id: listing.id });
     setShowEditDialog(true);
   };
 
@@ -123,7 +161,7 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
   };
 
   const handleSaveEdit = async (updatedListing: any) => {
-    if (selectedListingForDialog) {
+    if (selectedListingForDialog && selectedListingForDialog.id) {
       await updateListing(selectedListingForDialog.id, updatedListing);
       setShowEditDialog(false);
       setSelectedListingForDialog(null);
@@ -288,23 +326,7 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
           </DialogHeader>
           {selectedListingForDialog && (
             <ListingPreview
-              listing={{
-                title: selectedListingForDialog.title,
-                description: selectedListingForDialog.description || '',
-                price: selectedListingForDialog.price,
-                category: selectedListingForDialog.category || '',
-                condition: selectedListingForDialog.condition || '',
-                measurements: selectedListingForDialog.measurements || {},
-                keywords: selectedListingForDialog.keywords || [],
-                photos: selectedListingForDialog.photos || [],
-                priceResearch: selectedListingForDialog.price_research || '',
-                shippingCost: selectedListingForDialog.shipping_cost || 0,
-                brand: selectedListingForDialog.brand || '',
-                model: selectedListingForDialog.model || '',
-                features: selectedListingForDialog.features || [],
-                defects: selectedListingForDialog.defects || [],
-                includes: selectedListingForDialog.includes || []
-              }}
+              listing={selectedListingForDialog}
               onEdit={() => {
                 setShowPreviewDialog(false);
                 setShowEditDialog(true);
@@ -326,17 +348,7 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
           </DialogHeader>
           {selectedListingForDialog && (
             <ListingEditor
-              listing={{
-                title: selectedListingForDialog.title,
-                description: selectedListingForDialog.description || '',
-                price: selectedListingForDialog.price,
-                category: selectedListingForDialog.category || '',
-                condition: selectedListingForDialog.condition || '',
-                measurements: selectedListingForDialog.measurements || {},
-                keywords: selectedListingForDialog.keywords || [],
-                photos: selectedListingForDialog.photos || [],
-                priceResearch: selectedListingForDialog.price_research || ''
-              }}
+              listing={selectedListingForDialog}
               onSave={handleSaveEdit}
               onCancel={() => setShowEditDialog(false)}
             />
