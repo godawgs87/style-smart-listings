@@ -149,7 +149,7 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
       setError(null);
       setUsingFallback(false);
       
-      // Check authentication with detailed logging
+      // Check authentication first
       console.log('Checking authentication...');
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       
@@ -169,20 +169,21 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
       
       console.log('User authenticated:', user.id);
       
-      // Extended timeout for initial queries with RLS
+      // Reduced timeout to 8 seconds to fail faster and try offline mode
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Database query timeout after 15 seconds')), 15000)
+        setTimeout(() => reject(new Error('Database query timeout after 8 seconds')), 8000)
       );
 
-      // Build query with proper logging
-      console.log('Building database query...');
+      // Build a simple query first to test connectivity
+      console.log('Building basic database query...');
       let query = supabase
         .from('listings')
-        .select('*')
+        .select('id, title, price, status, created_at, category, condition, user_id')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(limit);
+        .limit(Math.min(limit, 10)); // Start with smaller limit
 
-      // Apply filters with logging
+      // Only add filters if they're not default values
       if (statusFilter && statusFilter !== 'all') {
         console.log('Applying status filter:', statusFilter);
         query = query.eq('status', statusFilter);
@@ -210,7 +211,7 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
       if (fetchError) {
         console.error('Database query failed:', fetchError);
         
-        // Check if it's an RLS policy error
+        // Check for specific error types
         if (fetchError.message.includes('policy') || fetchError.message.includes('permission')) {
           setError('Access denied: Unable to fetch your listings. Please try logging out and back in.');
           toast({
@@ -235,22 +236,50 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
 
       console.log(`Successfully loaded ${data.length} listings from database`);
       
-      const transformedListings = data.map(transformListing);
+      // Transform the basic data we got
+      const transformedListings = data.map((item: any) => ({
+        ...item,
+        measurements: {},
+        photos: [],
+        keywords: [],
+        shipping_cost: null,
+        description: null,
+        purchase_date: undefined,
+        source_location: undefined,
+        source_type: undefined,
+        cost_basis: undefined,
+        fees_paid: undefined,
+        sold_date: undefined,
+        sold_price: undefined,
+        days_to_sell: undefined,
+        performance_notes: undefined,
+        price_research: null,
+        updated_at: item.created_at,
+        consignor_name: undefined,
+        consignor_contact: undefined,
+        listed_date: undefined,
+        purchase_price: undefined,
+        net_profit: undefined,
+        profit_margin: undefined,
+        is_consignment: undefined,
+        consignment_percentage: undefined
+      }));
+      
       setListings(transformedListings);
       setError(null);
       
-      // Save successful data as fallback for future use
+      // Save successful data as fallback
       fallbackDataService.saveFallbackData(data);
       
     } catch (error: any) {
       console.error('Database fetch failed:', error);
       
-      // Only use fallback for actual connection/timeout errors
+      // For any connection/timeout errors, try fallback
       if (error.message.includes('timeout') || error.message.includes('network') || error.message.includes('fetch')) {
         console.log('Connection error detected, switching to fallback...');
         loadFallbackData();
       } else {
-        // For other errors (like RLS), show the actual error
+        // For other errors, show the actual error
         setError(error.message || 'Failed to load listings');
         toast({
           title: "Error Loading Listings",
