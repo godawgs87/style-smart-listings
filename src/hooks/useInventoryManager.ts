@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useListings } from '@/hooks/useListings';
 import { useInventoryFilters } from '@/components/inventory/InventoryFilters';
+import { useProgressiveLoading } from '@/hooks/useProgressiveLoading';
 import type { Listing } from '@/types/Listing';
 
 export const useInventoryManager = () => {
@@ -16,7 +17,14 @@ export const useInventoryManager = () => {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [isBulkMode, setIsBulkMode] = useState(false);
 
-  // Ultra-conservative data fetching - reduced limit further
+  // Progressive loading with reasonable defaults
+  const progressiveLoading = useProgressiveLoading({
+    initialLimit: 10, // Start with 10 items instead of 5
+    incrementSize: 15, // Load 15 more at a time
+    maxLimit: 100 // Cap at 100 items total
+  });
+
+  // Data fetching with progressive limit
   const { 
     listings, 
     loading, 
@@ -27,13 +35,13 @@ export const useInventoryManager = () => {
     updateListingStatus, 
     refetch 
   } = useListings({ 
-    limit: 5, // Reduced from 25 to 5
+    limit: progressiveLoading.currentLimit,
     statusFilter,
     searchTerm: searchTerm.trim(),
     categoryFilter
   });
 
-  // Apply client-side filters only for complex filters that can't be done server-side
+  // Apply client-side filters
   const { filteredListings } = useInventoryFilters({
     listings,
     searchTerm: '', // Already handled server-side
@@ -75,6 +83,11 @@ export const useInventoryManager = () => {
     setIsBulkMode(selectedItems.length > 0);
   }, [selectedItems]);
 
+  // Reset progressive loading when filters change
+  useEffect(() => {
+    progressiveLoading.reset();
+  }, [statusFilter, categoryFilter, searchTerm]);
+
   const handleSelectItem = (itemId: string, checked: boolean) => {
     setSelectedItems(prev => 
       checked 
@@ -91,6 +104,10 @@ export const useInventoryManager = () => {
     setSelectedItems([]);
   };
 
+  const handleLoadMore = async () => {
+    return await progressiveLoading.loadMore();
+  };
+
   return {
     // Data
     listings,
@@ -99,6 +116,12 @@ export const useInventoryManager = () => {
     stats,
     loading,
     error,
+    
+    // Progressive loading
+    canLoadMore: progressiveLoading.canLoadMore,
+    isLoadingMore: progressiveLoading.isLoadingMore,
+    currentLimit: progressiveLoading.currentLimit,
+    handleLoadMore,
     
     // State
     searchTerm,

@@ -50,24 +50,18 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
 
   const fetchListings = async () => {
     try {
-      console.log('Starting ultra-minimal query with options:', { statusFilter, limit, searchTerm, categoryFilter });
+      console.log('Starting progressive query with options:', { statusFilter, limit, searchTerm, categoryFilter });
       setLoading(true);
       setError(null);
       
-      // Check for emergency mode
-      const isEmergencyMode = localStorage.getItem('inventory_emergency_mode') === 'true';
-      const queryLimit = isEmergencyMode ? 5 : Math.min(limit, 10);
-      
-      console.log('Emergency mode:', isEmergencyMode, 'Query limit:', queryLimit);
-      
-      // Ultra-minimal query - only essential fields
+      // Progressive loading strategy - start with essential fields only
       let query = supabase
         .from('listings')
-        .select('id, title, price, status, created_at, category, condition')
+        .select('id, title, price, status, created_at, category, condition, description, photos')
         .order('created_at', { ascending: false })
-        .limit(queryLimit);
+        .limit(limit);
 
-      // Only apply one filter at a time to reduce query complexity
+      // Apply filters one at a time to reduce query complexity
       if (statusFilter && statusFilter !== 'all') {
         query = query.eq('status', statusFilter);
       } else if (categoryFilter && categoryFilter !== 'all') {
@@ -77,11 +71,11 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
         query = query.ilike('title', `%${searchTerm.trim()}%`);
       }
 
-      console.log('Executing ultra-minimal query with 5 second timeout...');
+      console.log('Executing progressive query with 10 second timeout...');
       
-      // Set aggressive timeout
+      // Set reasonable timeout
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Query timeout after 5 seconds')), 5000)
+        setTimeout(() => reject(new Error('Query timeout after 10 seconds')), 10000)
       );
 
       const queryPromise = query;
@@ -95,17 +89,17 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
       }
 
       if (!data) {
-        console.log('No data returned from ultra-minimal query');
+        console.log('No data returned from progressive query');
         setListings([]);
         return;
       }
 
-      console.log(`Successfully loaded ${data.length} listings with ultra-minimal query`);
+      console.log(`Successfully loaded ${data.length} listings with progressive loading`);
       
-      // Transform minimal data - add missing fields with defaults
+      // Transform data with defaults for missing fields
       const transformedListings = data.map(item => ({
         ...item,
-        description: null,
+        description: item.description || null,
         purchase_price: undefined,
         purchase_date: undefined,
         source_location: undefined,
@@ -119,7 +113,7 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
         measurements: {},
         keywords: [],
         price_research: null,
-        shipping_cost: null,
+        shipping_cost: 9.95,
         updated_at: item.created_at,
         user_id: '',
         consignor_name: undefined,
@@ -129,19 +123,10 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
         consignment_percentage: undefined,
         net_profit: undefined,
         profit_margin: undefined,
-        photos: []
+        photos: item.photos || []
       })) as Listing[];
       
       setListings(transformedListings);
-      
-      // Clear emergency mode after successful load
-      if (isEmergencyMode) {
-        localStorage.removeItem('inventory_emergency_mode');
-        toast({
-          title: "Minimal data loaded",
-          description: `Loaded ${transformedListings.length} items in emergency mode.`
-        });
-      }
       
     } catch (error: any) {
       console.error('Fetch error:', error);
@@ -149,7 +134,7 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
       let errorMessage = 'Failed to load inventory';
       
       if (error.message?.includes('timeout') || error.message?.includes('Query timeout')) {
-        errorMessage = 'timeout: Database query took too long even with minimal data. Please try again later or contact support.';
+        errorMessage = 'timeout: Database query took too long. The progressive loading will help manage this better.';
       } else if (error.message?.includes('connection') || error.message?.includes('network')) {
         errorMessage = 'connection: Unable to connect to the database. Please check your internet connection.';
       } else if (error.message) {
@@ -177,7 +162,7 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       fetchListings();
-    }, 300); // Increased debounce to reduce rapid queries
+    }, 500); // Slightly longer debounce for stability
 
     return () => clearTimeout(timeoutId);
   }, [statusFilter, limit, searchTerm, categoryFilter]);

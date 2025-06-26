@@ -7,6 +7,7 @@ import InventoryContent from '@/components/inventory/InventoryContent';
 import InventoryStats from '@/components/inventory/InventoryStats';
 import InventoryControls from '@/components/inventory/InventoryControls';
 import BulkActionsBar from '@/components/BulkActionsBar';
+import LoadMoreButton from '@/components/inventory/LoadMoreButton';
 import InventoryTimeoutError from '@/components/inventory/InventoryTimeoutError';
 import { useInventoryManager } from '@/hooks/useInventoryManager';
 import { useInventoryActions } from '@/components/inventory/InventoryActions';
@@ -25,6 +26,12 @@ const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) =>
     stats,
     loading,
     error,
+    
+    // Progressive loading
+    canLoadMore,
+    isLoadingMore,
+    currentLimit,
+    handleLoadMore,
     
     // State
     searchTerm,
@@ -124,6 +131,16 @@ const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) =>
           onDuplicateListing={handleDuplicateListing}
           onRetry={refetch}
         />
+
+        {/* Progressive loading button */}
+        {!loading && !error && filteredListings.length > 0 && (
+          <LoadMoreButton
+            onLoadMore={handleLoadMore}
+            isLoading={isLoadingMore}
+            canLoadMore={canLoadMore}
+            currentCount={filteredListings.length}
+          />
+        )}
       </div>
 
       {isMobile && (
