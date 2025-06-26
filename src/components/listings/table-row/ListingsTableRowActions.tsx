@@ -82,8 +82,10 @@ const ListingsTableRowActions = ({
 
   const handleDuplicateClick = () => {
     console.log('Duplicate clicked for listing:', listing.id, 'onDuplicate available:', !!onDuplicate);
-    if (onDuplicate) {
+    if (onDuplicate && !isDuplicating) {
       setShowDuplicateDialog(true);
+    } else if (isDuplicating) {
+      console.log('Duplicate already in progress, ignoring click');
     } else {
       console.error('onDuplicate function not available');
     }
@@ -94,8 +96,26 @@ const ListingsTableRowActions = ({
     if (onDuplicate && !isDuplicating) {
       setIsDuplicating(true);
       try {
-        await onDuplicate(listing);
-        console.log('Duplicate operation completed');
+        console.log('Starting duplicate operation with data:', {
+          id: listing.id,
+          title: listing.title,
+          price: listing.price,
+          dataTypes: {
+            price: typeof listing.price,
+            measurements: typeof listing.measurements,
+            keywords: Array.isArray(listing.keywords),
+            photos: Array.isArray(listing.photos)
+          }
+        });
+        
+        const result = await onDuplicate(listing);
+        console.log('Duplicate operation result:', result);
+        
+        if (result) {
+          console.log('Duplicate operation completed successfully');
+        } else {
+          console.log('Duplicate operation failed - no result returned');
+        }
       } catch (error) {
         console.error('Error during duplicate operation:', error);
       } finally {
@@ -137,9 +157,12 @@ const ListingsTableRowActions = ({
               </DropdownMenuItem>
             )}
             {onDuplicate && (
-              <DropdownMenuItem onClick={handleDuplicateClick}>
+              <DropdownMenuItem 
+                onClick={handleDuplicateClick}
+                disabled={isDuplicating}
+              >
                 <Copy className="mr-2 h-4 w-4" />
-                Duplicate
+                {isDuplicating ? 'Duplicating...' : 'Duplicate'}
               </DropdownMenuItem>
             )}
             <DropdownMenuItem onClick={() => console.log('Archive listing')}>
@@ -187,7 +210,7 @@ const ListingsTableRowActions = ({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDuplicating}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDuplicateConfirm}
               disabled={isDuplicating}
