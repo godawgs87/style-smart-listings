@@ -72,9 +72,9 @@ const CreateListingContent = ({
       <div className="w-full max-w-4xl mx-auto p-4 md:p-6 space-y-6 md:space-y-8">
         <ProgressIndicator currentStep={currentStep} />
         
-        <Card>
+        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600">
           <CardHeader>
-            <CardTitle className="text-lg md:text-xl">Upload Photos</CardTitle>
+            <CardTitle className="text-lg md:text-xl text-gray-900 dark:text-gray-100">Upload Photos</CardTitle>
           </CardHeader>
           <CardContent className="p-4 md:p-6">
             <PhotoUpload onPhotosChange={onPhotosChange} />
@@ -83,7 +83,7 @@ const CreateListingContent = ({
                 <Button 
                   onClick={onAnalyze} 
                   disabled={isAnalyzing || photos.length === 0}
-                  className="w-full"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                 >
                   {isAnalyzing ? 'Analyzing Photos...' : 'Analyze Photos'}
                 </Button>
@@ -108,7 +108,7 @@ const CreateListingContent = ({
         <ProgressIndicator currentStep={currentStep} />
         
         {/* Main Preview Card with Editable Header */}
-        <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
+        <Card className="shadow-sm hover:shadow-md transition-shadow duration-200 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600">
           <PreviewHeader
             listingData={currentListingData}
             onUpdate={handleListingUpdate}
@@ -135,9 +135,9 @@ const CreateListingContent = ({
 
         {/* Photos Section */}
         {currentListingData.photos && currentListingData.photos.length > 0 && (
-          <Card className="shadow-sm">
+          <Card className="shadow-sm bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600">
             <CardHeader>
-              <CardTitle className="text-lg">Photos</CardTitle>
+              <CardTitle className="text-lg text-gray-900 dark:text-gray-100">Photos</CardTitle>
             </CardHeader>
             <CardContent className="p-4 md:p-6">
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -156,13 +156,17 @@ const CreateListingContent = ({
 
         {/* Action Buttons */}
         <div className="flex flex-col md:flex-row justify-center space-y-3 md:space-y-0 md:space-x-4 pt-4">
-          <Button variant="outline" onClick={onBack} className="w-full md:w-auto md:min-w-[120px]">
+          <Button 
+            variant="outline" 
+            onClick={onBack} 
+            className="w-full md:w-auto md:min-w-[120px] border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+          >
             Back to Photos
           </Button>
           <Button 
             onClick={onExport} 
             disabled={isSaving}
-            className="w-full md:w-auto md:min-w-[120px] bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
+            className="w-full md:w-auto md:min-w-[120px] bg-blue-600 hover:bg-blue-700 text-white transition-colors duration-200"
           >
             {isSaving ? 'Saving...' : 'Continue to Shipping'}
           </Button>
@@ -183,10 +187,10 @@ const CreateListingContent = ({
               <p className="text-gray-600 dark:text-gray-400 mt-2">Set up shipping options for your listing</p>
             </div>
 
-            <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
+            <Card className="shadow-sm hover:shadow-md transition-shadow duration-200 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600">
               <CardHeader>
                 <CardTitle className="flex flex-col md:flex-row md:items-center justify-between space-y-2 md:space-y-0">
-                  <span className="text-lg">Shipping Calculator</span>
+                  <span className="text-lg text-gray-900 dark:text-gray-100">Shipping Calculator</span>
                   <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
                     Item: {currentListingData?.title}
                   </span>
@@ -205,14 +209,14 @@ const CreateListingContent = ({
               <Button 
                 variant="outline" 
                 onClick={onBack}
-                className="w-full md:w-auto md:min-w-[120px]"
+                className="w-full md:w-auto md:min-w-[120px] border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
               >
                 Back to Preview
               </Button>
               <Button 
                 onClick={onExport} 
                 disabled={isSaving}
-                className="w-full md:w-auto md:min-w-[120px] bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
+                className="w-full md:w-auto md:min-w-[120px] bg-blue-600 hover:bg-blue-700 text-white transition-colors duration-200"
               >
                 {isSaving ? 'Publishing...' : 'Publish Listing'}
               </Button>

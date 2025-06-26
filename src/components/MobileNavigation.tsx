@@ -1,9 +1,8 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Camera, List, Settings, LogOut, ArrowLeft, Package, Moon, Sun } from 'lucide-react';
+import { Camera, List, Settings, ArrowLeft, Package } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { useTheme } from '@/components/ThemeProvider';
 
 interface MobileNavigationProps {
   currentView: string;
@@ -21,17 +20,20 @@ const MobileNavigation = ({
   title 
 }: MobileNavigationProps) => {
   const { signOut } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+
+  const handleAdminClick = () => {
+    window.location.href = '/admin';
+  };
 
   if (showBack && onBack) {
     return (
-      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between sticky top-0 z-50">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-600 px-4 py-3 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center space-x-3">
           <Button
             variant="ghost"
             size="sm"
             onClick={onBack}
-            className="p-2"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700"
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
@@ -40,17 +42,17 @@ const MobileNavigation = ({
         <Button
           variant="ghost"
           size="sm"
-          onClick={toggleTheme}
-          className="p-2"
+          onClick={handleAdminClick}
+          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700"
         >
-          {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+          <Settings className="w-5 h-5" />
         </Button>
       </div>
     );
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 z-50">
+    <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-600 z-50">
       <div className="flex justify-around items-center py-2">
         <Button
           variant={currentView === 'dashboard' ? 'default' : 'ghost'}
@@ -95,11 +97,11 @@ const MobileNavigation = ({
         <Button
           variant="ghost"
           size="sm"
-          onClick={toggleTheme}
+          onClick={handleAdminClick}
           className="flex flex-col items-center p-3 min-h-16"
         >
-          {theme === 'light' ? <Moon className="w-5 h-5 mb-1" /> : <Sun className="w-5 h-5 mb-1" />}
-          <span className="text-xs">Theme</span>
+          <Settings className="w-5 h-5 mb-1" />
+          <span className="text-xs">Settings</span>
         </Button>
       </div>
     </div>

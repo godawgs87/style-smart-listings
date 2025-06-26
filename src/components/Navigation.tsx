@@ -1,10 +1,9 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Settings, List, Camera, LogOut, Menu, Package, Moon, Sun } from 'lucide-react';
+import { Settings, List, Camera, LogOut, Menu, Package } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useTheme } from '@/components/ThemeProvider';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,7 +20,6 @@ interface NavigationProps {
 const Navigation = ({ currentView, onNavigate }: NavigationProps) => {
   const { signOut } = useAuth();
   const isMobile = useIsMobile();
-  const { theme, toggleTheme } = useTheme();
 
   const handleNavigation = (path: string) => {
     if (path.startsWith('/')) {
@@ -34,39 +32,31 @@ const Navigation = ({ currentView, onNavigate }: NavigationProps) => {
   if (isMobile) {
     return (
       <div className="flex items-center space-x-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={toggleTheme}
-          className="p-2"
-        >
-          {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-        </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="hover:bg-gray-100 dark:hover:bg-gray-700">
               <Menu className="w-4 h-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-            <DropdownMenuItem onClick={() => handleNavigation('dashboard')} className="cursor-pointer">
+          <DropdownMenuContent align="end" className="w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600">
+            <DropdownMenuItem onClick={() => handleNavigation('dashboard')} className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
               <Camera className="w-4 h-4 mr-2" />
               Create
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleNavigation('inventory')} className="cursor-pointer">
+            <DropdownMenuItem onClick={() => handleNavigation('inventory')} className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
               <Package className="w-4 h-4 mr-2" />
               Inventory
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleNavigation('listings')} className="cursor-pointer">
+            <DropdownMenuItem onClick={() => handleNavigation('listings')} className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
               <List className="w-4 h-4 mr-2" />
               Listings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => handleNavigation('/admin')} className="cursor-pointer">
+            <DropdownMenuItem onClick={() => handleNavigation('/admin')} className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
               <Settings className="w-4 h-4 mr-2" />
               Settings
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={signOut} className="cursor-pointer">
+            <DropdownMenuItem onClick={signOut} className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
               <LogOut className="w-4 h-4 mr-2" />
               Sign Out
             </DropdownMenuItem>
@@ -82,6 +72,7 @@ const Navigation = ({ currentView, onNavigate }: NavigationProps) => {
         variant={currentView === 'dashboard' ? 'default' : 'outline'}
         size="sm"
         onClick={() => handleNavigation('dashboard')}
+        className="hover:bg-gray-100 dark:hover:bg-gray-700"
       >
         <Camera className="w-4 h-4 mr-2" />
         Create
@@ -91,6 +82,7 @@ const Navigation = ({ currentView, onNavigate }: NavigationProps) => {
         variant={currentView === 'inventory' ? 'default' : 'outline'}
         size="sm"
         onClick={() => handleNavigation('inventory')}
+        className="hover:bg-gray-100 dark:hover:bg-gray-700"
       >
         <Package className="w-4 h-4 mr-2" />
         Inventory
@@ -100,6 +92,7 @@ const Navigation = ({ currentView, onNavigate }: NavigationProps) => {
         variant={currentView === 'listings' ? 'default' : 'outline'}
         size="sm"
         onClick={() => handleNavigation('listings')}
+        className="hover:bg-gray-100 dark:hover:bg-gray-700"
       >
         <List className="w-4 h-4 mr-2" />
         Listings
@@ -109,24 +102,17 @@ const Navigation = ({ currentView, onNavigate }: NavigationProps) => {
         variant="outline"
         size="sm"
         onClick={() => handleNavigation('/admin')}
+        className="hover:bg-gray-100 dark:hover:bg-gray-700"
       >
         <Settings className="w-4 h-4 mr-2" />
         Settings
-      </Button>
-
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={toggleTheme}
-      >
-        {theme === 'light' ? <Moon className="w-4 h-4 mr-2" /> : <Sun className="w-4 h-4 mr-2" />}
-        Theme
       </Button>
       
       <Button
         variant="outline"
         size="sm"
         onClick={signOut}
+        className="hover:bg-gray-100 dark:hover:bg-gray-700"
       >
         <LogOut className="w-4 h-4 mr-2" />
         Sign Out

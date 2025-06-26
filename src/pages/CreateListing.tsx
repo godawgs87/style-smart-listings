@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
@@ -51,10 +52,15 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
       setListingData(enrichedResult);
       
       // Auto-create draft after analysis
-      const saveResult = await saveListing(enrichedResult, 0, 'draft');
-      if (saveResult.success && saveResult.listingId) {
-        setDraftId(saveResult.listingId);
-        console.log('Draft auto-saved after analysis with ID:', saveResult.listingId);
+      try {
+        const saveResult = await saveListing(enrichedResult, 0, 'draft');
+        if (saveResult.success && saveResult.listingId) {
+          setDraftId(saveResult.listingId);
+          console.log('Draft auto-saved after analysis with ID:', saveResult.listingId);
+        }
+      } catch (error) {
+        console.error('Error saving draft:', error);
+        // Continue to preview even if draft save fails
       }
       
       setCurrentStep('preview');
@@ -73,10 +79,18 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
       return;
     }
     
-    // Update the existing draft to active status instead of creating new listing
-    const success = await saveListing(listingData, shippingCost, 'active', draftId || undefined);
-    if (success.success) {
-      onViewListings();
+    try {
+      // Update the existing draft to active status instead of creating new listing
+      const success = await saveListing(listingData, shippingCost, 'active', draftId || undefined);
+      if (success.success) {
+        console.log('Listing published successfully');
+        onViewListings();
+      } else {
+        console.error('Failed to publish listing');
+      }
+    } catch (error) {
+      console.error('Error publishing listing:', error);
+      // Show error to user but don't navigate away
     }
   };
 
@@ -128,7 +142,7 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
   };
 
   return (
-    <div className={`min-h-screen bg-gray-50 ${isMobile ? 'pb-20' : ''}`}>
+    <div className={`min-h-screen bg-gray-50 dark:bg-gray-900 ${isMobile ? 'pb-20' : ''}`}>
       <StreamlinedHeader
         title="Create New Listing"
         showBack
