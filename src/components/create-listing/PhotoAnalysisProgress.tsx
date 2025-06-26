@@ -9,10 +9,10 @@ const PhotoAnalysisProgress = () => {
   const [currentStage, setCurrentStage] = React.useState(0);
 
   const stages = [
-    { icon: Camera, label: 'Processing images...', duration: 2000 },
-    { icon: Brain, label: 'AI analyzing content...', duration: 3000 },
-    { icon: FileText, label: 'Generating description...', duration: 2000 },
-    { icon: DollarSign, label: 'Researching pricing...', duration: 3000 }
+    { icon: Camera, label: 'Compressing images...', duration: 3000 },
+    { icon: Brain, label: 'AI analyzing content...', duration: 5000 },
+    { icon: FileText, label: 'Generating description...', duration: 3000 },
+    { icon: DollarSign, label: 'Researching pricing...', duration: 4000 }
   ];
 
   React.useEffect(() => {
@@ -65,7 +65,10 @@ const PhotoAnalysisProgress = () => {
           </div>
           
           <div className="text-xs text-gray-500">
-            This usually takes 30-60 seconds
+            This may take up to 90 seconds
+          </div>
+          <div className="text-xs text-gray-400">
+            💡 Tip: Use smaller photos (under 2MB) for faster analysis
           </div>
         </div>
       </CardContent>

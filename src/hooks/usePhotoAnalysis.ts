@@ -24,10 +24,13 @@ export const usePhotoAnalysis = () => {
     try {
       console.log('=== PHOTO ANALYSIS START ===');
       console.log('Starting photo analysis with', photos.length, 'photos');
-      console.log('Photos array:', photos.map(p => ({ name: p.name, size: p.size, type: p.type })));
+      
+      // Limit to first 3 photos for faster processing
+      const photosToAnalyze = photos.slice(0, 3);
+      console.log('Analyzing first', photosToAnalyze.length, 'photos for speed');
       
       // Validate photos first
-      const validPhotos = photos.filter(photo => {
+      const validPhotos = photosToAnalyze.filter(photo => {
         if (!photo || photo.size === 0) {
           console.error('Invalid photo found:', photo);
           return false;
@@ -45,20 +48,19 @@ export const usePhotoAnalysis = () => {
       
       console.log('Valid photos count:', validPhotos.length);
       
-      // Convert photos to base64 with progress tracking
+      // Convert photos to base64 with compression
       let base64Photos;
       try {
-        console.log('Converting photos to base64...');
+        console.log('Converting and compressing photos...');
         base64Photos = await convertFilesToBase64(validPhotos);
         console.log('Photos converted successfully, count:', base64Photos.length);
+        
+        if (base64Photos.length === 0) {
+          throw new Error('No photos could be processed');
+        }
       } catch (conversionError) {
         console.error('Photo conversion failed:', conversionError);
-        throw new Error('Failed to process photos. Please try uploading different photos.');
-      }
-      
-      // Validate base64 photos
-      if (!base64Photos || base64Photos.length === 0) {
-        throw new Error('Failed to convert photos to base64 format');
+        throw new Error('Failed to process photos. Please try uploading smaller images.');
       }
       
       console.log('Calling analyze-photos function...');
@@ -70,9 +72,9 @@ export const usePhotoAnalysis = () => {
       
       console.log('Request payload prepared - Photos count:', requestPayload.photos.length);
       
-      // Use Supabase function invocation with timeout
+      // Use longer timeout and better error handling
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Analysis request timed out after 60 seconds')), 60000);
+        setTimeout(() => reject(new Error('Analysis request timed out after 90 seconds')), 90000);
       });
       
       const analysisPromise = supabase.functions.invoke('analyze-photos', {
@@ -90,11 +92,11 @@ export const usePhotoAnalysis = () => {
         
         // Handle specific function errors
         if (error.message?.includes('FunctionsRelayError')) {
-          throw new Error('Analysis service is not responding. Please try again in a moment.');
+          throw new Error('Analysis service is temporarily unavailable. Please try again.');
         } else if (error.message?.includes('FunctionsFetchError')) {
-          throw new Error('Network error calling analysis service. Check your connection.');
+          throw new Error('Network error. Please check your connection and try again.');
         } else if (error.message?.includes('timeout')) {
-          throw new Error('Analysis timed out. Please try with fewer or smaller photos.');
+          throw new Error('Analysis timed out. Try using fewer or smaller photos.');
         } else {
           throw new Error(`Analysis failed: ${error.message}`);
         }
@@ -103,22 +105,20 @@ export const usePhotoAnalysis = () => {
       if (data?.success && data?.listing) {
         const analysisResult = data.listing;
         
+        // Convert all photos to base64 for storage (including unused ones)
+        const allBase64Photos = await convertFilesToBase64(photos);
+        
         // Create listing data with the analyzed results
         const listingData = {
           ...analysisResult,
-          photos: base64Photos
+          photos: allBase64Photos
         };
         
         console.log('Analysis completed successfully');
         
-        // Show success message with price info
-        const priceInfo = analysisResult.priceResearch 
-          ? ` (${analysisResult.priceResearch})`
-          : '';
-        
         toast({
           title: "Analysis Complete! 🎯",
-          description: `Listing generated with researched price: $${analysisResult.price}${priceInfo}`
+          description: `Listing generated with researched price: $${analysisResult.price}`
         });
 
         return listingData;
@@ -132,28 +132,24 @@ export const usePhotoAnalysis = () => {
       console.error('Full error:', error);
       
       // More specific error handling
-      let errorMessage = 'Please check your photos and try again.';
+      let errorMessage = 'Please try with smaller photos or fewer images.';
       if (error?.message?.includes('timeout')) {
-        errorMessage = 'Analysis timed out. Try using fewer or smaller photos.';
+        errorMessage = 'Analysis timed out. Try using 1-2 smaller photos.';
       } else if (error?.message?.includes('quota')) {
-        errorMessage = 'OpenAI quota exceeded. Please try again later or contact support.';
+        errorMessage = 'Service quota exceeded. Please try again later.';
       } else if (error?.message?.includes('rate limit')) {
         errorMessage = 'Rate limit exceeded. Please wait a moment and try again.';
-      } else if (error?.message?.includes('API key')) {
-        errorMessage = 'API configuration issue. Please contact support.';
-      } else if (error?.message?.includes('not responding')) {
+      } else if (error?.message?.includes('unavailable')) {
         errorMessage = 'Service temporarily unavailable. Please try again.';
       } else if (error?.message?.includes('Network error')) {
         errorMessage = 'Connection issue. Please check your internet and try again.';
-      } else if (error?.message?.includes('corrupted') || error?.message?.includes('base64')) {
-        errorMessage = 'Photo upload issue. Please try uploading the photos again.';
-      } else if (error?.message?.includes('convert') || error?.message?.includes('process')) {
-        errorMessage = 'Photo processing failed. Please try different photos or smaller file sizes.';
+      } else if (error?.message?.includes('process')) {
+        errorMessage = 'Photo processing failed. Please try smaller images (under 2MB each).';
       }
       
       toast({
         title: "Analysis Failed",
-        description: `${error?.message || 'Unknown error'}. ${errorMessage}`,
+        description: `${error?.message || 'Analysis error'}. ${errorMessage}`,
         variant: "destructive"
       });
 

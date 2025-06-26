@@ -8,71 +8,95 @@ export const convertFilesToBase64 = async (files: File[]): Promise<string[]> => 
     return [];
   }
   
-  // Process files in batches to prevent memory issues
-  const batchSize = 3;
+  // Process files one by one to prevent memory issues and reduce load
   const results: string[] = [];
   
-  for (let i = 0; i < files.length; i += batchSize) {
-    const batch = files.slice(i, i + batchSize);
-    console.log(`Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(files.length / batchSize)}`);
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    console.log(`Converting file ${i + 1}:`, file.name, file.size, 'bytes');
     
-    const batchPromises = batch.map((file, batchIndex) => {
-      const fileIndex = i + batchIndex;
-      return new Promise<string>((resolve, reject) => {
-        console.log(`Converting file ${fileIndex + 1}:`, file.name, file.size, 'bytes');
-        
-        if (!file || file.size === 0) {
-          console.error(`File ${fileIndex + 1} is empty or invalid`);
-          reject(new Error(`File ${fileIndex + 1} is empty or invalid`));
-          return;
-        }
-        
-        // Check file size (limit to 10MB per file)
-        if (file.size > 10 * 1024 * 1024) {
-          console.error(`File ${fileIndex + 1} is too large:`, file.size);
-          reject(new Error(`File ${fileIndex + 1} is too large (max 10MB)`));
-          return;
-        }
-        
-        const reader = new FileReader();
-        
-        reader.onload = () => {
-          const result = reader.result as string;
-          if (result && result.length > 100) {
-            console.log(`File ${fileIndex + 1} converted successfully, size:`, result.length);
-            resolve(result);
-          } else {
-            console.error(`File ${fileIndex + 1} conversion failed or too small`);
-            reject(new Error(`File ${fileIndex + 1} conversion failed`));
-          }
-        };
-        
-        reader.onerror = () => {
-          console.error(`File ${fileIndex + 1} reading failed:`, reader.error);
-          reject(new Error(`Failed to read file ${fileIndex + 1}`));
-        };
-        
-        // Add a small delay between file reads to prevent blocking
-        setTimeout(() => {
-          reader.readAsDataURL(file);
-        }, batchIndex * 100);
-      });
-    });
+    if (!file || file.size === 0) {
+      console.error(`File ${i + 1} is empty or invalid`);
+      continue;
+    }
+    
+    // Check file size (limit to 5MB per file for faster processing)
+    if (file.size > 5 * 1024 * 1024) {
+      console.warn(`File ${i + 1} is large (${file.size} bytes), compressing...`);
+    }
     
     try {
-      const batchResults = await Promise.all(batchPromises);
-      results.push(...batchResults);
-      
-      // Small delay between batches
-      if (i + batchSize < files.length) {
-        await new Promise(resolve => setTimeout(resolve, 200));
+      const base64 = await convertAndCompressFile(file);
+      if (base64) {
+        results.push(base64);
+        console.log(`File ${i + 1} converted successfully`);
       }
     } catch (error) {
-      console.error('Error during batch conversion:', error);
-      throw error;
+      console.error(`File ${i + 1} conversion failed:`, error);
+      // Continue with other files instead of failing completely
+    }
+    
+    // Small delay between files to prevent blocking
+    if (i < files.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
   }
   
-  console.log('All files converted successfully, total results:', results.length);
+  console.log('Files converted successfully, total results:', results.length);
   return results;
+};
+
+const convertAndCompressFile = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    img.onload = () => {
+      try {
+        // Calculate optimal dimensions (max 1024px on longest side)
+        const maxSize = 1024;
+        let { width, height } = img;
+        
+        if (width > height) {
+          if (width > maxSize) {
+            height = (height * maxSize) / width;
+            width = maxSize;
+          }
+        } else {
+          if (height > maxSize) {
+            width = (width * maxSize) / height;
+            height = maxSize;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw and compress
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        // Use lower quality for faster processing
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
+        
+        // Ensure the result isn't too large (max 500KB base64)
+        if (compressedBase64.length > 500 * 1024) {
+          console.warn('Image still too large after compression, using lower quality');
+          const smallerBase64 = canvas.toDataURL('image/jpeg', 0.6);
+          resolve(smallerBase64);
+        } else {
+          resolve(compressedBase64);
+        }
+      } catch (error) {
+        console.error('Image compression failed:', error);
+        reject(error);
+      }
+    };
+    
+    img.onerror = () => {
+      reject(new Error('Failed to load image'));
+    };
+    
+    img.src = URL.createObjectURL(file);
+  });
 };
