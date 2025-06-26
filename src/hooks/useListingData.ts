@@ -17,6 +17,7 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [usingFallback, setUsingFallback] = useState(false);
+  const [autoRetryDisabled, setAutoRetryDisabled] = useState(false);
   const failureCount = useRef(0);
   const { toast } = useToast();
 
@@ -33,9 +34,10 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
     
     // Reset failure count on manual retry
     if (isManualRetry) {
-      console.log('🔄 Manual retry - resetting failure count');
+      console.log('🔄 Manual retry - resetting failure count and enabling auto retry');
       failureCount.current = 0;
       setUsingFallback(false);
+      setAutoRetryDisabled(false);
     }
 
     const { listings: fetchedListings, error: fetchError } = await fetchFromDatabase({
@@ -51,6 +53,7 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
       setError('Authentication failed. Please sign out and sign back in.');
       setListings([]);
       setUsingFallback(false);
+      setAutoRetryDisabled(true); // Disable auto retry for auth errors
       
       toast({
         title: "Authentication Error",
@@ -65,8 +68,9 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
       console.log(`📈 Failure count now: ${failureCount.current}`);
       
       if (failureCount.current >= 2) {
-        console.log('💔 Max failures reached - switching to fallback');
+        console.log('💔 Max failures reached - switching to fallback, disabling auto retry');
         setUsingFallback(true);
+        setAutoRetryDisabled(true); // Disable auto retry after max failures
         const fallbackListings = loadFallbackData({
           statusFilter,
           limit,
@@ -83,17 +87,22 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
             variant: "destructive"
           });
         }
-      } else {
+      } else if (!autoRetryDisabled) {
         console.log('🔁 First failure - showing error state');
         setError('Database connection failed. Retrying automatically...');
         setListings([]);
         setUsingFallback(false);
         
-        // Auto retry after 2 seconds for first failure
+        // Auto retry after 2 seconds for first failure only if not disabled
         setTimeout(() => {
           console.log('⏰ Auto retry triggered');
           fetchListings();
         }, 2000);
+      } else {
+        console.log('🚫 Auto retry disabled - showing error state');
+        setError('Database connection failed.');
+        setListings([]);
+        setUsingFallback(false);
       }
       
     } else {
@@ -102,6 +111,7 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
       setListings(fetchedListings);
       setError(null);
       setUsingFallback(false);
+      setAutoRetryDisabled(false);
       
       if (isManualRetry) {
         toast({
@@ -125,6 +135,7 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
     setLoading(true);
     setUsingFallback(true);
     failureCount.current = 0;
+    setAutoRetryDisabled(true);
     
     const fallbackListings = loadFallbackData({
       statusFilter,
@@ -147,6 +158,7 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
     console.log('🎯 useEffect triggered - filters changed');
     // Reset failure count when filters change
     failureCount.current = 0;
+    setAutoRetryDisabled(false);
     fetchListings();
   }, [statusFilter, limit, searchTerm, categoryFilter]);
 
