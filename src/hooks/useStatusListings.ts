@@ -8,7 +8,7 @@ interface StatusListingsOptions {
   limit?: number;
 }
 
-export const useStatusListings = ({ status, limit = 50 }: StatusListingsOptions) => {
+export const useStatusListings = ({ status, limit = 15 }: StatusListingsOptions) => {
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -17,48 +17,74 @@ export const useStatusListings = ({ status, limit = 50 }: StatusListingsOptions)
   const fetchStatusListings = async () => {
     try {
       setError(null);
-      console.log(`Fetching ${status} listings with limit ${limit}`);
+      console.log(`Fetching ${status} listings with ultra-minimal query`);
       
-      const { data: { user } } = await supabase.auth.getUser();
+      // Auth check is critical for RLS
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
       
-      if (!user) {
-        setError('Please log in to view your listings');
+      if (authError || !user) {
+        setError('Authentication required');
         setListings([]);
         setLoading(false);
         return;
       }
 
-      // Use the optimized index: idx_listings_user_status
-      const { data, error: fetchError } = await supabase
-        .from('listings')
-        .select('id, title, price, status, created_at, category, condition')
-        .eq('user_id', user.id)
-        .eq('status', status)
-        .order('created_at', { ascending: false })
-        .limit(limit);
+      console.log('Authenticated user:', user.id, 'fetching status:', status);
+
+      // 2-second timeout for status queries
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Status query timeout')), 2000);
+      });
+
+      // Ultra-minimal query - only essential fields
+      const queryStart = Date.now();
+      const { data, error: fetchError } = await Promise.race([
+        supabase
+          .from('listings')
+          .select('id, title, price, status, created_at')
+          .eq('status', status)
+          .order('created_at', { ascending: false })
+          .limit(limit),
+        timeoutPromise
+      ]) as any;
+
+      const queryTime = Date.now() - queryStart;
+      console.log(`${status} listings query completed in ${queryTime}ms`);
 
       if (fetchError) {
         console.error(`Error fetching ${status} listings:`, fetchError);
-        setError(`Failed to load ${status} listings`);
+        throw new Error(`Database error: ${fetchError.message}`);
+      }
+
+      const transformedData = (data || []).map((item: any) => ({
+        ...item,
+        category: null,
+        condition: null,
+        description: null
+      }));
+
+      setListings(transformedData);
+      console.log(`Successfully loaded ${transformedData.length} ${status} listings`);
+      
+    } catch (error: any) {
+      console.error('Status listings error:', error);
+      const errorMsg = error.message || 'Unknown error';
+      
+      if (errorMsg.includes('timeout')) {
+        setError('Query timeout');
         toast({
-          title: "Error",
+          title: "Timeout Error",
+          description: `${status} listings query timed out`,
+          variant: "destructive"
+        });
+      } else {
+        setError('Connection failed');
+        toast({
+          title: "Database Error",
           description: `Failed to load ${status} listings`,
           variant: "destructive"
         });
-        return;
       }
-
-      setListings(data || []);
-      console.log(`Successfully loaded ${data?.length || 0} ${status} listings`);
-      
-    } catch (error) {
-      console.error('Unexpected error:', error);
-      setError('Connection failed');
-      toast({
-        title: "Connection Error",
-        description: "Unable to connect to the database",
-        variant: "destructive"
-      });
     } finally {
       setLoading(false);
     }
