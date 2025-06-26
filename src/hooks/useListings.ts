@@ -2,8 +2,8 @@
 import { useListingData } from './useListingData';
 import { useListingOperations } from './useListingOperations';
 
-export const useListings = () => {
-  const { listings, setListings, loading, error, fetchListings, refetch } = useListingData();
+export const useListings = (options?: { statusFilter?: string; limit?: number }) => {
+  const { listings, setListings, loading, error, fetchListings, refetch } = useListingData(options || {});
   const { deleteListing: deleteOperation, updateListing: updateOperation, updateListingStatus } = useListingOperations();
 
   const deleteListing = async (id: string) => {

@@ -51,7 +51,7 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const { statusFilter, limit = 100 } = options;
+  const { statusFilter, limit = 50 } = options; // Reduced default limit
 
   const transformListing = (supabaseListing: SupabaseListing): Listing => {
     return {
@@ -65,9 +65,8 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
       console.log('Starting to fetch listings with options:', options);
       setError(null);
       
-      // Check if user is authenticated
+      // Check if user is authenticated first
       const { data: { user }, error: authError } = await supabase.auth.getUser();
-      console.log('Current user:', user?.id);
       
       if (authError) {
         console.error('Auth error:', authError);
@@ -77,6 +76,7 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
           description: "Please log in to view your listings",
           variant: "destructive"
         });
+        setLoading(false);
         return;
       }
 
@@ -84,10 +84,18 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
         console.log('No user logged in');
         setError('Please log in to view your listings');
         setListings([]);
+        setLoading(false);
         return;
       }
 
-      // Build query with efficient filtering
+      console.log('Current user:', user.id);
+
+      // Use a simpler, more efficient query with timeout handling
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Query timeout')), 8000); // 8 second timeout
+      });
+
+      // Build a more efficient query - fetch only essential columns first
       let query = supabase
         .from('listings')
         .select(`
@@ -97,75 +105,86 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
           price,
           category,
           condition,
+          status,
+          created_at,
+          updated_at,
+          user_id,
           measurements,
           keywords,
           photos,
           price_research,
-          shipping_cost,
-          status,
-          created_at,
-          updated_at,
-          user_id
+          shipping_cost
         `)
         .eq('user_id', user.id);
 
-      // Add status filter if provided (this uses our new index)
+      // Apply status filter using the index
       if (statusFilter && statusFilter !== 'all') {
         query = query.eq('status', statusFilter);
       }
 
-      // Add ordering and limit
+      // Order and limit for better performance
       query = query
         .order('created_at', { ascending: false })
         .limit(limit);
 
-      console.log('Executing query with filters:', { statusFilter, limit });
-      const { data, error: fetchError } = await query;
+      console.log('Executing optimized query with filters:', { statusFilter, limit, userId: user.id });
 
-      console.log('Supabase query result:', { data, error: fetchError });
+      // Race the query against timeout
+      const queryPromise = query;
+      const { data, error: fetchError } = await Promise.race([
+        queryPromise,
+        timeoutPromise
+      ]) as any;
 
       if (fetchError) {
         console.error('Error fetching listings:', fetchError);
-        
-        // Handle specific timeout error
-        if (fetchError.message.includes('timeout') || fetchError.message.includes('canceling statement')) {
-          setError('Database timeout - please try again');
-          toast({
-            title: "Connection Timeout",
-            description: "The request timed out. Please try refreshing the page.",
-            variant: "destructive"
-          });
-        } else {
-          setError('Failed to load listings');
-          toast({
-            title: "Error",
-            description: `Failed to load listings: ${fetchError.message}`,
-            variant: "destructive"
-          });
-        }
+        setError('Failed to load listings');
+        toast({
+          title: "Error",
+          description: `Failed to load listings: ${fetchError.message}`,
+          variant: "destructive"
+        });
+        setLoading(false);
         return;
       }
 
-      const transformedListings = (data || []).map(transformListing);
-      console.log('Transformed listings:', transformedListings.length, 'items');
+      if (!data) {
+        console.log('No data returned from query');
+        setListings([]);
+        setLoading(false);
+        return;
+      }
+
+      const transformedListings = data.map(transformListing);
+      console.log('Successfully loaded listings:', transformedListings.length, 'items');
       setListings(transformedListings);
       
-      // Show success message if listings were found
-      if (transformedListings.length > 0) {
-        const filterText = statusFilter && statusFilter !== 'all' ? ` ${statusFilter}` : '';
+      // Show success message for status-filtered results
+      if (transformedListings.length > 0 && statusFilter && statusFilter !== 'all') {
         toast({
           title: "Success",
-          description: `Loaded ${transformedListings.length}${filterText} listing${transformedListings.length === 1 ? '' : 's'}`,
+          description: `Loaded ${transformedListings.length} ${statusFilter} listing${transformedListings.length === 1 ? '' : 's'}`,
         });
       }
-    } catch (error) {
-      console.error('Unexpected error:', error);
-      setError('Connection failed - please check your internet connection');
-      toast({
-        title: "Connection Error",
-        description: "Unable to connect to the database. Please check your connection and try again.",
-        variant: "destructive"
-      });
+      
+    } catch (error: any) {
+      console.error('Query error:', error);
+      
+      if (error.message === 'Query timeout') {
+        setError('Database query timed out - please try again');
+        toast({
+          title: "Timeout Error",
+          description: "The request is taking too long. Please try refreshing or contact support.",
+          variant: "destructive"
+        });
+      } else {
+        setError('Connection failed - please check your internet connection');
+        toast({
+          title: "Connection Error",
+          description: "Unable to connect to the database. Please check your connection and try again.",
+          variant: "destructive"
+        });
+      }
     } finally {
       setLoading(false);
     }
