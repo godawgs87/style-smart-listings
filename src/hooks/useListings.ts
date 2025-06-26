@@ -1,3 +1,4 @@
+
 import { useListingData } from './useListingData';
 import { useListingOperations } from './useListingOperations';
 import { useToast } from '@/hooks/use-toast';
@@ -29,6 +30,15 @@ export const useListings = (options?: UseListingsOptions) => {
   console.log('useListings hook - listings count:', listings.length, 'loading:', loading, 'error:', error, 'fallback:', usingFallback);
 
   const deleteListing = async (id: string) => {
+    if (usingFallback) {
+      toast({
+        title: "Offline Mode",
+        description: "Cannot delete items while offline. Items will reappear when you reconnect.",
+        variant: "destructive"
+      });
+      return false;
+    }
+
     const success = await deleteOperation(id);
     if (success) {
       setListings(prev => prev.filter(l => l.id !== id));
@@ -37,6 +47,15 @@ export const useListings = (options?: UseListingsOptions) => {
   };
 
   const duplicateListing = async (originalItem: Listing) => {
+    if (usingFallback) {
+      toast({
+        title: "Offline Mode",
+        description: "Cannot duplicate items while offline. Please reconnect to the database.",
+        variant: "destructive"
+      });
+      return null;
+    }
+
     console.log('useListings: Starting duplicate operation for:', originalItem.id);
     
     const newListing = await duplicateOperation(originalItem);
@@ -66,6 +85,15 @@ export const useListings = (options?: UseListingsOptions) => {
   };
 
   const updateListing = async (id: string, updateData: any) => {
+    if (usingFallback) {
+      toast({
+        title: "Offline Mode",
+        description: "Cannot update items while offline. Changes will not be saved.",
+        variant: "destructive"
+      });
+      return false;
+    }
+
     const success = await updateOperation(id, updateData);
     if (success) {
       setListings(prev => prev.map(l => 
@@ -76,6 +104,15 @@ export const useListings = (options?: UseListingsOptions) => {
   };
 
   const updateListingStatusLocal = async (id: string, status: string, additionalData?: any) => {
+    if (usingFallback) {
+      toast({
+        title: "Offline Mode",
+        description: "Cannot update status while offline. Changes will not be saved.",
+        variant: "destructive"
+      });
+      return false;
+    }
+
     const success = await updateListingStatus(id, status, additionalData);
     if (success) {
       const updateData = { status, updated_at: new Date().toISOString(), ...additionalData };
