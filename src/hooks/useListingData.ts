@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -148,41 +149,58 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
       setError(null);
       setUsingFallback(false);
       
-      // Check authentication first
-      console.log('Checking authentication...');
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      // Enhanced authentication check with better error handling
+      console.log('Checking authentication status...');
+      const { data: authData, error: authError } = await supabase.auth.getUser();
       
       if (authError) {
-        console.error('Authentication error:', authError);
-        setError('Authentication failed: ' + authError.message);
+        console.error('Authentication error details:', authError);
+        setError(`Authentication failed: ${authError.message}`);
         setLoading(false);
+        toast({
+          title: "Authentication Error",
+          description: `Please try logging out and back in: ${authError.message}`,
+          variant: "destructive"
+        });
         return;
       }
       
-      if (!user) {
+      if (!authData?.user) {
         console.error('No authenticated user found');
         setError('Please log in to view your listings');
         setLoading(false);
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to access your inventory",
+          variant: "destructive"
+        });
         return;
       }
       
-      console.log('User authenticated:', user.id);
+      console.log('User authenticated successfully:', authData.user.id);
+      console.log('User email:', authData.user.email);
       
-      // Keep the 8 second timeout but fetch all fields
+      // Set reasonable timeout
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Database query timeout after 8 seconds')), 8000)
+        setTimeout(() => reject(new Error('Database query timeout after 10 seconds')), 10000)
       );
 
-      // Build query with all fields but keep performance optimizations
-      console.log('Building database query with all fields...');
+      // Build comprehensive query with detailed logging
+      console.log('Building database query with filters:', {
+        statusFilter,
+        categoryFilter,
+        searchTerm,
+        limit
+      });
+      
       let query = supabase
         .from('listings')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', authData.user.id)
         .order('created_at', { ascending: false })
-        .limit(Math.min(limit, 20)); // Keep reasonable limit
+        .limit(Math.min(limit, 50)); // Reasonable limit
 
-      // Only add filters if they're not default values
+      // Apply filters with logging
       if (statusFilter && statusFilter !== 'all') {
         console.log('Applying status filter:', statusFilter);
         query = query.eq('status', statusFilter);
@@ -208,55 +226,70 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
       console.log(`Database query completed in ${queryTime}ms`);
 
       if (fetchError) {
-        console.error('Database query failed:', fetchError);
+        console.error('Database query error details:', fetchError);
         
-        // Check for specific error types
-        if (fetchError.message.includes('policy') || fetchError.message.includes('permission')) {
-          setError('Access denied: Unable to fetch your listings. Please try logging out and back in.');
+        // Enhanced error handling for different error types
+        if (fetchError.code === 'PGRST116' || fetchError.message.includes('policy')) {
+          setError('Access denied: Row Level Security policy violation. Check your permissions.');
           toast({
-            title: "Access Error",
-            description: "Unable to access your listings. Please try logging out and logging back in.",
+            title: "Permission Error",
+            description: "Unable to access your data. This might be a configuration issue.",
             variant: "destructive"
           });
-          setLoading(false);
-          return;
+        } else if (fetchError.message.includes('JWT')) {
+          setError('Authentication token issue. Please log out and back in.');
+          toast({
+            title: "Token Error", 
+            description: "Please sign out and sign back in to refresh your session.",
+            variant: "destructive"
+          });
+        } else {
+          throw new Error(`Database error: ${fetchError.message} (Code: ${fetchError.code || 'unknown'})`);
         }
         
-        throw new Error(`Database query failed: ${fetchError.message}`);
+        setLoading(false);
+        return;
       }
 
       if (!data) {
-        console.log('No data returned from query');
+        console.log('Query successful but no data returned');
         setListings([]);
         setError(null);
         setLoading(false);
         return;
       }
 
-      console.log(`Successfully loaded ${data.length} listings with all fields from database`);
+      console.log(`Successfully loaded ${data.length} complete listings from database`);
+      console.log('Sample data fields:', data.length > 0 ? Object.keys(data[0]) : 'No data');
       
-      // Transform the complete data using the proper transformation function
+      // Transform and validate the data
       const transformedListings = data.map(transformListing);
+      console.log('Transformed listings sample:', transformedListings.length > 0 ? transformedListings[0] : 'No listings');
       
       setListings(transformedListings);
       setError(null);
       
-      // Save successful data as fallback
+      // Save successful data for fallback
       fallbackDataService.saveFallbackData(data);
       
     } catch (error: any) {
-      console.error('Database fetch failed:', error);
+      console.error('Database fetch failed with error:', error);
+      console.error('Error type:', typeof error);
+      console.error('Error details:', error.message, error.code);
       
-      // For any connection/timeout errors, try fallback
-      if (error.message.includes('timeout') || error.message.includes('network') || error.message.includes('fetch')) {
-        console.log('Connection error detected, switching to fallback...');
+      // Enhanced fallback logic
+      if (error.message.includes('timeout') || 
+          error.message.includes('network') || 
+          error.message.includes('fetch') ||
+          error.message.includes('Connection')) {
+        console.log('Connection/timeout error detected, switching to fallback data...');
         loadFallbackData();
       } else {
         // For other errors, show the actual error
         setError(error.message || 'Failed to load listings');
         toast({
-          title: "Error Loading Listings",
-          description: error.message || 'An unexpected error occurred',
+          title: "Database Error",
+          description: error.message || 'An unexpected error occurred while loading your listings',
           variant: "destructive"
         });
       }
