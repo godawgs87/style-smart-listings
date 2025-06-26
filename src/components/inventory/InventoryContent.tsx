@@ -3,10 +3,11 @@ import React from 'react';
 import { AlertCircle } from 'lucide-react';
 import InventoryCard from '@/components/InventoryCard';
 import ListingsTable from '@/components/ListingsTable';
+import type { Listing } from '@/types/Listing';
 
 interface InventoryContentProps {
   viewMode: 'grid' | 'table';
-  filteredListings: any[];
+  filteredListings: Listing[];
   selectedItems: string[];
   isBulkMode: boolean;
   loading: boolean;
@@ -15,7 +16,7 @@ interface InventoryContentProps {
   onSelectAll: (checked: boolean) => void;
   onUpdateListing: (listingId: string, updates: any) => void;
   onDeleteListing: (listingId: string) => void;
-  onDuplicateListing?: (item: any) => void;
+  onDuplicateListing?: (item: Listing) => void;
 }
 
 const InventoryContent = ({
@@ -58,7 +59,6 @@ const InventoryContent = ({
 
   return (
     <>
-      {/* Inventory Grid */}
       {viewMode === 'grid' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredListings.map((item) => (
@@ -77,7 +77,6 @@ const InventoryContent = ({
         </div>
       )}
 
-      {/* Table View */}
       {viewMode === 'table' && (
         <ListingsTable
           listings={filteredListings}

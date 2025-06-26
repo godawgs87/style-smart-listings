@@ -19,7 +19,15 @@ export const useListings = (options?: { statusFilter?: string; limit?: number })
   const duplicateListing = async (originalItem: any) => {
     const newListing = await duplicateOperation(originalItem);
     if (newListing) {
-      setListings(prev => [newListing, ...prev]);
+      // Transform the newListing to match the Listing interface
+      const transformedListing = {
+        ...newListing,
+        measurements: newListing.measurements || {},
+        photos: newListing.photos || [],
+        keywords: newListing.keywords || [],
+        shipping_cost: newListing.shipping_cost
+      };
+      setListings(prev => [transformedListing, ...prev]);
     }
     return newListing;
   };
@@ -50,7 +58,7 @@ export const useListings = (options?: { statusFilter?: string; limit?: number })
     loading,
     error,
     fetchListings,
-    refetch,
+    refactor,
     deleteListing,
     duplicateListing,
     updateListing,

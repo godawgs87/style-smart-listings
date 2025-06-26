@@ -9,6 +9,7 @@ import InventoryContent from '@/components/inventory/InventoryContent';
 import InventoryStats from '@/components/inventory/InventoryStats';
 import InventoryControls from '@/components/inventory/InventoryControls';
 import { useInventoryFilters } from '@/components/inventory/InventoryFilters';
+import type { Listing } from '@/types/Listing';
 
 interface InventoryManagerProps {
   onCreateListing: () => void;
@@ -78,6 +79,10 @@ const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) =>
     setSelectedItems(checked ? filteredListings.map(item => item.id) : []);
   };
 
+  const handleDuplicateListing = async (item: Listing) => {
+    await duplicateListing(item);
+  };
+
   return (
     <div className={`min-h-screen bg-gray-50 ${isMobile ? 'pb-20' : ''}`}>
       <StreamlinedHeader
@@ -119,7 +124,7 @@ const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) =>
           onSelectAll={handleSelectAll}
           onUpdateListing={updateListing}
           onDeleteListing={deleteListing}
-          onDuplicateListing={duplicateListing}
+          onDuplicateListing={handleDuplicateListing}
         />
       </div>
 
