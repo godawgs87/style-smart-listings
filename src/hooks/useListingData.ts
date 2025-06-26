@@ -51,7 +51,7 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const { statusFilter, limit = 15 } = options; // Reduced default limit
+  const { statusFilter, limit = 25 } = options;
 
   const transformListing = (supabaseListing: SupabaseListing): Listing => {
     return {
@@ -81,9 +81,9 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
 
       console.log('Authenticated user:', user.id);
 
-      // Reduced timeout to 8 seconds
+      // Increased timeout back to 12 seconds for better reliability
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Request timeout')), 8000);
+        setTimeout(() => reject(new Error('Request timeout')), 12000);
       });
 
       // Build optimized query - fetch only necessary fields first

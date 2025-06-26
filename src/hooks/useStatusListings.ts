@@ -8,7 +8,7 @@ interface StatusListingsOptions {
   limit?: number;
 }
 
-export const useStatusListings = ({ status, limit = 10 }: StatusListingsOptions) => {
+export const useStatusListings = ({ status, limit = 20 }: StatusListingsOptions) => {
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,9 +32,9 @@ export const useStatusListings = ({ status, limit = 10 }: StatusListingsOptions)
 
       console.log('Authenticated user:', user.id, 'fetching status:', status);
 
-      // Reduced timeout to 5 seconds and smaller limit
+      // Increased timeout back to 10 seconds for better reliability
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Query timeout')), 5000);
+        setTimeout(() => reject(new Error('Query timeout')), 10000);
       });
 
       // Ultra-minimal query - only essential fields for display
