@@ -27,6 +27,8 @@ interface LightweightListing {
   net_profit?: number;
   profit_margin?: number;
   days_to_sell?: number;
+  shipping_cost?: number;
+  first_photo?: string;
 }
 
 export const useLightweightQuery = () => {
@@ -76,9 +78,9 @@ export const useLightweightQuery = () => {
     }
 
     try {
-      console.log('🔨 Building lightweight query (essential fields only)...');
+      console.log('🔨 Building lightweight query (essential fields + first photo only)...');
       
-      // Select only essential fields for initial load - no photos or heavy fields
+      // Select essential fields for initial load + first photo only
       let query = supabase
         .from('listings')
         .select(`
@@ -94,7 +96,9 @@ export const useLightweightQuery = () => {
           purchase_price,
           net_profit,
           profit_margin,
-          days_to_sell
+          days_to_sell,
+          shipping_cost,
+          photos->0 as first_photo
         `);
 
       // Apply filters in optimal order to leverage indexes
@@ -157,9 +161,9 @@ export const useLightweightQuery = () => {
         description: null, // Will be loaded on-demand
         measurements: {},
         keywords: [],
-        photos: [], // Will be loaded on-demand
+        photos: item.first_photo ? [item.first_photo] : [], // Use first photo as preview
         price_research: null,
-        shipping_cost: 9.95, // Default shipping cost
+        shipping_cost: item.shipping_cost || 9.95, // Use actual shipping cost or default
         purchase_date: null,
         is_consignment: false,
         consignment_percentage: null,
