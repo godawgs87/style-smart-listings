@@ -1,111 +1,77 @@
 
-import { useToast } from '@/hooks/use-toast';
-import { fallbackDataService } from '@/services/fallbackDataService';
-import { useListingTransforms } from './useListingTransforms';
 import { useLightweightQueryBuilder } from './query-builders/useLightweightQueryBuilder';
 import { useLightweightTransformer } from './transformers/useLightweightTransformer';
 import { useConnectionTest } from './connection/useConnectionTest';
 import { useListingDetailsQuery } from './details/useListingDetailsQuery';
 import type { Listing } from '@/types/Listing';
 
-interface UseLightweightQueryOptions {
+interface QueryOptions {
   statusFilter?: string;
-  limit: number;
-  searchTerm?: string;
   categoryFilter?: string;
+  searchTerm?: string;
+  limit: number;
 }
 
 export const useLightweightQuery = () => {
-  const { toast } = useToast();
-  const { transformListing } = useListingTransforms();
   const { buildLightweightQuery } = useLightweightQueryBuilder();
   const { transformLightweightListings } = useLightweightTransformer();
   const { testConnection } = useConnectionTest();
   const { fetchListingDetails } = useListingDetailsQuery();
 
-  const fetchLightweightListings = async (options: UseLightweightQueryOptions): Promise<{
+  const fetchLightweightListings = async (options: QueryOptions): Promise<{
     listings: Listing[];
-    error: string | null;
+    error: 'AUTH_ERROR' | 'CONNECTION_ERROR' | null;
   }> => {
-    const { statusFilter, limit, searchTerm, categoryFilter } = options;
-
-    console.log('🚀 Starting lightweight query...');
-    console.log('📋 Query options:', { statusFilter, limit, searchTerm, categoryFilter });
-
-    // Test connection first
-    const connectionTest = await testConnection();
-    if (!connectionTest.success) {
-      console.log('🔌 Connection test failed:', connectionTest.error);
-      return { listings: [], error: 'CONNECTION_ERROR' };
-    }
-
     try {
-      const query = buildLightweightQuery({
-        statusFilter,
-        categoryFilter,
-        searchTerm,
-        limit
-      });
+      console.log('🚀 Starting lightweight query...');
+      console.log('📋 Query options:', options);
 
+      // Test connection first
+      console.log('🔍 Testing Supabase connection...');
+      const connectionStart = Date.now();
+      const isConnected = await testConnection();
+      const connectionTime = Date.now() - connectionStart;
+      console.log(`⏱️ Connection test took ${connectionTime}ms`);
+
+      if (!isConnected) {
+        console.log('❌ Connection test failed');
+        return { listings: [], error: 'CONNECTION_ERROR' };
+      }
+
+      console.log('✅ Connection test successful');
+
+      const queryStart = Date.now();
       console.log('⏳ Executing lightweight query...');
-      const startTime = Date.now();
       
+      const query = buildLightweightQuery(options);
       const { data, error } = await query;
-      
-      const duration = Date.now() - startTime;
-      console.log(`⏱️ Lightweight query executed in ${duration}ms`);
+
+      const queryTime = Date.now() - queryStart;
+      console.log(`⏱️ Lightweight query executed in ${queryTime}ms`);
 
       if (error) {
-        console.error('❌ Lightweight query error:', error);
-
-        if (error.message.includes('JWT') || 
-            error.message.includes('authentication') || 
-            error.message.includes('not authenticated') ||
-            error.code === 'PGRST301') {
-          console.log('🔒 Detected authentication error');
+        console.log('❌ Lightweight query error:', error);
+        
+        if (error.code === 'PGRST301' || error.message?.includes('JWT')) {
           return { listings: [], error: 'AUTH_ERROR' };
         }
-
+        
         console.log('🔌 Treating as connection error');
         return { listings: [], error: 'CONNECTION_ERROR' };
       }
 
-      if (!data) {
-        console.log('📭 Query returned no data');
-        return { listings: [], error: null };
-      }
-
-      console.log(`✅ Successfully fetched ${data.length} lightweight listings`);
-      
-      const transformedListings = transformLightweightListings(data);
-      
-      try {
-        fallbackDataService.saveFallbackData(transformedListings);
-        console.log('💾 Saved lightweight fallback data');
-      } catch (saveError) {
-        console.warn('⚠️ Failed to save fallback data:', saveError);
-      }
+      console.log(`✅ Successfully fetched ${data?.length || 0} lightweight listings`);
+      const transformedListings = transformLightweightListings(data || []);
       
       return { listings: transformedListings, error: null };
-      
     } catch (error: any) {
-      console.error('💥 Lightweight fetch exception:', error);
-      
-      if (error.message?.includes('JWT') || 
-          error.message?.includes('authentication') ||
-          error.message?.includes('not authenticated')) {
-        console.log('🔒 Exception indicates auth error');
-        return { listings: [], error: 'AUTH_ERROR' };
-      }
-      
-      console.log('🔌 Exception treated as connection error');
+      console.error('💥 Exception in lightweight query:', error);
       return { listings: [], error: 'CONNECTION_ERROR' };
     }
   };
 
-  return {
+  return { 
     fetchLightweightListings,
-    fetchListingDetails,
-    testConnection
+    fetchListingDetails
   };
 };

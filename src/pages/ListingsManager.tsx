@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
 import { useListings } from '@/hooks/useListings';
+import { useListingDetails } from '@/hooks/useListingDetails';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
 import MobileNavigation from '@/components/MobileNavigation';
 import ListingsTable from '@/components/ListingsTable';
@@ -14,6 +15,9 @@ import ListingsEmptyState from '@/components/ListingsEmptyState';
 import QuickFilters from '@/components/listings/QuickFilters';
 import PageInfoDialog from '@/components/PageInfoDialog';
 import InventoryTimeoutError from '@/components/inventory/InventoryTimeoutError';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import ListingPreview from '@/components/ListingPreview';
+import ListingEditor from '@/components/ListingEditor';
 
 interface ListingsManagerProps {
   onBack: () => void;
@@ -26,9 +30,13 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [conditionFilter, setConditionFilter] = useState('all');
   const [priceRangeFilter, setPriceRangeFilter] = useState('all');
+  const [showPreviewDialog, setShowPreviewDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [selectedListingForDialog, setSelectedListingForDialog] = useState<any>(null);
   
   const isMobile = useIsMobile();
   const { user } = useAuth();
+  const { loadDetails } = useListingDetails();
   
   const { 
     listings, 
@@ -71,14 +79,36 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
     setSelectedListings(prev => prev.filter(id => id !== listingId));
   };
 
-  const handlePreviewListing = (listing: any) => {
+  const handlePreviewListing = async (listing: any) => {
     console.log('Preview listing:', listing);
-    // TODO: Implement preview functionality
+    setSelectedListingForDialog(listing);
+    
+    // Load full details for preview
+    const details = await loadDetails(listing.id);
+    if (details) {
+      setSelectedListingForDialog({
+        ...listing,
+        ...details
+      });
+    }
+    
+    setShowPreviewDialog(true);
   };
 
-  const handleEditListing = (listing: any) => {
+  const handleEditListing = async (listing: any) => {
     console.log('Edit listing:', listing);
-    // TODO: Implement edit functionality
+    setSelectedListingForDialog(listing);
+    
+    // Load full details for editing
+    const details = await loadDetails(listing.id);
+    if (details) {
+      setSelectedListingForDialog({
+        ...listing,
+        ...details
+      });
+    }
+    
+    setShowEditDialog(true);
   };
 
   const handleBulkDelete = async () => {
@@ -89,6 +119,14 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
         await deleteListing(id);
       }
       setSelectedListings([]);
+    }
+  };
+
+  const handleSaveEdit = async (updatedListing: any) => {
+    if (selectedListingForDialog) {
+      await updateListing(selectedListingForDialog.id, updatedListing);
+      setShowEditDialog(false);
+      setSelectedListingForDialog(null);
     }
   };
 
@@ -241,6 +279,70 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
           <ListingsEmptyState />
         )}
       </div>
+
+      {/* Preview Dialog */}
+      <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Item Preview</DialogTitle>
+          </DialogHeader>
+          {selectedListingForDialog && (
+            <ListingPreview
+              listing={{
+                title: selectedListingForDialog.title,
+                description: selectedListingForDialog.description || '',
+                price: selectedListingForDialog.price,
+                category: selectedListingForDialog.category || '',
+                condition: selectedListingForDialog.condition || '',
+                measurements: selectedListingForDialog.measurements || {},
+                keywords: selectedListingForDialog.keywords || [],
+                photos: selectedListingForDialog.photos || [],
+                priceResearch: selectedListingForDialog.price_research || '',
+                shippingCost: selectedListingForDialog.shipping_cost || 0,
+                brand: selectedListingForDialog.brand || '',
+                model: selectedListingForDialog.model || '',
+                features: selectedListingForDialog.features || [],
+                defects: selectedListingForDialog.defects || [],
+                includes: selectedListingForDialog.includes || []
+              }}
+              onEdit={() => {
+                setShowPreviewDialog(false);
+                setShowEditDialog(true);
+              }}
+              onExport={() => {
+                setShowPreviewDialog(false);
+                // TODO: Handle export/publish action
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Item</DialogTitle>
+          </DialogHeader>
+          {selectedListingForDialog && (
+            <ListingEditor
+              listing={{
+                title: selectedListingForDialog.title,
+                description: selectedListingForDialog.description || '',
+                price: selectedListingForDialog.price,
+                category: selectedListingForDialog.category || '',
+                condition: selectedListingForDialog.condition || '',
+                measurements: selectedListingForDialog.measurements || {},
+                keywords: selectedListingForDialog.keywords || [],
+                photos: selectedListingForDialog.photos || [],
+                priceResearch: selectedListingForDialog.price_research || ''
+              }}
+              onSave={handleSaveEdit}
+              onCancel={() => setShowEditDialog(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
       {isMobile && (
         <MobileNavigation
