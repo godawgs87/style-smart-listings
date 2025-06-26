@@ -1,8 +1,19 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Edit, Trash2, Eye, MoreVertical, Copy, Archive } from 'lucide-react';
 
 interface Listing {
@@ -58,15 +69,12 @@ const ListingsTableRowActions = ({
   onPreview,
   onEditListing 
 }: ListingsTableRowActionsProps) => {
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
-  const handleDelete = () => {
-    console.log('Delete button clicked for listing:', listing.id);
-    if (window.confirm(`Are you sure you want to delete "${listing.title}"?`)) {
-      console.log('User confirmed deletion');
-      onDelete();
-    } else {
-      console.log('User cancelled deletion');
-    }
+  const handleDeleteConfirm = () => {
+    console.log('Delete confirmed for listing:', listing.id);
+    onDelete();
+    setShowDeleteDialog(false);
   };
 
   return (
@@ -110,7 +118,7 @@ const ListingsTableRowActions = ({
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem 
-              onClick={handleDelete}
+              onClick={() => setShowDeleteDialog(true)}
               className="text-red-600 focus:text-red-600"
             >
               <Trash2 className="mr-2 h-4 w-4" />
@@ -119,6 +127,26 @@ const ListingsTableRowActions = ({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Listing</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{listing.title}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </TableCell>
   );
 };
