@@ -19,8 +19,6 @@ export const useDatabaseQuery = () => {
   const testConnection = async (): Promise<{ success: boolean; error?: string }> => {
     try {
       console.log('🔍 Testing Supabase connection...');
-      console.log('📡 Supabase URL:', supabase.supabaseUrl);
-      console.log('🔑 Supabase Key (first 20 chars):', supabase.supabaseKey.substring(0, 20) + '...');
       
       const startTime = Date.now();
       const { data, error } = await supabase

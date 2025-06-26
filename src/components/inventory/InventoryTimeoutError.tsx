@@ -77,8 +77,8 @@ const InventoryTimeoutError = ({ onBack, onRetry, onForceOffline, error }: Inven
       
       // Test 4: Network info
       results += '\n4️⃣ Network information...\n';
-      results += `📡 Supabase URL: ${supabase.supabaseUrl}\n`;
-      results += `🔑 API Key: ${supabase.supabaseKey.substring(0, 20)}...\n`;
+      results += `📡 Supabase URL: https://ekzaaptxfwixgmbrooqr.supabase.co\n`;
+      results += `🔑 API Key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\n`;
       results += `🌐 Online: ${navigator.onLine}\n`;
       
     } catch (err: any) {
