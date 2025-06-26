@@ -20,7 +20,7 @@ export const useInventoryActions = ({
 }: InventoryActionsProps) => {
   const { toast } = useToast();
 
-  const handleDuplicateListing = async (item: Listing) => {
+  const handleDuplicateListing = async (item: Listing): Promise<Listing | null> => {
     console.log('InventoryActions: Duplicating listing:', item.id);
     
     toast({
@@ -29,19 +29,21 @@ export const useInventoryActions = ({
     });
     
     try {
-      const success = await duplicateListing(item);
-      if (success) {
+      const newListing = await duplicateListing(item);
+      if (newListing) {
         console.log('InventoryActions: Listing duplicated successfully');
         toast({
           title: "Success!",
           description: "Listing duplicated successfully. You can now edit the copy."
         });
+        return newListing;
       } else {
         toast({
           title: "Error",
           description: "Failed to duplicate listing. Please try again.",
           variant: "destructive"
         });
+        return null;
       }
     } catch (error) {
       console.error('InventoryActions: Error duplicating listing:', error);
@@ -50,6 +52,7 @@ export const useInventoryActions = ({
         description: "An unexpected error occurred while duplicating the listing.",
         variant: "destructive"
       });
+      return null;
     }
   };
 
