@@ -1,16 +1,36 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Image } from 'lucide-react';
+import { useListingPhotos } from '@/hooks/listing-data/photos/useListingPhotos';
 
 interface ListingImagePreviewProps {
   photos?: string[] | null;
   title: string;
+  listingId?: string; // Add listing ID for on-demand loading
 }
 
-const ListingImagePreview = ({ photos, title }: ListingImagePreviewProps) => {
-  const firstPhoto = photos && photos.length > 0 ? photos[0] : null;
+const ListingImagePreview = ({ photos, title, listingId }: ListingImagePreviewProps) => {
+  const [displayPhoto, setDisplayPhoto] = useState<string | null>(null);
+  const { loadPhotos, isLoadingPhotos, getFirstPhoto } = useListingPhotos();
 
-  if (!firstPhoto) {
+  useEffect(() => {
+    // If photos are already provided, use the first one
+    if (photos && photos.length > 0) {
+      setDisplayPhoto(photos[0]);
+      return;
+    }
+
+    // If no photos but we have a listing ID, load photos on-demand
+    if (listingId && !isLoadingPhotos(listingId)) {
+      loadPhotos(listingId).then(loadedPhotos => {
+        if (loadedPhotos && loadedPhotos.length > 0) {
+          setDisplayPhoto(loadedPhotos[0]);
+        }
+      });
+    }
+  }, [photos, listingId, loadPhotos, isLoadingPhotos]);
+
+  if (!displayPhoto) {
     return (
       <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
         <Image className="w-4 h-4 text-gray-400" />
@@ -21,7 +41,7 @@ const ListingImagePreview = ({ photos, title }: ListingImagePreviewProps) => {
   return (
     <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
       <img
-        src={firstPhoto}
+        src={displayPhoto}
         alt={title}
         className="w-full h-full object-cover"
         onError={(e) => {

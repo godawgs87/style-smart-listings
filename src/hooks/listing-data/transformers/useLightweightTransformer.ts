@@ -1,7 +1,7 @@
 
 import type { Listing } from '@/types/Listing';
 
-// Lightweight listing interface for initial load
+// Lightweight listing interface for initial load - no photos to avoid timeouts
 interface LightweightListing {
   id: string;
   title: string;
@@ -17,7 +17,6 @@ interface LightweightListing {
   profit_margin?: number;
   days_to_sell?: number;
   shipping_cost?: number;
-  photos?: string[] | null;
 }
 
 export const useLightweightTransformer = () => {
@@ -39,9 +38,9 @@ export const useLightweightTransformer = () => {
       description: null, // Will be loaded on-demand
       measurements: {},
       keywords: [],
-      photos: item.photos ? (Array.isArray(item.photos) ? item.photos : []) : [], // Use photos array or empty
+      photos: [], // Empty array to avoid timeouts - will be loaded on-demand if needed
       price_research: null,
-      shipping_cost: item.shipping_cost || null, // Use actual shipping cost
+      shipping_cost: item.shipping_cost || null,
       purchase_date: null,
       is_consignment: false,
       consignment_percentage: null,

@@ -107,12 +107,13 @@ const ListingCard = ({
         )}
       </div>
 
-      {/* Image Preview */}
+      {/* Image Preview with on-demand loading */}
       <div className="mb-3 flex justify-center">
         <div className="w-24 h-24">
           <ListingImagePreview 
             photos={listing.photos} 
             title={listing.title}
+            listingId={listing.id}
           />
         </div>
       </div>

@@ -12,9 +12,9 @@ export const useLightweightQueryBuilder = () => {
   const buildLightweightQuery = (options: QueryOptions) => {
     const { statusFilter, categoryFilter, searchTerm, limit } = options;
     
-    console.log('🔨 Building lightweight query (essential fields + shipping + photos)...');
+    console.log('🔨 Building lightweight query (essential fields only)...');
     
-    // Select essential fields for initial load + shipping cost and photos
+    // Select only essential fields for initial load - no photos array to avoid timeout
     let query = supabase
       .from('listings')
       .select(`
@@ -31,8 +31,7 @@ export const useLightweightQueryBuilder = () => {
         net_profit,
         profit_margin,
         days_to_sell,
-        shipping_cost,
-        photos
+        shipping_cost
       `);
 
     // Apply filters in optimal order to leverage indexes
