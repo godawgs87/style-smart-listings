@@ -32,18 +32,14 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
 
   const fetchListings = async () => {
     try {
-      console.log('Starting data fetch with options:', { statusFilter, limit });
+      console.log('Starting simplified data fetch with options:', { statusFilter, limit });
       setLoading(true);
       setError(null);
       
-      // Simple query with timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-      
+      // Simplified query without timeout
       let query = supabase
         .from('listings')
-        .select('*')
-        .abortSignal(controller.signal);
+        .select('*');
 
       if (statusFilter && statusFilter !== 'all') {
         query = query.eq('status', statusFilter);
@@ -53,14 +49,9 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
         .order('created_at', { ascending: false })
         .limit(limit);
 
-      console.log('Executing query...');
-      const queryStart = Date.now();
+      console.log('Executing simplified query...');
       
       const { data, error: fetchError } = await query;
-      
-      clearTimeout(timeoutId);
-      const queryTime = Date.now() - queryStart;
-      console.log('Query completed in', queryTime, 'ms');
 
       if (fetchError) {
         console.error('Query error:', fetchError);
@@ -81,14 +72,12 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
       console.error('Fetch error:', error);
       
       let errorMessage = 'Failed to load listings';
-      if (error.name === 'AbortError') {
-        errorMessage = 'Request timed out - please try again';
-      } else if (error.message) {
+      if (error.message) {
         errorMessage = error.message;
       }
       
       setError(errorMessage);
-      setListings([]); // Clear listings on error
+      setListings([]);
       
       toast({
         title: "Error Loading Data",
@@ -106,11 +95,7 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
   };
 
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      fetchListings();
-    }, 100); // Small delay to prevent rapid successive calls
-
-    return () => clearTimeout(timeoutId);
+    fetchListings();
   }, [statusFilter, limit]);
 
   return {

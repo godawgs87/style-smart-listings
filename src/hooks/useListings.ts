@@ -12,23 +12,6 @@ export const useListings = (options?: { statusFilter?: string; limit?: number })
 
   console.log('useListings hook - listings count:', listings.length, 'loading:', loading, 'error:', error);
 
-  // Test connection when there's an error
-  const testConnection = async () => {
-    try {
-      console.log('Testing Supabase connection...');
-      const { data, error } = await supabase.from('listings').select('count').limit(1);
-      if (error) {
-        console.error('Connection test failed:', error);
-        return false;
-      }
-      console.log('Connection test successful');
-      return true;
-    } catch (error) {
-      console.error('Connection test error:', error);
-      return false;
-    }
-  };
-
   const deleteListing = async (id: string) => {
     const success = await deleteOperation(id);
     if (success) {
@@ -39,19 +22,6 @@ export const useListings = (options?: { statusFilter?: string; limit?: number })
 
   const duplicateListing = async (originalItem: Listing) => {
     console.log('useListings: Starting duplicate operation for:', originalItem.id);
-    
-    // Test connection first if we've had errors
-    if (error) {
-      const connectionOk = await testConnection();
-      if (!connectionOk) {
-        toast({
-          title: "Connection Error",
-          description: "Unable to connect to the server. Please check your connection.",
-          variant: "destructive"
-        });
-        return null;
-      }
-    }
     
     const newListing = await duplicateOperation(originalItem);
     if (newListing) {
@@ -100,26 +70,12 @@ export const useListings = (options?: { statusFilter?: string; limit?: number })
     return success;
   };
 
-  const enhancedRefetch = async () => {
-    console.log('Enhanced refetch - testing connection first...');
-    const connectionOk = await testConnection();
-    if (connectionOk) {
-      refetch();
-    } else {
-      toast({
-        title: "Connection Issue",
-        description: "Unable to connect to the server. Please check your internet connection.",
-        variant: "destructive"
-      });
-    }
-  };
-
   return {
     listings,
     loading,
     error,
     fetchListings,
-    refetch: enhancedRefetch,
+    refetch,
     deleteListing,
     duplicateListing,
     updateListing,
