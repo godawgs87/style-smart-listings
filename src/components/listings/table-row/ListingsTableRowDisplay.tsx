@@ -1,7 +1,7 @@
-
 import React from 'react';
 import { TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import ListingImagePreview from '@/components/ListingImagePreview';
 
 interface Listing {
   id: string;
@@ -107,17 +107,12 @@ const ListingsTableRowDisplay = ({ listing, index, visibleColumns }: ListingsTab
     <>
       {visibleColumns.image && (
         <TableCell className="sticky left-12 bg-white z-10 border-r">
-          <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center">
-            {listing.photos && listing.photos.length > 0 ? (
-              <img 
-                src={listing.photos[0]} 
-                alt={listing.title}
-                className="w-full h-full object-cover rounded"
-              />
-            ) : (
-              <span className="text-xs text-gray-400">No image</span>
-            )}
-          </div>
+          <ListingImagePreview 
+            photos={listing.photos} 
+            title={listing.title}
+            listingId={listing.id}
+            className="w-12 h-12"
+          />
         </TableCell>
       )}
 
