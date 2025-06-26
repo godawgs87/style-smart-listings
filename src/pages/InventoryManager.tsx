@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
@@ -20,6 +19,9 @@ const InventoryManager = ({ onBack, onCreateListing }: InventoryManagerProps) =>
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [sortBy, setSortBy] = useState('created_at_desc');
+  const [sourceTypeFilter, setSourceTypeFilter] = useState('all');
+  const [consignmentFilter, setConsignmentFilter] = useState('all');
+  const [priceRangeFilter, setPriceRangeFilter] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [isBulkMode, setIsBulkMode] = useState(false);
   
@@ -36,7 +38,10 @@ const InventoryManager = ({ onBack, onCreateListing }: InventoryManagerProps) =>
     searchTerm,
     statusFilter,
     categoryFilter,
-    sortBy
+    sortBy,
+    sourceTypeFilter,
+    consignmentFilter,
+    priceRangeFilter
   });
 
   const handleSelectItem = (itemId: string, checked: boolean) => {
@@ -108,6 +113,12 @@ const InventoryManager = ({ onBack, onCreateListing }: InventoryManagerProps) =>
           sortBy={sortBy}
           setSortBy={setSortBy}
           categories={[...new Set(listings.map(item => item.category).filter(Boolean))]}
+          sourceTypeFilter={sourceTypeFilter}
+          setSourceTypeFilter={setSourceTypeFilter}
+          consignmentFilter={consignmentFilter}
+          setConsignmentFilter={setConsignmentFilter}
+          priceRangeFilter={priceRangeFilter}
+          setPriceRangeFilter={setPriceRangeFilter}
         />
 
         <InventoryContent

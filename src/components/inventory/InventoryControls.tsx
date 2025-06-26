@@ -23,6 +23,12 @@ interface InventoryControlsProps {
   sortBy: string;
   setSortBy: (sort: string) => void;
   categories: string[];
+  sourceTypeFilter: string;
+  setSourceTypeFilter: (sourceType: string) => void;
+  consignmentFilter: string;
+  setConsignmentFilter: (consignment: string) => void;
+  priceRangeFilter: string;
+  setPriceRangeFilter: (priceRange: string) => void;
 }
 
 const InventoryControls = ({
@@ -42,7 +48,13 @@ const InventoryControls = ({
   setCategoryFilter,
   sortBy,
   setSortBy,
-  categories
+  categories,
+  sourceTypeFilter,
+  setSourceTypeFilter,
+  consignmentFilter,
+  setConsignmentFilter,
+  priceRangeFilter,
+  setPriceRangeFilter
 }: InventoryControlsProps) => {
   return (
     <div className="bg-white p-4 rounded-lg shadow-sm space-y-4">
@@ -97,11 +109,12 @@ const InventoryControls = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <Input 
           placeholder="Search inventory..." 
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
+          className="md:col-span-2"
         />
         
         <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -131,6 +144,50 @@ const InventoryControls = ({
           </SelectContent>
         </Select>
 
+        <Select value={sourceTypeFilter} onValueChange={setSourceTypeFilter}>
+          <SelectTrigger>
+            <SelectValue placeholder="Source Type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Sources</SelectItem>
+            <SelectItem value="thrift_store">Thrift Store</SelectItem>
+            <SelectItem value="estate_sale">Estate Sale</SelectItem>
+            <SelectItem value="garage_sale">Garage Sale</SelectItem>
+            <SelectItem value="consignment">Consignment</SelectItem>
+            <SelectItem value="wholesale">Wholesale</SelectItem>
+            <SelectItem value="online">Online</SelectItem>
+            <SelectItem value="other">Other</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={consignmentFilter} onValueChange={setConsignmentFilter}>
+          <SelectTrigger>
+            <SelectValue placeholder="Consignment" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Items</SelectItem>
+            <SelectItem value="consignment">Consignment Only</SelectItem>
+            <SelectItem value="owned">Owned Items</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Select value={priceRangeFilter} onValueChange={setPriceRangeFilter}>
+          <SelectTrigger>
+            <SelectValue placeholder="Price Range" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Prices</SelectItem>
+            <SelectItem value="0-25">$0 - $25</SelectItem>
+            <SelectItem value="25-50">$25 - $50</SelectItem>
+            <SelectItem value="50-100">$50 - $100</SelectItem>
+            <SelectItem value="100-250">$100 - $250</SelectItem>
+            <SelectItem value="250-500">$250 - $500</SelectItem>
+            <SelectItem value="500+">$500+</SelectItem>
+          </SelectContent>
+        </Select>
+
         <Select value={sortBy} onValueChange={setSortBy}>
           <SelectTrigger>
             <SelectValue placeholder="Sort By" />
@@ -141,6 +198,9 @@ const InventoryControls = ({
             <SelectItem value="price_desc">Price High-Low</SelectItem>
             <SelectItem value="price_asc">Price Low-High</SelectItem>
             <SelectItem value="title_asc">Title A-Z</SelectItem>
+            <SelectItem value="profit_desc">Highest Profit</SelectItem>
+            <SelectItem value="profit_margin_desc">Best Margin</SelectItem>
+            <SelectItem value="days_to_sell_asc">Fastest Selling</SelectItem>
           </SelectContent>
         </Select>
       </div>
