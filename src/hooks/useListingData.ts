@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -169,19 +168,19 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
       
       console.log('User authenticated:', user.id);
       
-      // Reduced timeout to 8 seconds to fail faster and try offline mode
+      // Keep the 8 second timeout but fetch all fields
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Database query timeout after 8 seconds')), 8000)
       );
 
-      // Build a simple query first to test connectivity
-      console.log('Building basic database query...');
+      // Build query with all fields but keep performance optimizations
+      console.log('Building database query with all fields...');
       let query = supabase
         .from('listings')
-        .select('id, title, price, status, created_at, category, condition, user_id')
+        .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(Math.min(limit, 10)); // Start with smaller limit
+        .limit(Math.min(limit, 20)); // Keep reasonable limit
 
       // Only add filters if they're not default values
       if (statusFilter && statusFilter !== 'all') {
@@ -234,36 +233,10 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
         return;
       }
 
-      console.log(`Successfully loaded ${data.length} listings from database`);
+      console.log(`Successfully loaded ${data.length} listings with all fields from database`);
       
-      // Transform the basic data we got
-      const transformedListings = data.map((item: any) => ({
-        ...item,
-        measurements: {},
-        photos: [],
-        keywords: [],
-        shipping_cost: null,
-        description: null,
-        purchase_date: undefined,
-        source_location: undefined,
-        source_type: undefined,
-        cost_basis: undefined,
-        fees_paid: undefined,
-        sold_date: undefined,
-        sold_price: undefined,
-        days_to_sell: undefined,
-        performance_notes: undefined,
-        price_research: null,
-        updated_at: item.created_at,
-        consignor_name: undefined,
-        consignor_contact: undefined,
-        listed_date: undefined,
-        purchase_price: undefined,
-        net_profit: undefined,
-        profit_margin: undefined,
-        is_consignment: undefined,
-        consignment_percentage: undefined
-      }));
+      // Transform the complete data using the proper transformation function
+      const transformedListings = data.map(transformListing);
       
       setListings(transformedListings);
       setError(null);
