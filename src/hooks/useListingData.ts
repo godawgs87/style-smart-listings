@@ -80,33 +80,71 @@ export const useListingData = () => {
         return;
       }
 
+      // Use a more efficient query with limits and specific columns
       const { data, error: fetchError } = await supabase
         .from('listings')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select(`
+          id,
+          title,
+          description,
+          price,
+          category,
+          condition,
+          measurements,
+          keywords,
+          photos,
+          price_research,
+          shipping_cost,
+          status,
+          created_at,
+          updated_at,
+          user_id
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(100);
 
       console.log('Supabase query result:', { data, error: fetchError });
 
       if (fetchError) {
         console.error('Error fetching listings:', fetchError);
-        setError('Failed to load listings');
-        toast({
-          title: "Error",
-          description: `Failed to load listings: ${fetchError.message}`,
-          variant: "destructive"
-        });
+        
+        // Handle specific timeout error
+        if (fetchError.message.includes('timeout') || fetchError.message.includes('canceling statement')) {
+          setError('Database timeout - please try again');
+          toast({
+            title: "Connection Timeout",
+            description: "The request timed out. Please try refreshing the page.",
+            variant: "destructive"
+          });
+        } else {
+          setError('Failed to load listings');
+          toast({
+            title: "Error",
+            description: `Failed to load listings: ${fetchError.message}`,
+            variant: "destructive"
+          });
+        }
         return;
       }
 
       const transformedListings = (data || []).map(transformListing);
       console.log('Transformed listings:', transformedListings.length, 'items');
       setListings(transformedListings);
+      
+      // Show success message if listings were found
+      if (transformedListings.length > 0) {
+        toast({
+          title: "Success",
+          description: `Loaded ${transformedListings.length} listing${transformedListings.length === 1 ? '' : 's'}`,
+        });
+      }
     } catch (error) {
       console.error('Unexpected error:', error);
-      setError('Failed to load listings');
+      setError('Connection failed - please check your internet connection');
       toast({
-        title: "Error",
-        description: "Failed to load listings - unexpected error",
+        title: "Connection Error",
+        description: "Unable to connect to the database. Please check your connection and try again.",
         variant: "destructive"
       });
     } finally {
