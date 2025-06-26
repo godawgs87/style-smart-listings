@@ -1,7 +1,14 @@
+
 import React from 'react';
 import { TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import ListingImagePreview from '@/components/ListingImagePreview';
+import ImageCell from './cells/ImageCell';
+import TitleCell from './cells/TitleCell';
+import BadgeCell from './cells/BadgeCell';
+import MeasurementsCell from './cells/MeasurementsCell';
+import KeywordsCell from './cells/KeywordsCell';
+import ConsignmentStatusCell from './cells/ConsignmentStatusCell';
+import ProfitCell from './cells/ProfitCell';
 
 interface Listing {
   id: string;
@@ -71,64 +78,21 @@ interface ListingsTableRowDisplayProps {
 }
 
 const ListingsTableRowDisplay = ({ listing, index, visibleColumns }: ListingsTableRowDisplayProps) => {
-  const getStatusBadge = (status: string | null) => {
-    const statusColors = {
-      draft: 'bg-gray-100 text-gray-800',
-      active: 'bg-green-100 text-green-800',
-      sold: 'bg-blue-100 text-blue-800',
-      archived: 'bg-red-100 text-red-800'
-    };
-    
-    return (
-      <Badge className={statusColors[status as keyof typeof statusColors] || statusColors.draft}>
-        {status || 'draft'}
-      </Badge>
-    );
-  };
-
-  const getConditionBadge = (condition: string | null) => {
-    const conditionColors = {
-      'New': 'bg-green-100 text-green-800',
-      'Like New': 'bg-blue-100 text-blue-800',
-      'Used': 'bg-yellow-100 text-yellow-800',
-      'Fair': 'bg-orange-100 text-orange-800',
-      'Poor': 'bg-red-100 text-red-800',
-      'For Parts': 'bg-gray-100 text-gray-800'
-    };
-    
-    return (
-      <Badge className={conditionColors[condition as keyof typeof conditionColors] || 'bg-gray-100 text-gray-800'}>
-        {condition || 'Unknown'}
-      </Badge>
-    );
-  };
-
   return (
     <>
       {visibleColumns.image && (
-        <TableCell className="sticky left-12 bg-white z-10 border-r">
-          <ListingImagePreview 
-            photos={listing.photos} 
-            title={listing.title}
-            listingId={listing.id}
-            className="w-12 h-12"
-          />
-        </TableCell>
+        <ImageCell 
+          photos={listing.photos}
+          title={listing.title}
+          listingId={listing.id}
+        />
       )}
 
       {visibleColumns.title && (
-        <TableCell className="sticky left-28 bg-white z-10 border-r min-w-[250px]">
-          <div>
-            <div className="font-medium text-sm line-clamp-2">{listing.title}</div>
-            {listing.description && (
-              <div className="text-xs text-gray-500 mt-1 line-clamp-2">
-                {listing.description.length > 100 
-                  ? `${listing.description.substring(0, 100)}...` 
-                  : listing.description}
-              </div>
-            )}
-          </div>
-        </TableCell>
+        <TitleCell 
+          title={listing.title}
+          description={listing.description}
+        />
       )}
 
       {visibleColumns.price && (
@@ -138,7 +102,7 @@ const ListingsTableRowDisplay = ({ listing, index, visibleColumns }: ListingsTab
       )}
 
       {visibleColumns.status && (
-        <TableCell>{getStatusBadge(listing.status)}</TableCell>
+        <BadgeCell value={listing.status} type="status" />
       )}
 
       {visibleColumns.category && (
@@ -146,7 +110,7 @@ const ListingsTableRowDisplay = ({ listing, index, visibleColumns }: ListingsTab
       )}
 
       {visibleColumns.condition && (
-        <TableCell>{getConditionBadge(listing.condition)}</TableCell>
+        <BadgeCell value={listing.condition} type="condition" />
       )}
 
       {visibleColumns.shipping && (
@@ -156,35 +120,11 @@ const ListingsTableRowDisplay = ({ listing, index, visibleColumns }: ListingsTab
       )}
 
       {visibleColumns.measurements && (
-        <TableCell className="text-sm">
-          {listing.measurements ? (
-            <div className="space-y-1">
-              {listing.measurements.length && <div>L: {listing.measurements.length}</div>}
-              {listing.measurements.width && <div>W: {listing.measurements.width}</div>}
-              {listing.measurements.height && <div>H: {listing.measurements.height}</div>}
-              {listing.measurements.weight && <div>Wt: {listing.measurements.weight}</div>}
-            </div>
-          ) : '-'}
-        </TableCell>
+        <MeasurementsCell measurements={listing.measurements} />
       )}
 
       {visibleColumns.keywords && (
-        <TableCell>
-          {listing.keywords && listing.keywords.length > 0 ? (
-            <div className="flex flex-wrap gap-1">
-              {listing.keywords.slice(0, 3).map((keyword, idx) => (
-                <Badge key={idx} variant="outline" className="text-xs">
-                  {keyword}
-                </Badge>
-              ))}
-              {listing.keywords.length > 3 && (
-                <Badge variant="outline" className="text-xs">
-                  +{listing.keywords.length - 3}
-                </Badge>
-              )}
-            </div>
-          ) : '-'}
-        </TableCell>
+        <KeywordsCell keywords={listing.keywords} />
       )}
 
       {visibleColumns.description && (
@@ -208,20 +148,10 @@ const ListingsTableRowDisplay = ({ listing, index, visibleColumns }: ListingsTab
       )}
 
       {visibleColumns.consignmentStatus && (
-        <TableCell>
-          {listing.is_consignment ? (
-            <div className="text-sm">
-              <Badge className="bg-purple-100 text-purple-800">Consignment</Badge>
-              {listing.consignment_percentage && (
-                <div className="text-xs text-gray-500 mt-1">
-                  {listing.consignment_percentage}%
-                </div>
-              )}
-            </div>
-          ) : (
-            <Badge className="bg-blue-100 text-blue-800">Owned</Badge>
-          )}
-        </TableCell>
+        <ConsignmentStatusCell 
+          isConsignment={listing.is_consignment}
+          consignmentPercentage={listing.consignment_percentage}
+        />
       )}
 
       {visibleColumns.sourceType && (
@@ -245,23 +175,11 @@ const ListingsTableRowDisplay = ({ listing, index, visibleColumns }: ListingsTab
       )}
 
       {visibleColumns.netProfit && (
-        <TableCell className="text-right font-medium">
-          {listing.net_profit !== null && listing.net_profit !== undefined ? (
-            <span className={listing.net_profit >= 0 ? 'text-green-600' : 'text-red-600'}>
-              ${listing.net_profit.toFixed(2)}
-            </span>
-          ) : '-'}
-        </TableCell>
+        <ProfitCell value={listing.net_profit} />
       )}
 
       {visibleColumns.profitMargin && (
-        <TableCell className="text-right font-medium">
-          {listing.profit_margin !== null && listing.profit_margin !== undefined ? (
-            <span className={listing.profit_margin >= 0 ? 'text-green-600' : 'text-red-600'}>
-              {listing.profit_margin.toFixed(1)}%
-            </span>
-          ) : '-'}
-        </TableCell>
+        <ProfitCell value={listing.profit_margin} isPercentage />
       )}
 
       {visibleColumns.daysToSell && (
