@@ -58,6 +58,17 @@ const ListingsTableRowActions = ({
   onPreview,
   onEditListing 
 }: ListingsTableRowActionsProps) => {
+  
+  const handleDelete = () => {
+    console.log('Delete button clicked for listing:', listing.id);
+    if (window.confirm(`Are you sure you want to delete "${listing.title}"?`)) {
+      console.log('User confirmed deletion');
+      onDelete();
+    } else {
+      console.log('User cancelled deletion');
+    }
+  };
+
   return (
     <TableCell className="sticky right-0 bg-white z-10 border-l">
       <div className="flex items-center space-x-1">
@@ -99,7 +110,7 @@ const ListingsTableRowActions = ({
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem 
-              onClick={onDelete}
+              onClick={handleDelete}
               className="text-red-600 focus:text-red-600"
             >
               <Trash2 className="mr-2 h-4 w-4" />

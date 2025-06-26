@@ -7,31 +7,34 @@ export const useListingOperations = () => {
 
   const deleteListing = async (id: string) => {
     try {
+      console.log('Attempting to delete listing:', id);
+      
       const { error } = await supabase
         .from('listings')
         .delete()
         .eq('id', id);
 
       if (error) {
-        console.error('Error deleting listing:', error);
+        console.error('Supabase delete error:', error);
         toast({
           title: "Error",
-          description: "Failed to delete listing",
+          description: `Failed to delete listing: ${error.message}`,
           variant: "destructive"
         });
         return false;
       }
 
+      console.log('Listing deleted successfully');
       toast({
-        title: "Listing Deleted",
-        description: "The listing has been removed."
+        title: "Success",
+        description: "Listing deleted successfully"
       });
       return true;
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Unexpected error during deletion:', error);
       toast({
         title: "Error",
-        description: "Failed to delete listing",
+        description: "An unexpected error occurred while deleting the listing",
         variant: "destructive"
       });
       return false;
@@ -40,6 +43,8 @@ export const useListingOperations = () => {
 
   const updateListing = async (id: string, updateData: any) => {
     try {
+      console.log('Updating listing:', id, updateData);
+      
       const { error } = await supabase
         .from('listings')
         .update({ 
@@ -49,25 +54,26 @@ export const useListingOperations = () => {
         .eq('id', id);
 
       if (error) {
-        console.error('Error updating listing:', error);
+        console.error('Supabase update error:', error);
         toast({
           title: "Error",
-          description: "Failed to update listing",
+          description: `Failed to update listing: ${error.message}`,
           variant: "destructive"
         });
         return false;
       }
       
+      console.log('Listing updated successfully');
       toast({
         title: "Success",
         description: "Listing updated successfully"
       });
       return true;
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Unexpected error during update:', error);
       toast({
         title: "Error",
-        description: "Failed to update listing",
+        description: "An unexpected error occurred while updating the listing",
         variant: "destructive"
       });
       return false;
@@ -76,6 +82,8 @@ export const useListingOperations = () => {
 
   const updateListingStatus = async (id: string, status: string, additionalData?: any) => {
     try {
+      console.log('Updating listing status:', id, status, additionalData);
+      
       const updateData = { status, updated_at: new Date().toISOString(), ...additionalData };
       
       const { error } = await supabase
@@ -84,13 +92,14 @@ export const useListingOperations = () => {
         .eq('id', id);
 
       if (error) {
-        console.error('Error updating listing:', error);
+        console.error('Supabase status update error:', error);
         return false;
       }
 
+      console.log('Listing status updated successfully');
       return true;
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Unexpected error during status update:', error);
       return false;
     }
   };
