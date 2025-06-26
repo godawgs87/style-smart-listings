@@ -18,7 +18,7 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const { statusFilter, limit = 25 } = options;
+  const { statusFilter, limit = 50 } = options;
 
   const transformListing = (supabaseListing: SupabaseListing): Listing => {
     return {
@@ -32,13 +32,18 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
 
   const fetchListings = async () => {
     try {
-      console.log('Fetching complete listing data');
+      console.log('Starting data fetch with options:', { statusFilter, limit });
       setLoading(true);
       setError(null);
       
+      // Simple query with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
       let query = supabase
         .from('listings')
-        .select('*');
+        .select('*')
+        .abortSignal(controller.signal);
 
       if (statusFilter && statusFilter !== 'all') {
         query = query.eq('status', statusFilter);
@@ -48,38 +53,46 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
         .order('created_at', { ascending: false })
         .limit(limit);
 
-      console.log('Executing complete data query...');
+      console.log('Executing query...');
       const queryStart = Date.now();
       
       const { data, error: fetchError } = await query;
-
+      
+      clearTimeout(timeoutId);
       const queryTime = Date.now() - queryStart;
-      console.log('Complete data query completed in', queryTime, 'ms');
+      console.log('Query completed in', queryTime, 'ms');
 
       if (fetchError) {
         console.error('Query error:', fetchError);
-        throw new Error(`Database error: ${fetchError.message}`);
+        throw new Error(fetchError.message);
       }
 
       if (!data) {
-        console.log('No data returned');
+        console.log('No data returned from query');
         setListings([]);
         return;
       }
 
+      console.log(`Successfully loaded ${data.length} listings`);
       const transformedListings = data.map(transformListing);
-      
-      console.log(`Successfully loaded ${transformedListings.length} complete listings`);
       setListings(transformedListings);
       
     } catch (error: any) {
       console.error('Fetch error:', error);
-      const errorMessage = error.message || 'Unknown error';
       
-      setError('Failed to load listings');
+      let errorMessage = 'Failed to load listings';
+      if (error.name === 'AbortError') {
+        errorMessage = 'Request timed out - please try again';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
+      setListings([]); // Clear listings on error
+      
       toast({
         title: "Error Loading Data",
-        description: "Unable to load listings. Please try refreshing.",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -93,7 +106,11 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
   };
 
   useEffect(() => {
-    fetchListings();
+    const timeoutId = setTimeout(() => {
+      fetchListings();
+    }, 100); // Small delay to prevent rapid successive calls
+
+    return () => clearTimeout(timeoutId);
   }, [statusFilter, limit]);
 
   return {
