@@ -55,7 +55,7 @@ export const useListingSave = () => {
         measurements: listingData.measurements,
         keywords: listingData.keywords || [],
         photos: listingData.photos || [],
-        price_research: listingData.priceResearch || '',
+        price_research: listingData.priceResearch || '', // Map priceResearch to price_research
         shipping_cost: shippingCost,
         status: status,
         cost_basis: calculatedCostBasis,

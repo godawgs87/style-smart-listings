@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -20,6 +19,13 @@ export const useUpdateOperation = () => {
         return false;
       }
 
+      // Map priceResearch to price_research if it exists in updateData
+      const mappedUpdateData = { ...updateData };
+      if (mappedUpdateData.priceResearch !== undefined) {
+        mappedUpdateData.price_research = mappedUpdateData.priceResearch;
+        delete mappedUpdateData.priceResearch;
+      }
+
       // Add timeout to detect connection issues
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Update operation timeout')), 8000)
@@ -28,7 +34,7 @@ export const useUpdateOperation = () => {
       const updatePromise = supabase
         .from('listings')
         .update({ 
-          ...updateData, 
+          ...mappedUpdateData, 
           updated_at: new Date().toISOString() 
         })
         .eq('id', id);
