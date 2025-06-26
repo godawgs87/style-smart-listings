@@ -32,7 +32,7 @@ interface ListingsTableProps {
   onDeleteListing: (listingId: string) => void;
   onPreviewListing?: (listing: Listing) => void;
   onEditListing?: (listing: Listing) => void;
-  onDuplicateListing?: (listing: Listing) => void;
+  onDuplicateListing?: (listing: Listing) => Promise<Listing | null>;
 }
 
 const ListingsTable = (props: ListingsTableProps) => {
