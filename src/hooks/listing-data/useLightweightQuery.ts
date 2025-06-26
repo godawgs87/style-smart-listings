@@ -27,6 +27,8 @@ interface LightweightListing {
   net_profit?: number;
   profit_margin?: number;
   days_to_sell?: number;
+  shipping_cost?: number;
+  photos?: string[];
 }
 
 export const useLightweightQuery = () => {
@@ -78,7 +80,7 @@ export const useLightweightQuery = () => {
     try {
       console.log('🔨 Building lightweight query (essential fields only)...');
       
-      // Select only essential fields for initial load
+      // Select essential fields for initial load including photos and shipping_cost
       let query = supabase
         .from('listings')
         .select(`
@@ -94,7 +96,9 @@ export const useLightweightQuery = () => {
           purchase_price,
           net_profit,
           profit_margin,
-          days_to_sell
+          days_to_sell,
+          shipping_cost,
+          photos
         `);
 
       // Apply filters in optimal order to leverage indexes
@@ -157,9 +161,9 @@ export const useLightweightQuery = () => {
         description: null, // Will be loaded on-demand
         measurements: {},
         keywords: [],
-        photos: [],
+        photos: Array.isArray(item.photos) ? item.photos : [],
         price_research: null,
-        shipping_cost: null,
+        shipping_cost: item.shipping_cost || null,
         purchase_date: null,
         is_consignment: false,
         consignment_percentage: null,
@@ -212,9 +216,7 @@ export const useLightweightQuery = () => {
           description,
           measurements,
           keywords,
-          photos,
           price_research,
-          shipping_cost,
           purchase_date,
           is_consignment,
           consignment_percentage,
@@ -246,9 +248,7 @@ export const useLightweightQuery = () => {
           ? data.measurements as { length?: string; width?: string; height?: string; weight?: string; }
           : {},
         keywords: Array.isArray(data.keywords) ? data.keywords : [],
-        photos: Array.isArray(data.photos) ? data.photos : [],
         price_research: data.price_research,
-        shipping_cost: data.shipping_cost,
         purchase_date: data.purchase_date,
         is_consignment: data.is_consignment,
         consignment_percentage: data.consignment_percentage,
