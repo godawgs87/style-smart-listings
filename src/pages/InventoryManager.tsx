@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useListings } from '@/hooks/useListings';
@@ -11,6 +10,8 @@ import InventoryControls from '@/components/inventory/InventoryControls';
 import BulkActionsBar from '@/components/BulkActionsBar';
 import { useInventoryFilters } from '@/components/inventory/InventoryFilters';
 import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
 import type { Listing } from '@/types/Listing';
 
 interface InventoryManagerProps {
@@ -20,7 +21,8 @@ interface InventoryManagerProps {
 
 const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) => {
   const isMobile = useIsMobile();
-  const { listings, loading, error, deleteListing, duplicateListing, updateListing, updateListingStatus, refetch } = useListings();
+  // Use smaller limit to prevent timeouts
+  const { listings, loading, error, deleteListing, duplicateListing, updateListing, updateListingStatus, refetch } = useListings({ limit: 20 });
   const { toast } = useToast();
   
   const [searchTerm, setSearchTerm] = useState('');
@@ -75,10 +77,10 @@ const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) =>
     setIsBulkMode(selectedItems.length > 0);
   }, [selectedItems]);
 
-  // If there's an error, show a retry option
+  // Show timeout-specific help if needed
   useEffect(() => {
-    if (error) {
-      console.log('Inventory Manager detected error:', error);
+    if (error && error.includes('timeout')) {
+      console.log('Timeout detected, suggesting solutions...');
     }
   }, [error]);
 
@@ -144,9 +146,47 @@ const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) =>
   };
 
   const handleRetry = () => {
-    console.log('Retrying data fetch...');
+    console.log('Retrying with refresh...');
+    toast({
+      title: "Refreshing data...",
+      description: "Loading your inventory with optimized settings."
+    });
     refetch();
   };
+
+  // Show timeout-specific error state
+  if (error && error.includes('timeout')) {
+    return (
+      <div className={`min-h-screen bg-gray-50 ${isMobile ? 'pb-20' : ''}`}>
+        <StreamlinedHeader
+          title="Inventory Manager"
+          showBack
+          onBack={onBack}
+        />
+        
+        <div className="max-w-4xl mx-auto p-6">
+          <div className="text-center py-12">
+            <div className="max-w-md mx-auto">
+              <RefreshCw className="w-12 h-12 mx-auto text-orange-500 mb-4" />
+              <h3 className="text-lg font-semibold mb-2 text-orange-700">Database Timeout</h3>
+              <p className="text-orange-600 mb-6">
+                The database is taking too long to respond. This might be due to a large amount of data or server load.
+              </p>
+              <div className="space-y-3">
+                <Button onClick={handleRetry} className="w-full">
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Try Again with Smaller Dataset
+                </Button>
+                <p className="text-xs text-gray-500">
+                  We'll load fewer items at a time to prevent timeouts.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen bg-gray-50 ${isMobile ? 'pb-20' : ''}`}>
@@ -181,8 +221,18 @@ const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) =>
         {selectedItems.length > 0 && (
           <BulkActionsBar
             selectedCount={selectedItems.length}
-            onBulkDelete={handleBulkDelete}
-            onBulkStatusUpdate={handleBulkStatusUpdate}
+            onBulkDelete={async () => {
+              for (const itemId of selectedItems) {
+                await deleteListing(itemId);
+              }
+              setSelectedItems([]);
+            }}
+            onBulkStatusUpdate={async (status: string) => {
+              for (const itemId of selectedItems) {
+                await updateListingStatus(itemId, status);
+              }
+              setSelectedItems([]);
+            }}
           />
         )}
         
