@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -7,6 +6,7 @@ import InventoryCardDialogs from './inventory/InventoryCardDialogs';
 import InventoryCardHeader from './inventory/InventoryCardHeader';
 import InventoryCardFinancials from './inventory/InventoryCardFinancials';
 import ConfirmationDialog from './ConfirmationDialog';
+import ListingImagePreview from './ListingImagePreview';
 
 interface Item {
   id: string;
@@ -133,19 +133,15 @@ const InventoryCard = ({
         />
 
         <div className="space-y-3 flex-1">
-          {/* Main photo */}
-          {item.photos && item.photos.length > 0 && (
-            <div className="w-full h-32 bg-gray-100 rounded-lg overflow-hidden">
-              <img 
-                src={item.photos[0]} 
-                alt={item.title}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
-              />
-            </div>
-          )}
+          {/* Main photo using ListingImagePreview */}
+          <div className="flex justify-center">
+            <ListingImagePreview 
+              photos={item.photos} 
+              title={item.title}
+              listingId={item.id}
+              className="w-32 h-32"
+            />
+          </div>
 
           {/* Badges */}
           <div className="flex flex-wrap gap-1">
