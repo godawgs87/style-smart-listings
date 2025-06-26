@@ -75,9 +75,16 @@ const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) =>
     clearSelection
   });
 
-  // Show timeout-specific error state
-  if (error && error.includes('timeout')) {
-    return <InventoryTimeoutError onBack={onBack} onRetry={refetch} />;
+  // Show error state with detailed error information
+  if (error) {
+    return (
+      <InventoryTimeoutError 
+        onBack={onBack} 
+        onRetry={refetch} 
+        onForceOffline={forceOfflineMode}
+        error={error}
+      />
+    );
   }
 
   return (

@@ -144,70 +144,120 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
 
   const fetchListings = async () => {
     try {
-      console.log(`Attempting database connection with timeout for ${limit} items...`);
+      console.log(`Starting database fetch for ${limit} items...`);
       setLoading(true);
       setError(null);
       setUsingFallback(false);
       
-      // Check if user is authenticated first
+      // Check authentication with detailed logging
+      console.log('Checking authentication...');
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       
-      if (authError || !user) {
-        console.error('Authentication required for listings access:', authError);
+      if (authError) {
+        console.error('Authentication error:', authError);
+        setError('Authentication failed: ' + authError.message);
+        setLoading(false);
+        return;
+      }
+      
+      if (!user) {
+        console.error('No authenticated user found');
         setError('Please log in to view your listings');
         setLoading(false);
         return;
       }
       
-      // Reasonable timeout for database queries
+      console.log('User authenticated:', user.id);
+      
+      // Extended timeout for initial queries with RLS
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Database timeout - switching to fallback')), 8000)
+        setTimeout(() => reject(new Error('Database query timeout after 15 seconds')), 15000)
       );
 
-      // Build comprehensive query - RLS will automatically filter by user_id
+      // Build query with proper logging
+      console.log('Building database query...');
       let query = supabase
         .from('listings')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(limit);
 
-      // Apply filters
+      // Apply filters with logging
       if (statusFilter && statusFilter !== 'all') {
+        console.log('Applying status filter:', statusFilter);
         query = query.eq('status', statusFilter);
       }
 
       if (categoryFilter && categoryFilter !== 'all') {
+        console.log('Applying category filter:', categoryFilter);
         query = query.eq('category', categoryFilter);
       }
 
       if (searchTerm && searchTerm.trim()) {
+        console.log('Applying search filter:', searchTerm);
         query = query.or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
       }
 
+      console.log('Executing database query...');
+      const queryStartTime = Date.now();
+      
       const result = await Promise.race([query, timeoutPromise]);
       const { data, error: fetchError } = result as any;
+      
+      const queryTime = Date.now() - queryStartTime;
+      console.log(`Database query completed in ${queryTime}ms`);
 
       if (fetchError) {
-        console.error('Database query error, switching to fallback:', fetchError);
+        console.error('Database query failed:', fetchError);
+        
+        // Check if it's an RLS policy error
+        if (fetchError.message.includes('policy') || fetchError.message.includes('permission')) {
+          setError('Access denied: Unable to fetch your listings. Please try logging out and back in.');
+          toast({
+            title: "Access Error",
+            description: "Unable to access your listings. Please try logging out and logging back in.",
+            variant: "destructive"
+          });
+          setLoading(false);
+          return;
+        }
+        
         throw new Error(`Database query failed: ${fetchError.message}`);
       }
 
       if (!data) {
-        console.log('No data returned, switching to fallback');
-        throw new Error('No data returned');
+        console.log('No data returned from query');
+        setListings([]);
+        setError(null);
+        setLoading(false);
+        return;
       }
 
       console.log(`Successfully loaded ${data.length} listings from database`);
       
       const transformedListings = data.map(transformListing);
       setListings(transformedListings);
+      setError(null);
       
       // Save successful data as fallback for future use
       fallbackDataService.saveFallbackData(data);
       
     } catch (error: any) {
-      console.error('Database fetch failed, using fallback:', error);
-      loadFallbackData();
+      console.error('Database fetch failed:', error);
+      
+      // Only use fallback for actual connection/timeout errors
+      if (error.message.includes('timeout') || error.message.includes('network') || error.message.includes('fetch')) {
+        console.log('Connection error detected, switching to fallback...');
+        loadFallbackData();
+      } else {
+        // For other errors (like RLS), show the actual error
+        setError(error.message || 'Failed to load listings');
+        toast({
+          title: "Error Loading Listings",
+          description: error.message || 'An unexpected error occurred',
+          variant: "destructive"
+        });
+      }
     } finally {
       setLoading(false);
     }
