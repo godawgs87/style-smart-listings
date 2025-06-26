@@ -51,7 +51,7 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const { statusFilter, limit = 25 } = options;
+  const { statusFilter, limit = 15 } = options; // Reduced default limit
 
   const transformListing = (supabaseListing: SupabaseListing): Listing => {
     return {
@@ -65,7 +65,7 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
 
   const fetchListings = async () => {
     try {
-      console.log('Fetching full listing data...');
+      console.log('Fetching inventory data with optimized query...');
       setLoading(true);
       setError(null);
       
@@ -81,15 +81,15 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
 
       console.log('Authenticated user:', user.id);
 
-      // Create timeout promise
+      // Reduced timeout to 8 seconds
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Request timeout')), 10000);
+        setTimeout(() => reject(new Error('Request timeout')), 8000);
       });
 
-      // Build query to get all fields
+      // Build optimized query - fetch only necessary fields first
       let query = supabase
         .from('listings')
-        .select('*'); // Get all fields
+        .select('id, title, price, status, category, condition, photos, created_at, updated_at, user_id');
 
       if (statusFilter && statusFilter !== 'all') {
         query = query.eq('status', statusFilter);
@@ -99,7 +99,7 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
         .order('created_at', { ascending: false })
         .limit(limit);
 
-      console.log('Executing full query...');
+      console.log('Executing optimized query...');
       const queryStart = Date.now();
       
       const { data, error: fetchError } = await Promise.race([
@@ -121,8 +121,17 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
         return;
       }
 
-      const transformedListings = data.map(transformListing);
-      console.log(`Successfully loaded ${transformedListings.length} listings with full data`);
+      // Transform listings with minimal data and defaults
+      const transformedListings = data.map((item: any) => ({
+        ...item,
+        description: null, // Don't fetch heavy description field initially
+        measurements: {},
+        keywords: [],
+        price_research: null,
+        shipping_cost: 9.95
+      }));
+      
+      console.log(`Successfully loaded ${transformedListings.length} listings with optimized data`);
       setListings(transformedListings);
       
     } catch (error: any) {
@@ -130,10 +139,10 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
       const errorMessage = error.message || 'Unknown error';
       
       if (errorMessage.includes('timeout')) {
-        setError('Request timeout - please try again');
+        setError('Request timeout - please try refreshing');
         toast({
           title: "Connection Timeout",
-          description: "Query is taking too long. Please try again.",
+          description: "Data is taking too long to load. Try refreshing or using fewer filters.",
           variant: "destructive"
         });
       } else {

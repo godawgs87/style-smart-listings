@@ -8,7 +8,7 @@ interface StatusListingsOptions {
   limit?: number;
 }
 
-export const useStatusListings = ({ status, limit = 15 }: StatusListingsOptions) => {
+export const useStatusListings = ({ status, limit = 10 }: StatusListingsOptions) => {
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -17,7 +17,8 @@ export const useStatusListings = ({ status, limit = 15 }: StatusListingsOptions)
   const fetchStatusListings = async () => {
     try {
       setError(null);
-      console.log(`Fetching ${status} listings with ultra-minimal query`);
+      setLoading(true);
+      console.log(`Fetching ${status} listings with optimized query`);
       
       // Auth check is critical for RLS
       const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -31,17 +32,17 @@ export const useStatusListings = ({ status, limit = 15 }: StatusListingsOptions)
 
       console.log('Authenticated user:', user.id, 'fetching status:', status);
 
-      // 2-second timeout for status queries
+      // Reduced timeout to 5 seconds and smaller limit
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Status query timeout')), 2000);
+        setTimeout(() => reject(new Error('Query timeout')), 5000);
       });
 
-      // Ultra-minimal query - only essential fields
+      // Ultra-minimal query - only essential fields for display
       const queryStart = Date.now();
       const { data, error: fetchError } = await Promise.race([
         supabase
           .from('listings')
-          .select('id, title, price, status, created_at')
+          .select('id, title, price, status, photos, created_at')
           .eq('status', status)
           .order('created_at', { ascending: false })
           .limit(limit),
@@ -56,11 +57,15 @@ export const useStatusListings = ({ status, limit = 15 }: StatusListingsOptions)
         throw new Error(`Database error: ${fetchError.message}`);
       }
 
+      // Transform data with default values to prevent UI errors
       const transformedData = (data || []).map((item: any) => ({
         ...item,
         category: null,
         condition: null,
-        description: null
+        description: null,
+        measurements: null,
+        keywords: null,
+        shipping_cost: 9.95
       }));
 
       setListings(transformedData);
@@ -71,10 +76,10 @@ export const useStatusListings = ({ status, limit = 15 }: StatusListingsOptions)
       const errorMsg = error.message || 'Unknown error';
       
       if (errorMsg.includes('timeout')) {
-        setError('Query timeout');
+        setError('Query timeout - please try refreshing');
         toast({
           title: "Timeout Error",
-          description: `${status} listings query timed out`,
+          description: `${status} listings are taking too long to load. Try refreshing or reducing filters.`,
           variant: "destructive"
         });
       } else {
