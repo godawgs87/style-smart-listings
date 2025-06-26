@@ -13,6 +13,7 @@ import ListingsErrorState from '@/components/ListingsErrorState';
 import ListingsEmptyState from '@/components/ListingsEmptyState';
 import QuickFilters from '@/components/listings/QuickFilters';
 import PageInfoDialog from '@/components/PageInfoDialog';
+import InventoryTimeoutError from '@/components/inventory/InventoryTimeoutError';
 
 interface ListingsManagerProps {
   onBack: () => void;
@@ -29,7 +30,16 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
   const isMobile = useIsMobile();
   const { user } = useAuth();
   
-  const { listings, loading, error, deleteListing, updateListing } = useListings({
+  const { 
+    listings, 
+    loading, 
+    error, 
+    usingFallback,
+    deleteListing, 
+    updateListing, 
+    refetch,
+    forceOfflineMode
+  } = useListings({
     limit: 25
   });
 
@@ -63,12 +73,12 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
 
   const handlePreviewListing = (listing: any) => {
     console.log('Preview listing:', listing);
-    // TODO: Implement preview functionality - could open a modal or navigate to preview page
+    // TODO: Implement preview functionality
   };
 
   const handleEditListing = (listing: any) => {
     console.log('Edit listing:', listing);
-    // TODO: Implement edit functionality - could navigate to edit page or open edit modal
+    // TODO: Implement edit functionality
   };
 
   const handleBulkDelete = async () => {
@@ -136,6 +146,18 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
     );
   }
 
+  // Show specific error page for critical errors
+  if (error && (error.includes('AUTHENTICATION_ERROR') || error.includes('RLS_POLICY_ERROR') || error.includes('JWT_ERROR'))) {
+    return (
+      <InventoryTimeoutError
+        onBack={onBack}
+        onRetry={refetch}
+        onForceOffline={forceOfflineMode}
+        error={error}
+      />
+    );
+  }
+
   return (
     <div className={`min-h-screen bg-gray-50 ${isMobile ? 'pb-20' : ''}`}>
       <StreamlinedHeader
@@ -149,6 +171,19 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-bold">Manage Listings</h1>
           <PageInfoDialog pageName="Manage Listings" />
+          {usingFallback && (
+            <div className="flex items-center gap-2">
+              <div className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm font-medium">
+                Offline Mode
+              </div>
+              <button
+                onClick={refetch}
+                className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+              >
+                Reconnect
+              </button>
+            </div>
+          )}
         </div>
 
         <ListingsManagerControls
@@ -173,7 +208,9 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
           onClearFilters={handleClearFilters}
         />
 
-        {error && <ListingsErrorState error={error} />}
+        {error && !error.includes('AUTHENTICATION_ERROR') && !error.includes('RLS_POLICY_ERROR') && !error.includes('JWT_ERROR') && (
+          <ListingsErrorState error={error} />
+        )}
 
         {viewMode === 'grid' && (
           <ListingsCardView
