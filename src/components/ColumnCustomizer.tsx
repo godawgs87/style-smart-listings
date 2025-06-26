@@ -5,20 +5,22 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Filter } from 'lucide-react';
 
+interface VisibleColumns {
+  image: boolean;
+  title: boolean;
+  price: boolean;
+  status: boolean;
+  category: boolean;
+  condition: boolean;
+  shipping: boolean;
+  measurements: boolean;
+  keywords: boolean;
+  description: boolean;
+}
+
 interface ColumnCustomizerProps {
-  visibleColumns: {
-    image: boolean;
-    title: boolean;
-    price: boolean;
-    status: boolean;
-    category: boolean;
-    condition: boolean;
-    shipping: boolean;
-    measurements: boolean;
-    keywords: boolean;
-    description: boolean;
-  };
-  onColumnToggle: (column: keyof typeof visibleColumns) => void;
+  visibleColumns: VisibleColumns;
+  onColumnToggle: (column: keyof VisibleColumns) => void;
 }
 
 const ColumnCustomizer = ({ visibleColumns, onColumnToggle }: ColumnCustomizerProps) => {

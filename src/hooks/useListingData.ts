@@ -51,67 +51,57 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const { statusFilter, limit = 15 } = options; // Further reduced to 15
+  const { statusFilter, limit = 25 } = options;
 
   const transformListing = (supabaseListing: SupabaseListing): Listing => {
     return {
       ...supabaseListing,
-      measurements: (supabaseListing.measurements as any) || {}
+      measurements: (supabaseListing.measurements as any) || {},
+      photos: supabaseListing.photos || [],
+      keywords: supabaseListing.keywords || [],
+      shipping_cost: supabaseListing.shipping_cost || 9.95
     };
   };
 
   const fetchListings = async () => {
     try {
-      console.log('Starting optimized fetch with RLS policies...');
+      console.log('Fetching full listing data...');
       setLoading(true);
       setError(null);
       
-      // Check auth first - this is crucial for RLS to work properly
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       
-      if (authError) {
+      if (authError || !user) {
         console.error('Auth error:', authError);
-        setError('Authentication failed');
+        setError('Authentication required');
         setListings([]);
         setLoading(false);
         return;
       }
 
-      if (!user) {
-        console.log('No authenticated user - cannot fetch with RLS');
-        setError('Please log in to view your listings');
-        setListings([]);
-        setLoading(false);
-        return;
-      }
+      console.log('Authenticated user:', user.id);
 
-      console.log('User authenticated, fetching listings for user:', user.id);
-
-      // Create timeout promise - reduced to 3 seconds
+      // Create timeout promise
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Request timeout - 3s limit exceeded')), 3000);
+        setTimeout(() => reject(new Error('Request timeout')), 10000);
       });
 
-      // Build ultra-minimal query - only absolute essentials
+      // Build query to get all fields
       let query = supabase
         .from('listings')
-        .select('id, title, price, status, created_at'); // Minimal fields only
+        .select('*'); // Get all fields
 
-      // Apply status filter if provided
       if (statusFilter && statusFilter !== 'all') {
-        console.log('Applying status filter:', statusFilter);
         query = query.eq('status', statusFilter);
       }
 
-      // Always limit and order for performance
       query = query
         .order('created_at', { ascending: false })
         .limit(limit);
 
-      console.log('Executing minimal RLS query with limit:', limit);
-      console.log('Status filter:', statusFilter || 'none');
-
+      console.log('Executing full query...');
       const queryStart = Date.now();
+      
       const { data, error: fetchError } = await Promise.race([
         query,
         timeoutPromise
@@ -121,57 +111,29 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
       console.log('Query completed in', queryTime, 'ms');
 
       if (fetchError) {
-        console.error('Supabase query error:', fetchError);
+        console.error('Query error:', fetchError);
         throw new Error(`Database error: ${fetchError.message}`);
       }
 
       if (!data) {
-        console.log('No data returned from query');
+        console.log('No data returned');
         setListings([]);
         return;
       }
 
-      // Transform with minimal data structure
-      const minimalListings = data.map((item: any) => ({
-        id: item.id,
-        title: item.title,
-        price: item.price,
-        status: item.status,
-        created_at: item.created_at,
-        // Set defaults for fields we didn't fetch
-        description: null,
-        category: null,
-        condition: null,
-        measurements: {},
-        keywords: null,
-        photos: null,
-        price_research: null,
-        shipping_cost: null,
-        updated_at: item.created_at,
-        user_id: user.id
-      }));
-
-      console.log(`Successfully loaded ${minimalListings.length} listings in ${queryTime}ms`);
-      setListings(minimalListings);
+      const transformedListings = data.map(transformListing);
+      console.log(`Successfully loaded ${transformedListings.length} listings with full data`);
+      setListings(transformedListings);
       
     } catch (error: any) {
-      console.error('Fetch error details:', error);
-      
+      console.error('Fetch error:', error);
       const errorMessage = error.message || 'Unknown error';
-      console.log('Error type:', typeof error, 'Message:', errorMessage);
       
-      if (errorMessage.includes('timeout') || errorMessage.includes('Request timeout')) {
+      if (errorMessage.includes('timeout')) {
         setError('Request timeout - please try again');
         toast({
           title: "Connection Timeout",
-          description: "Query is taking too long. Database may be under load.",
-          variant: "destructive"
-        });
-      } else if (errorMessage.includes('authentication') || errorMessage.includes('JWT')) {
-        setError('Authentication required - please log in');
-        toast({
-          title: "Authentication Error",
-          description: "Please log in to view your listings.",
+          description: "Query is taking too long. Please try again.",
           variant: "destructive"
         });
       } else {
@@ -193,7 +155,6 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
   };
 
   useEffect(() => {
-    console.log('useEffect triggered - fetching listings');
     fetchListings();
   }, [statusFilter, limit]);
 

@@ -11,6 +11,7 @@ interface Listing {
   condition: string | null;
   status: string | null;
   shipping_cost: number | null;
+  photos: string[] | null;
   created_at: string;
 }
 

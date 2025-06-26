@@ -17,11 +17,11 @@ interface ListingsManagerProps {
 const ListingsManager = ({ onBack }: ListingsManagerProps) => {
   const [selectedListings, setSelectedListings] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   
   const isMobile = useIsMobile();
   const { user } = useAuth();
   
-  // Use smaller limit for better performance
   const { listings, loading, error, deleteListing, updateListing } = useListings({
     limit: 25
   });
@@ -119,8 +119,24 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
               </Button>
             )}
           </div>
-          <div className="text-sm text-gray-600">
-            {filteredListings.length} listings
+          <div className="flex items-center gap-2">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+            >
+              Grid
+            </Button>
+            <Button
+              variant={viewMode === 'table' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('table')}
+            >
+              Table
+            </Button>
+            <div className="text-sm text-gray-600">
+              {filteredListings.length} listings
+            </div>
           </div>
         </div>
 
@@ -134,17 +150,37 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
           </div>
         )}
 
-        {/* Table */}
-        <ListingsTable
-          listings={filteredListings}
-          selectedListings={selectedListings}
-          onSelectListing={handleSelectListing}
-          onSelectAll={handleSelectAll}
-          onUpdateListing={handleUpdateListing}
-          onDeleteListing={handleDeleteListing}
-          onPreviewListing={handlePreviewListing}
-          onEditListing={handleEditListing}
-        />
+        {/* Grid View */}
+        {viewMode === 'grid' && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+            {filteredListings.map((listing) => (
+              <ListingCard
+                key={listing.id}
+                listing={listing}
+                isBulkMode={selectedListings.length > 0}
+                isSelected={selectedListings.includes(listing.id)}
+                onSelect={(checked) => handleSelectListing(listing.id, checked)}
+                onEdit={() => handleEditListing(listing)}
+                onPreview={() => handlePreviewListing(listing)}
+                onDelete={() => handleDeleteListing(listing.id)}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Table View */}
+        {viewMode === 'table' && (
+          <ListingsTable
+            listings={filteredListings}
+            selectedListings={selectedListings}
+            onSelectListing={handleSelectListing}
+            onSelectAll={handleSelectAll}
+            onUpdateListing={handleUpdateListing}
+            onDeleteListing={handleDeleteListing}
+            onPreviewListing={handlePreviewListing}
+            onEditListing={handleEditListing}
+          />
+        )}
 
         {filteredListings.length === 0 && !loading && !error && (
           <div className="text-center py-12 text-gray-500">
