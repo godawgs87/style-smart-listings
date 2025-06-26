@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import type { Listing } from '@/types/Listing';
 import { useLightweightQuery } from './listing-data/useLightweightQuery';
