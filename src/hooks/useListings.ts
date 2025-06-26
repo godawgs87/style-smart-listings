@@ -1,4 +1,3 @@
-
 import { useListingData } from './useListingData';
 import { useListingOperations } from './useListingOperations';
 import { useToast } from '@/hooks/use-toast';
@@ -13,11 +12,21 @@ interface UseListingsOptions {
 }
 
 export const useListings = (options?: UseListingsOptions) => {
-  const { listings, setListings, loading, error, fetchListings, refetch } = useListingData(options || {});
+  const { 
+    listings, 
+    setListings, 
+    loading, 
+    error, 
+    usingFallback,
+    fetchListings, 
+    refetch,
+    forceOfflineMode
+  } = useListingData(options || {});
+  
   const { deleteListing: deleteOperation, duplicateListing: duplicateOperation, updateListing: updateOperation, updateListingStatus } = useListingOperations();
   const { toast } = useToast();
 
-  console.log('useListings hook - listings count:', listings.length, 'loading:', loading, 'error:', error);
+  console.log('useListings hook - listings count:', listings.length, 'loading:', loading, 'error:', error, 'fallback:', usingFallback);
 
   const deleteListing = async (id: string) => {
     const success = await deleteOperation(id);
@@ -81,8 +90,10 @@ export const useListings = (options?: UseListingsOptions) => {
     listings,
     loading,
     error,
+    usingFallback,
     fetchListings,
     refetch,
+    forceOfflineMode,
     deleteListing,
     duplicateListing,
     updateListing,

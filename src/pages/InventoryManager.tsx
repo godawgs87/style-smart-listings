@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
@@ -26,6 +25,7 @@ const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) =>
     stats,
     loading,
     error,
+    usingFallback,
     
     // Progressive loading
     canLoadMore,
@@ -63,7 +63,8 @@ const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) =>
     duplicateListing,
     updateListing,
     updateListingStatus,
-    refetch
+    refetch,
+    forceOfflineMode
   } = useInventoryManager();
 
   const { handleDuplicateListing, handleBulkDelete, handleBulkStatusUpdate } = useInventoryActions({
@@ -88,6 +89,18 @@ const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) =>
       />
       
       <div className="max-w-7xl mx-auto p-4">
+        {usingFallback && (
+          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-center">
+              <div className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></div>
+              <span className="text-yellow-800 text-sm font-medium">Offline Mode</span>
+            </div>
+            <p className="text-yellow-700 text-xs mt-1">
+              Showing cached data. Database is currently unavailable.
+            </p>
+          </div>
+        )}
+        
         <InventoryStats {...stats} />
         
         <InventoryControls

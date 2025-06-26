@@ -1,56 +1,56 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, AlertTriangle, Settings, Database } from 'lucide-react';
+import { RefreshCw, AlertTriangle, Settings, Database, WifiOff } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
 import { useToast } from '@/hooks/use-toast';
+import { fallbackDataService } from '@/services/fallbackDataService';
 
 interface InventoryTimeoutErrorProps {
   onBack: () => void;
   onRetry: () => void;
+  onForceOffline?: () => void;
 }
 
-const InventoryTimeoutError = ({ onBack, onRetry }: InventoryTimeoutErrorProps) => {
+const InventoryTimeoutError = ({ onBack, onRetry, onForceOffline }: InventoryTimeoutErrorProps) => {
   const isMobile = useIsMobile();
   const { toast } = useToast();
+  const hasFallbackData = fallbackDataService.hasFallbackData();
 
   const handleQuickRetry = () => {
-    console.log('Quick retry with ultra-minimal settings...');
-    localStorage.removeItem('inventory_emergency_mode');
+    console.log('Quick retry with database...');
     toast({
       title: "Retrying...",
-      description: "Loading with minimal data set."
+      description: "Attempting database connection..."
     });
     onRetry();
   };
 
-  const handleEmergencyMode = () => {
-    console.log('Activating emergency mode with absolute minimal data...');
+  const handleOfflineMode = () => {
+    console.log('Switching to offline mode...');
     toast({
-      title: "Emergency mode activated",
-      description: "Loading only 5 items with basic information."
+      title: "Offline mode activated",
+      description: hasFallbackData ? "Loading cached inventory data." : "No cached data available."
     });
     
-    // Set emergency mode flag
-    localStorage.setItem('inventory_emergency_mode', 'true');
-    onRetry();
+    if (onForceOffline) {
+      onForceOffline();
+    }
   };
 
   const handleClearCache = () => {
     console.log('Clearing all cache and reloading...');
-    // Clear all related localStorage
-    localStorage.removeItem('inventory_emergency_mode');
+    fallbackDataService.clearFallbackData();
     localStorage.clear();
     
     toast({
       title: "Cache cleared",
-      description: "Attempting fresh load..."
+      description: "Attempting fresh database connection..."
     });
     
-    // Force a fresh reload
     setTimeout(() => {
-      window.location.reload();
+      onRetry();
     }, 1000);
   };
 
@@ -66,46 +66,48 @@ const InventoryTimeoutError = ({ onBack, onRetry }: InventoryTimeoutErrorProps) 
         <div className="text-center py-12">
           <div className="max-w-md mx-auto">
             <AlertTriangle className="w-16 h-16 mx-auto text-red-500 mb-4" />
-            <h3 className="text-xl font-semibold mb-2 text-red-700">Persistent Database Timeout</h3>
+            <h3 className="text-xl font-semibold mb-2 text-red-700">Database Connection Issues</h3>
             <p className="text-red-600 mb-6">
-              The database is consistently timing out even with minimal data requests. This indicates a serious performance issue.
+              The database is currently unavailable. You can try reconnecting or work with cached data offline.
             </p>
             
             <div className="space-y-3">
               <Button onClick={handleQuickRetry} className="w-full" variant="default">
                 <RefreshCw className="w-4 h-4 mr-2" />
-                Try Again (Minimal Data)
+                Try Database Again
               </Button>
               
-              <Button onClick={handleEmergencyMode} className="w-full" variant="outline">
-                <Database className="w-4 h-4 mr-2" />
-                Emergency Mode (5 Items Only)
-              </Button>
+              {hasFallbackData && onForceOffline && (
+                <Button onClick={handleOfflineMode} className="w-full" variant="outline">
+                  <WifiOff className="w-4 h-4 mr-2" />
+                  Work Offline (Cached Data)
+                </Button>
+              )}
               
               <Button onClick={handleClearCache} className="w-full" variant="secondary">
                 <Settings className="w-4 h-4 mr-2" />
-                Clear Cache & Reload
+                Clear Cache & Retry
               </Button>
               
-              <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg text-left">
-                <h4 className="font-medium text-red-800 mb-2">Critical Performance Issue Detected:</h4>
-                <ul className="text-sm text-red-700 space-y-1">
-                  <li>• Database queries are timing out consistently</li>
-                  <li>• This may indicate server overload or network issues</li>
-                  <li>• Emergency mode will load only essential data</li>
-                  <li>• Consider contacting support if this persists</li>
+              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-left">
+                <h4 className="font-medium text-blue-800 mb-2">Available Options:</h4>
+                <ul className="text-sm text-blue-700 space-y-1">
+                  <li>• <strong>Try Database Again:</strong> Attempt to reconnect to the database</li>
+                  {hasFallbackData && (
+                    <li>• <strong>Work Offline:</strong> Use previously cached inventory data</li>
+                  )}
+                  <li>• <strong>Clear Cache:</strong> Reset all cached data and try fresh connection</li>
                 </ul>
               </div>
               
-              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-left">
-                <h4 className="font-medium text-blue-800 mb-2">What Emergency Mode Does:</h4>
-                <ul className="text-sm text-blue-700 space-y-1">
-                  <li>• Loads only 5 most recent items</li>
-                  <li>• Fetches only title, price, and status</li>
-                  <li>• Removes all complex filters</li>
-                  <li>• Uses shortest possible timeout</li>
-                </ul>
-              </div>
+              {!hasFallbackData && (
+                <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-left">
+                  <h4 className="font-medium text-yellow-800 mb-2">No Cached Data Available</h4>
+                  <p className="text-sm text-yellow-700">
+                    You'll need a successful database connection to view your inventory. Once connected, data will be cached for offline use.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>

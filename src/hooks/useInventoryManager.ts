@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { useListings } from '@/hooks/useListings';
 import { useInventoryFilters } from '@/components/inventory/InventoryFilters';
@@ -19,9 +18,9 @@ export const useInventoryManager = () => {
 
   // Progressive loading with reasonable defaults
   const progressiveLoading = useProgressiveLoading({
-    initialLimit: 10, // Start with 10 items instead of 5
-    incrementSize: 15, // Load 15 more at a time
-    maxLimit: 100 // Cap at 100 items total
+    initialLimit: 5, // Even smaller initial limit
+    incrementSize: 5, // Smaller increments
+    maxLimit: 25 // Much lower max to prevent timeouts
   });
 
   // Data fetching with progressive limit
@@ -29,11 +28,13 @@ export const useInventoryManager = () => {
     listings, 
     loading, 
     error, 
+    usingFallback,
     deleteListing, 
     duplicateListing, 
     updateListing, 
     updateListingStatus, 
-    refetch 
+    refetch,
+    forceOfflineMode
   } = useListings({ 
     limit: progressiveLoading.currentLimit,
     statusFilter,
@@ -105,6 +106,11 @@ export const useInventoryManager = () => {
   };
 
   const handleLoadMore = async () => {
+    if (usingFallback) {
+      // In fallback mode, just increase the limit locally
+      progressiveLoading.loadMore();
+      return true;
+    }
     return await progressiveLoading.loadMore();
   };
 
@@ -116,6 +122,7 @@ export const useInventoryManager = () => {
     stats,
     loading,
     error,
+    usingFallback,
     
     // Progressive loading
     canLoadMore: progressiveLoading.canLoadMore,
@@ -155,6 +162,7 @@ export const useInventoryManager = () => {
     duplicateListing,
     updateListing,
     updateListingStatus,
-    refetch
+    refetch,
+    forceOfflineMode
   };
 };
