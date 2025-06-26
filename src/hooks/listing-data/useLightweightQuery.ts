@@ -1,8 +1,11 @@
 
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { fallbackDataService } from '@/services/fallbackDataService';
 import { useListingTransforms } from './useListingTransforms';
+import { useLightweightQueryBuilder } from './query-builders/useLightweightQueryBuilder';
+import { useLightweightTransformer } from './transformers/useLightweightTransformer';
+import { useConnectionTest } from './connection/useConnectionTest';
+import { useListingDetailsQuery } from './details/useListingDetailsQuery';
 import type { Listing } from '@/types/Listing';
 
 interface UseLightweightQueryOptions {
@@ -12,54 +15,13 @@ interface UseLightweightQueryOptions {
   categoryFilter?: string;
 }
 
-// Lightweight listing interface for initial load
-interface LightweightListing {
-  id: string;
-  title: string;
-  price: number;
-  status: string | null;
-  category: string | null;
-  condition: string | null;
-  created_at: string;
-  updated_at: string;
-  user_id: string;
-  purchase_price?: number;
-  net_profit?: number;
-  profit_margin?: number;
-  days_to_sell?: number;
-  shipping_cost?: number;
-  photos?: string[] | null;
-}
-
 export const useLightweightQuery = () => {
   const { toast } = useToast();
   const { transformListing } = useListingTransforms();
-
-  const testConnection = async (): Promise<{ success: boolean; error?: string }> => {
-    try {
-      console.log('🔍 Testing Supabase connection...');
-      
-      const startTime = Date.now();
-      const { data, error } = await supabase
-        .from('listings')
-        .select('id')
-        .limit(1);
-      
-      const duration = Date.now() - startTime;
-      console.log(`⏱️ Connection test took ${duration}ms`);
-        
-      if (error) {
-        console.error('❌ Connection test failed:', error);
-        return { success: false, error: error.message };
-      }
-      
-      console.log('✅ Connection test successful');
-      return { success: true };
-    } catch (error: any) {
-      console.error('💥 Connection test exception:', error);
-      return { success: false, error: error.message };
-    }
-  };
+  const { buildLightweightQuery } = useLightweightQueryBuilder();
+  const { transformLightweightListings } = useLightweightTransformer();
+  const { testConnection } = useConnectionTest();
+  const { fetchListingDetails } = useListingDetailsQuery();
 
   const fetchLightweightListings = async (options: UseLightweightQueryOptions): Promise<{
     listings: Listing[];
@@ -78,52 +40,12 @@ export const useLightweightQuery = () => {
     }
 
     try {
-      console.log('🔨 Building lightweight query (essential fields + shipping + photos)...');
-      
-      // Select essential fields for initial load + shipping cost and photos
-      let query = supabase
-        .from('listings')
-        .select(`
-          id,
-          title,
-          price,
-          status,
-          category,
-          condition,
-          created_at,
-          updated_at,
-          user_id,
-          purchase_price,
-          net_profit,
-          profit_margin,
-          days_to_sell,
-          shipping_cost,
-          photos
-        `);
-
-      // Apply filters in optimal order to leverage indexes
-      if (statusFilter && statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
-        console.log('✅ Applied status filter:', statusFilter);
-      }
-
-      if (categoryFilter && categoryFilter !== 'all') {
-        query = query.eq('category', categoryFilter);
-        console.log('✅ Applied category filter:', categoryFilter);
-      }
-
-      // Apply search filter using title search
-      if (searchTerm && searchTerm.trim()) {
-        query = query.ilike('title', `%${searchTerm}%`);
-        console.log('✅ Applied title search:', searchTerm);
-      }
-
-      // Order by created_at DESC
-      query = query.order('created_at', { ascending: false });
-
-      // Apply limit
-      query = query.limit(limit);
-      console.log('✅ Applied limit:', limit);
+      const query = buildLightweightQuery({
+        statusFilter,
+        categoryFilter,
+        searchTerm,
+        limit
+      });
 
       console.log('⏳ Executing lightweight query...');
       const startTime = Date.now();
@@ -155,41 +77,7 @@ export const useLightweightQuery = () => {
 
       console.log(`✅ Successfully fetched ${data.length} lightweight listings`);
       
-      // Transform lightweight listings to full Listing interface with defaults
-      const transformedListings: Listing[] = data.map(item => ({
-        id: item.id,
-        title: item.title,
-        price: item.price,
-        status: item.status,
-        category: item.category,
-        condition: item.condition,
-        created_at: item.created_at,
-        updated_at: item.updated_at,
-        user_id: item.user_id,
-        purchase_price: item.purchase_price,
-        net_profit: item.net_profit,
-        profit_margin: item.profit_margin,
-        days_to_sell: item.days_to_sell,
-        description: null, // Will be loaded on-demand
-        measurements: {},
-        keywords: [],
-        photos: item.photos ? (Array.isArray(item.photos) ? item.photos : []) : [], // Use photos array or empty
-        price_research: null,
-        shipping_cost: item.shipping_cost || null, // Use actual shipping cost
-        purchase_date: null,
-        is_consignment: false,
-        consignment_percentage: null,
-        cost_basis: null,
-        fees_paid: null,
-        listed_date: null,
-        sold_date: null,
-        sold_price: null,
-        consignor_contact: null,
-        source_location: null,
-        source_type: null,
-        performance_notes: null,
-        consignor_name: null
-      }));
+      const transformedListings = transformLightweightListings(data);
       
       try {
         fallbackDataService.saveFallbackData(transformedListings);
@@ -212,78 +100,6 @@ export const useLightweightQuery = () => {
       
       console.log('🔌 Exception treated as connection error');
       return { listings: [], error: 'CONNECTION_ERROR' };
-    }
-  };
-
-  const fetchListingDetails = async (id: string): Promise<{
-    details: Partial<Listing> | null;
-    error: string | null;
-  }> => {
-    try {
-      console.log('🔍 Fetching detailed data for listing:', id);
-      
-      const { data, error } = await supabase
-        .from('listings')
-        .select(`
-          description,
-          measurements,
-          keywords,
-          photos,
-          shipping_cost,
-          price_research,
-          purchase_date,
-          is_consignment,
-          consignment_percentage,
-          cost_basis,
-          fees_paid,
-          listed_date,
-          sold_date,
-          sold_price,
-          consignor_contact,
-          source_location,
-          source_type,
-          performance_notes,
-          consignor_name
-        `)
-        .eq('id', id)
-        .single();
-
-      if (error) {
-        console.error('❌ Failed to fetch listing details:', error);
-        return { details: null, error: error.message };
-      }
-
-      console.log('✅ Successfully fetched listing details');
-      
-      // Transform the data to match Listing interface
-      const transformedDetails: Partial<Listing> = {
-        description: data.description,
-        measurements: typeof data.measurements === 'object' && data.measurements !== null 
-          ? data.measurements as { length?: string; width?: string; height?: string; weight?: string; }
-          : {},
-        keywords: Array.isArray(data.keywords) ? data.keywords : [],
-        photos: Array.isArray(data.photos) ? data.photos : [],
-        shipping_cost: data.shipping_cost || null,
-        price_research: data.price_research,
-        purchase_date: data.purchase_date,
-        is_consignment: data.is_consignment,
-        consignment_percentage: data.consignment_percentage,
-        cost_basis: data.cost_basis,
-        fees_paid: data.fees_paid,
-        listed_date: data.listed_date,
-        sold_date: data.sold_date,
-        sold_price: data.sold_price,
-        consignor_contact: data.consignor_contact,
-        source_location: data.source_location,
-        source_type: data.source_type,
-        performance_notes: data.performance_notes,
-        consignor_name: data.consignor_name
-      };
-      
-      return { details: transformedDetails, error: null };
-    } catch (error: any) {
-      console.error('💥 Exception fetching listing details:', error);
-      return { details: null, error: error.message };
     }
   };
 

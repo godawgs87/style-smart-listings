@@ -1,14 +1,9 @@
+
 import React, { useState } from 'react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Checkbox } from '@/components/ui/checkbox';
-import ColumnCustomizer from '@/components/ColumnCustomizer';
+import { Table, TableBody } from '@/components/ui/table';
+import ListingsTableHeader from './table/ListingsTableHeader';
+import ListingsTableColumnManager from './table/ListingsTableColumnManager';
+import ListingsTableEmpty from './table/ListingsTableEmpty';
 import ListingsTableRow from './ListingsTableRow';
 
 interface Listing {
@@ -128,97 +123,20 @@ const ListingsTableView = ({
 
   return (
     <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
-      {/* Column Customizer */}
-      <div className="p-4 border-b bg-gray-50">
-        <ColumnCustomizer
-          visibleColumns={visibleColumns}
-          onColumnToggle={handleColumnToggle}
-        />
-      </div>
+      <ListingsTableColumnManager
+        visibleColumns={visibleColumns}
+        onColumnToggle={handleColumnToggle}
+      />
 
       <div className="overflow-x-auto">
         <div className="min-w-[1000px]">
           <Table>
-            <TableHeader className="bg-gray-50">
-              <TableRow className="border-b-2">
-                <TableHead className="w-12 sticky left-0 bg-gray-50 z-20 border-r">
-                  <Checkbox
-                    checked={selectedListings.length === listings.length && listings.length > 0}
-                    onCheckedChange={onSelectAll}
-                  />
-                </TableHead>
-                
-                {/* Core columns */}
-                {visibleColumns.image && (
-                  <TableHead className="w-16 sticky left-12 bg-gray-50 z-20 border-r">Image</TableHead>
-                )}
-                {visibleColumns.title && (
-                  <TableHead className="min-w-[250px] sticky left-28 bg-gray-50 z-20 border-r font-semibold">
-                    Product Details
-                  </TableHead>
-                )}
-                {visibleColumns.price && (
-                  <TableHead className="w-[120px] font-semibold">Price</TableHead>
-                )}
-                {visibleColumns.status && (
-                  <TableHead className="w-[100px] font-semibold">Status</TableHead>
-                )}
-                {visibleColumns.category && (
-                  <TableHead className="w-[120px] font-semibold">Category</TableHead>
-                )}
-                {visibleColumns.condition && (
-                  <TableHead className="w-[100px] font-semibold">Condition</TableHead>
-                )}
-                {visibleColumns.shipping && (
-                  <TableHead className="w-[100px]">Shipping</TableHead>
-                )}
-                {visibleColumns.measurements && (
-                  <TableHead className="w-[150px]">Measurements</TableHead>
-                )}
-                {visibleColumns.keywords && (
-                  <TableHead className="w-[150px]">Keywords</TableHead>
-                )}
-                {visibleColumns.description && (
-                  <TableHead className="w-[200px]">Description</TableHead>
-                )}
-                
-                {/* New financial columns */}
-                {visibleColumns.purchasePrice && (
-                  <TableHead className="w-[120px] font-semibold">Purchase Price</TableHead>
-                )}
-                {visibleColumns.purchaseDate && (
-                  <TableHead className="w-[120px]">Purchase Date</TableHead>
-                )}
-                {visibleColumns.consignmentStatus && (
-                  <TableHead className="w-[120px]">Consignment</TableHead>
-                )}
-                {visibleColumns.sourceType && (
-                  <TableHead className="w-[120px]">Source Type</TableHead>
-                )}
-                {visibleColumns.sourceLocation && (
-                  <TableHead className="w-[150px]">Source Location</TableHead>
-                )}
-                {visibleColumns.costBasis && (
-                  <TableHead className="w-[120px] font-semibold">Cost Basis</TableHead>
-                )}
-                {visibleColumns.netProfit && (
-                  <TableHead className="w-[120px] font-semibold">Net Profit</TableHead>
-                )}
-                {visibleColumns.profitMargin && (
-                  <TableHead className="w-[120px] font-semibold">Profit Margin</TableHead>
-                )}
-                {visibleColumns.daysToSell && (
-                  <TableHead className="w-[120px]">Days to Sell</TableHead>
-                )}
-                {visibleColumns.performanceNotes && (
-                  <TableHead className="w-[200px]">Performance Notes</TableHead>
-                )}
-                
-                <TableHead className="w-[140px] sticky right-0 bg-gray-50 z-20 border-l font-semibold">
-                  Actions
-                </TableHead>
-              </TableRow>
-            </TableHeader>
+            <ListingsTableHeader
+              visibleColumns={visibleColumns}
+              selectedCount={selectedListings.length}
+              totalCount={listings.length}
+              onSelectAll={onSelectAll}
+            />
             <TableBody>
               {listings.map((listing, index) => (
                 <ListingsTableRow
@@ -240,12 +158,7 @@ const ListingsTableView = ({
         </div>
       </div>
       
-      {listings.length === 0 && (
-        <div className="text-center py-8 text-gray-500">
-          <div className="text-lg font-medium mb-2">No listings found</div>
-          <div className="text-sm">Create your first listing to get started!</div>
-        </div>
-      )}
+      {listings.length === 0 && <ListingsTableEmpty />}
     </div>
   );
 };
