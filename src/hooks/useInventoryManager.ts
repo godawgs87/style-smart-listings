@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo } from 'react';
 import { useListings } from '@/hooks/useListings';
 import { useInventoryFilters } from '@/components/inventory/InventoryFilters';
@@ -18,9 +19,9 @@ export const useInventoryManager = () => {
 
   // Progressive loading with reasonable defaults
   const progressiveLoading = useProgressiveLoading({
-    initialLimit: 5, // Even smaller initial limit
-    incrementSize: 5, // Smaller increments
-    maxLimit: 25 // Much lower max to prevent timeouts
+    initialLimit: 20, // Start with 20 items
+    incrementSize: 20, // Load 20 more at a time
+    maxLimit: 200 // Cap at 200 items
   });
 
   // Data fetching with progressive limit

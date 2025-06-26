@@ -9,6 +9,10 @@ export interface FallbackListing {
   category?: string;
   condition?: string;
   description?: string;
+  photos?: string[];
+  measurements?: any;
+  keywords?: string[];
+  shipping_cost?: number;
 }
 
 const FALLBACK_KEY = 'inventory_fallback_data';
@@ -26,7 +30,11 @@ export const fallbackDataService = {
         created_at: listing.created_at,
         category: listing.category,
         condition: listing.condition,
-        description: listing.description
+        description: listing.description,
+        photos: listing.photos || [],
+        measurements: listing.measurements || {},
+        keywords: listing.keywords || [],
+        shipping_cost: listing.shipping_cost
       }));
       
       localStorage.setItem(FALLBACK_KEY, JSON.stringify(fallbackData));

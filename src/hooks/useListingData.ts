@@ -22,7 +22,7 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
   const [usingFallback, setUsingFallback] = useState(false);
   const { toast } = useToast();
 
-  const { statusFilter, limit = 10, searchTerm, categoryFilter } = options;
+  const { statusFilter, limit = 20, searchTerm, categoryFilter } = options;
 
   const transformListing = (supabaseListing: any): Listing => {
     return {
@@ -32,21 +32,26 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
       keywords: supabaseListing.keywords || [],
       shipping_cost: supabaseListing.shipping_cost,
       description: supabaseListing.description || null,
-      purchase_date: undefined,
-      source_location: undefined,
-      source_type: undefined,
-      cost_basis: undefined,
-      fees_paid: undefined,
-      sold_date: undefined,
-      sold_price: undefined,
-      days_to_sell: undefined,
-      performance_notes: undefined,
-      price_research: null,
-      updated_at: supabaseListing.created_at,
-      user_id: '',
-      consignor_name: undefined,
-      consignor_contact: undefined,
-      listed_date: undefined
+      purchase_date: supabaseListing.purchase_date,
+      source_location: supabaseListing.source_location,
+      source_type: supabaseListing.source_type,
+      cost_basis: supabaseListing.cost_basis,
+      fees_paid: supabaseListing.fees_paid,
+      sold_date: supabaseListing.sold_date,
+      sold_price: supabaseListing.sold_price,
+      days_to_sell: supabaseListing.days_to_sell,
+      performance_notes: supabaseListing.performance_notes,
+      price_research: supabaseListing.price_research,
+      updated_at: supabaseListing.updated_at || supabaseListing.created_at,
+      user_id: supabaseListing.user_id || '',
+      consignor_name: supabaseListing.consignor_name,
+      consignor_contact: supabaseListing.consignor_contact,
+      listed_date: supabaseListing.listed_date,
+      purchase_price: supabaseListing.purchase_price,
+      net_profit: supabaseListing.net_profit,
+      profit_margin: supabaseListing.profit_margin,
+      is_consignment: supabaseListing.is_consignment,
+      consignment_percentage: supabaseListing.consignment_percentage
     };
   };
 
@@ -78,7 +83,12 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
       user_id: '',
       consignor_name: undefined,
       consignor_contact: undefined,
-      listed_date: undefined
+      listed_date: undefined,
+      purchase_price: undefined,
+      net_profit: undefined,
+      profit_margin: undefined,
+      is_consignment: undefined,
+      consignment_percentage: undefined
     };
   };
 
@@ -134,29 +144,42 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
 
   const fetchListings = async () => {
     try {
-      console.log('Attempting database connection with 3-second timeout...');
+      console.log(`Attempting database connection with timeout for ${limit} items...`);
       setLoading(true);
       setError(null);
       setUsingFallback(false);
       
-      // Ultra-short timeout to quickly detect database issues
+      // Reasonable timeout for database queries
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Database timeout - switching to fallback')), 3000)
+        setTimeout(() => reject(new Error('Database timeout - switching to fallback')), 8000)
       );
 
-      // Absolute minimal query
-      const queryPromise = supabase
+      // Build comprehensive query
+      let query = supabase
         .from('listings')
-        .select('id, title, price, status, created_at, category, condition, description')
+        .select('*')
         .order('created_at', { ascending: false })
-        .limit(Math.min(limit, 5)); // Cap at 5 items maximum
+        .limit(limit);
 
-      const result = await Promise.race([queryPromise, timeoutPromise]);
+      // Apply filters
+      if (statusFilter && statusFilter !== 'all') {
+        query = query.eq('status', statusFilter);
+      }
+
+      if (categoryFilter && categoryFilter !== 'all') {
+        query = query.eq('category', categoryFilter);
+      }
+
+      if (searchTerm && searchTerm.trim()) {
+        query = query.or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
+      }
+
+      const result = await Promise.race([query, timeoutPromise]);
       const { data, error: fetchError } = result as any;
 
       if (fetchError) {
         console.error('Database query error, switching to fallback:', fetchError);
-        throw new Error('Database query failed');
+        throw new Error(`Database query failed: ${fetchError.message}`);
       }
 
       if (!data) {

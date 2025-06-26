@@ -29,7 +29,7 @@ export const useProgressiveLoading = (options: ProgressiveLoadingOptions) => {
       setCurrentLimit(newLimit);
       toast({
         title: "Loading more items...",
-        description: `Loading ${newLimit - currentLimit} additional items.`
+        description: `Loading ${options.incrementSize} additional items.`
       });
       return true;
     } catch (error) {
