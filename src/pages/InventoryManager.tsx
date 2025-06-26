@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useListings } from '@/hooks/useListings';
@@ -7,7 +8,7 @@ import InventoryManagerHeader from '@/components/inventory/InventoryManagerHeade
 import InventoryContent from '@/components/inventory/InventoryContent';
 import InventoryStats from '@/components/inventory/InventoryStats';
 import InventoryControls from '@/components/inventory/InventoryControls';
-import InventoryFilters from '@/components/inventory/InventoryFilters';
+import { useInventoryFilters } from '@/components/inventory/InventoryFilters';
 
 interface InventoryManagerProps {
   onCreateListing: () => void;
@@ -23,20 +24,22 @@ const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) =>
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [sourceTypeFilter, setSourceTypeFilter] = useState('all');
   const [consignmentFilter, setConsignmentFilter] = useState('all');
+  const [priceRangeFilter, setPriceRangeFilter] = useState('all');
   const [sortBy, setSortBy] = useState('created_at');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [isBulkMode, setIsBulkMode] = useState(false);
 
-  const filteredAndSortedListings = useMemo(() => {
-    return InventoryFilters.filterAndSortListings(
-      listings, 
-      searchTerm, 
-      statusFilter, 
-      categoryFilter,
-      sourceTypeFilter,
-      consignmentFilter,
-      sortBy
-    );
-  }, [listings, searchTerm, statusFilter, categoryFilter, sourceTypeFilter, consignmentFilter, sortBy]);
+  const { filteredListings } = useInventoryFilters({
+    listings,
+    searchTerm,
+    statusFilter,
+    categoryFilter,
+    sortBy,
+    sourceTypeFilter,
+    consignmentFilter,
+    priceRangeFilter
+  });
 
   const categories = useMemo(() => {
     const uniqueCategories = [...new Set(listings.map(l => l.category).filter(Boolean))];
@@ -63,6 +66,18 @@ const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) =>
     };
   }, [listings]);
 
+  const handleSelectItem = (itemId: string, checked: boolean) => {
+    setSelectedItems(prev => 
+      checked 
+        ? [...prev, itemId]
+        : prev.filter(id => id !== itemId)
+    );
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    setSelectedItems(checked ? filteredListings.map(item => item.id) : []);
+  };
+
   return (
     <div className={`min-h-screen bg-gray-50 ${isMobile ? 'pb-20' : ''}`}>
       <StreamlinedHeader
@@ -72,8 +87,6 @@ const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) =>
       />
       
       <div className="max-w-7xl mx-auto p-4">
-        <InventoryManagerHeader onCreateListing={onCreateListing} />
-        
         <InventoryStats {...stats} />
         
         <InventoryControls
@@ -96,12 +109,16 @@ const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) =>
         />
         
         <InventoryContent
-          listings={filteredAndSortedListings}
           viewMode={viewMode}
+          filteredListings={filteredListings}
+          selectedItems={selectedItems}
+          isBulkMode={isBulkMode}
           loading={loading}
           error={error}
-          onDeleteListing={deleteListing}
+          onSelectItem={handleSelectItem}
+          onSelectAll={handleSelectAll}
           onUpdateListing={updateListing}
+          onDeleteListing={deleteListing}
         />
       </div>
 

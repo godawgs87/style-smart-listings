@@ -4,19 +4,12 @@ import React from 'react';
 interface InventoryFiltersProps {
   listings: any[];
   searchTerm: string;
-  setSearchTerm: (term: string) => void;
   statusFilter: string;
-  setStatusFilter: (status: string) => void;
   categoryFilter: string;
-  setCategoryFilter: (category: string) => void;
   sortBy: string;
-  setSortBy: (sort: string) => void;
   sourceTypeFilter: string;
-  setSourceTypeFilter: (sourceType: string) => void;
   consignmentFilter: string;
-  setConsignmentFilter: (consignment: string) => void;
   priceRangeFilter: string;
-  setPriceRangeFilter: (priceRange: string) => void;
 }
 
 export const useInventoryFilters = ({
@@ -28,7 +21,7 @@ export const useInventoryFilters = ({
   sourceTypeFilter,
   consignmentFilter,
   priceRangeFilter
-}: Omit<InventoryFiltersProps, 'setSearchTerm' | 'setStatusFilter' | 'setCategoryFilter' | 'setSortBy' | 'setSourceTypeFilter' | 'setConsignmentFilter' | 'setPriceRangeFilter'>) => {
+}: InventoryFiltersProps) => {
   const filteredListings = listings
     .filter(item => {
       const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -85,3 +78,10 @@ export const useInventoryFilters = ({
 
   return { filteredListings };
 };
+
+// Create a component for future use if needed
+const InventoryFilters = () => {
+  return null; // This is just a placeholder component
+};
+
+export default InventoryFilters;
