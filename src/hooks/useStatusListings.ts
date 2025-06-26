@@ -18,38 +18,35 @@ export const useStatusListings = ({ status, limit = 20 }: StatusListingsOptions)
     try {
       setError(null);
       setLoading(true);
-      console.log(`Fetching ${status} listings - simplified approach`);
+      console.log(`Fetching complete ${status} listings data`);
       
-      // Simple, fast query - no complex auth checks
       const queryStart = Date.now();
       const { data, error: fetchError } = await supabase
         .from('listings')
-        .select('id, title, price, status, photos, created_at')
+        .select('*') // Select all fields to get complete data including shipping_cost, measurements, etc.
         .eq('status', status)
         .order('created_at', { ascending: false })
         .limit(limit);
 
       const queryTime = Date.now() - queryStart;
-      console.log(`${status} listings query completed in ${queryTime}ms`);
+      console.log(`${status} complete listings query completed in ${queryTime}ms`);
 
       if (fetchError) {
         console.error(`Error fetching ${status} listings:`, fetchError);
         throw new Error(`Database error: ${fetchError.message}`);
       }
 
-      // Simple transformation with minimal processing
+      // Transform data to ensure proper structure
       const transformedData = (data || []).map((item: any) => ({
         ...item,
-        category: null,
-        condition: null,
-        description: null,
-        measurements: {},
-        keywords: [],
-        shipping_cost: 9.95
+        measurements: item.measurements || {},
+        keywords: item.keywords || [],
+        photos: item.photos || [],
+        shipping_cost: item.shipping_cost // Use actual shipping cost from database
       }));
 
       setListings(transformedData);
-      console.log(`Successfully loaded ${transformedData.length} ${status} listings`);
+      console.log(`Successfully loaded ${transformedData.length} complete ${status} listings`);
       
     } catch (error: any) {
       console.error('Status listings error:', error);

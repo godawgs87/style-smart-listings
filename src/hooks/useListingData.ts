@@ -59,20 +59,20 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
       measurements: (supabaseListing.measurements as any) || {},
       photos: supabaseListing.photos || [],
       keywords: supabaseListing.keywords || [],
-      shipping_cost: supabaseListing.shipping_cost || 9.95
+      shipping_cost: supabaseListing.shipping_cost
     };
   };
 
   const fetchListings = async () => {
     try {
-      console.log('Fetching inventory data - simplified approach');
+      console.log('Fetching complete listing data');
       setLoading(true);
       setError(null);
       
-      // Build simple, fast query
+      // Fetch all fields needed for the table view
       let query = supabase
         .from('listings')
-        .select('id, title, price, status, category, condition, photos, created_at, updated_at, user_id');
+        .select('*'); // Select all fields to get complete data
 
       if (statusFilter && statusFilter !== 'all') {
         query = query.eq('status', statusFilter);
@@ -82,13 +82,13 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
         .order('created_at', { ascending: false })
         .limit(limit);
 
-      console.log('Executing simplified query...');
+      console.log('Executing complete data query...');
       const queryStart = Date.now();
       
       const { data, error: fetchError } = await query;
 
       const queryTime = Date.now() - queryStart;
-      console.log('Query completed in', queryTime, 'ms');
+      console.log('Complete data query completed in', queryTime, 'ms');
 
       if (fetchError) {
         console.error('Query error:', fetchError);
@@ -101,17 +101,10 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
         return;
       }
 
-      // Simple transformation with minimal processing
-      const transformedListings = data.map((item: any) => ({
-        ...item,
-        description: null,
-        measurements: {},
-        keywords: [],
-        price_research: null,
-        shipping_cost: 9.95
-      }));
+      // Transform the data properly
+      const transformedListings = data.map(transformListing);
       
-      console.log(`Successfully loaded ${transformedListings.length} listings`);
+      console.log(`Successfully loaded ${transformedListings.length} complete listings`);
       setListings(transformedListings);
       
     } catch (error: any) {
