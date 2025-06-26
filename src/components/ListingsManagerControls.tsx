@@ -1,53 +1,65 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { CheckSquare, Table } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 
 interface ListingsManagerControlsProps {
-  viewMode: 'cards' | 'table';
-  isBulkMode: boolean;
-  selectedCount: number;
-  onToggleViewMode: () => void;
-  onToggleBulkMode: () => void;
+  searchTerm: string;
+  setSearchTerm: (term: string) => void;
+  selectedListings: string[];
+  onBulkDelete: () => void;
+  viewMode: 'grid' | 'table';
+  setViewMode: (mode: 'grid' | 'table') => void;
+  filteredCount: number;
 }
 
 const ListingsManagerControls = ({
+  searchTerm,
+  setSearchTerm,
+  selectedListings,
+  onBulkDelete,
   viewMode,
-  isBulkMode,
-  selectedCount,
-  onToggleViewMode,
-  onToggleBulkMode
+  setViewMode,
+  filteredCount
 }: ListingsManagerControlsProps) => {
   return (
-    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-      <div className="flex items-center gap-4">
-        <Button
-          variant={viewMode === 'table' ? "default" : "outline"}
-          size="sm"
-          onClick={onToggleViewMode}
-        >
-          <Table className="w-4 h-4 mr-2" />
-          {viewMode === 'table' ? 'Table View' : 'Card View'}
-        </Button>
-        
-        {viewMode === 'cards' && (
-          <Button
-            variant={isBulkMode ? "default" : "outline"}
-            size="sm"
-            onClick={onToggleBulkMode}
+    <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center gap-2">
+        <Input 
+          type="text" 
+          placeholder="Search listings..." 
+          className="max-w-xs"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+        {selectedListings.length > 0 && (
+          <Button 
+            variant="destructive" 
+            size="sm" 
+            onClick={onBulkDelete}
           >
-            <CheckSquare className="w-4 h-4 mr-2" />
-            {isBulkMode ? 'Exit Bulk Mode' : 'Bulk Select'}
+            Delete Selected ({selectedListings.length})
           </Button>
         )}
-        
-        {(isBulkMode || viewMode === 'table') && (
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">
-              {selectedCount} selected
-            </span>
-          </div>
-        )}
+      </div>
+      <div className="flex items-center gap-2">
+        <Button
+          variant={viewMode === 'grid' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setViewMode('grid')}
+        >
+          Grid
+        </Button>
+        <Button
+          variant={viewMode === 'table' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setViewMode('table')}
+        >
+          Table
+        </Button>
+        <div className="text-sm text-gray-600">
+          {filteredCount} listings
+        </div>
       </div>
     </div>
   );

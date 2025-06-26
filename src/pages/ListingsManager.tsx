@@ -6,6 +6,8 @@ import { useListings } from '@/hooks/useListings';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
 import MobileNavigation from '@/components/MobileNavigation';
 import ListingsTable from '@/components/ListingsTable';
+import ListingsCardView from '@/components/ListingsCardView';
+import ListingsManagerControls from '@/components/ListingsManagerControls';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AlertCircle } from 'lucide-react';
@@ -152,20 +154,15 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
 
         {/* Grid View */}
         {viewMode === 'grid' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-            {filteredListings.map((listing) => (
-              <ListingCard
-                key={listing.id}
-                listing={listing}
-                isBulkMode={selectedListings.length > 0}
-                isSelected={selectedListings.includes(listing.id)}
-                onSelect={(checked) => handleSelectListing(listing.id, checked)}
-                onEdit={() => handleEditListing(listing)}
-                onPreview={() => handlePreviewListing(listing)}
-                onDelete={() => handleDeleteListing(listing.id)}
-              />
-            ))}
-          </div>
+          <ListingsCardView
+            listings={filteredListings}
+            isBulkMode={selectedListings.length > 0}
+            selectedListings={selectedListings}
+            onSelectListing={handleSelectListing}
+            onEditListing={handleEditListing}
+            onPreviewListing={handlePreviewListing}
+            onDeleteListing={handleDeleteListing}
+          />
         )}
 
         {/* Table View */}
