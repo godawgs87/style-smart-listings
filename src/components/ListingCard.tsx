@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Edit, Eye, Trash2 } from 'lucide-react';
 import ListingImagePreview from '@/components/ListingImagePreview';
 import ProfitIndicator from '@/components/listing-card/ProfitIndicator';
+import { useListingDetails } from '@/hooks/useListingDetails';
 
 interface Listing {
   id: string;
@@ -44,6 +45,27 @@ const ListingCard = ({
   onPreview,
   onDelete
 }: ListingCardProps) => {
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [shippingCost, setShippingCost] = useState<number>(9.95);
+  const { loadDetails } = useListingDetails();
+
+  useEffect(() => {
+    // Load photos and shipping cost on-demand
+    const loadCardDetails = async () => {
+      const details = await loadDetails(listing.id);
+      if (details) {
+        if (details.photos) {
+          setPhotos(Array.isArray(details.photos) ? details.photos : []);
+        }
+        if (details.shipping_cost !== null && details.shipping_cost !== undefined) {
+          setShippingCost(details.shipping_cost);
+        }
+      }
+    };
+
+    loadCardDetails();
+  }, [listing.id, loadDetails]);
+
   const getDaysListedBadge = () => {
     if (!listing.days_to_sell && !listing.created_at) return null;
     
@@ -111,7 +133,7 @@ const ListingCard = ({
       <div className="mb-3 flex justify-center">
         <div className="w-24 h-24">
           <ListingImagePreview 
-            photos={listing.photos} 
+            photos={photos} 
             title={listing.title}
           />
         </div>
@@ -148,7 +170,7 @@ const ListingCard = ({
         <div className="space-y-1">
           <p className="text-sm font-bold text-green-600">${listing.price}</p>
           <p className="text-xs text-gray-500">
-            Shipping: ${listing.shipping_cost || 9.95}
+            Shipping: ${shippingCost.toFixed(2)}
           </p>
         </div>
       </div>
