@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, AlertTriangle, Settings } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
 import { useToast } from '@/hooks/use-toast';
@@ -15,12 +15,24 @@ const InventoryTimeoutError = ({ onBack, onRetry }: InventoryTimeoutErrorProps) 
   const isMobile = useIsMobile();
   const { toast } = useToast();
 
-  const handleRetry = () => {
-    console.log('Retrying with refresh...');
+  const handleQuickRetry = () => {
+    console.log('Quick retry with current settings...');
     toast({
-      title: "Refreshing data...",
-      description: "Loading your inventory with optimized settings."
+      title: "Retrying...",
+      description: "Loading inventory with current filters."
     });
+    onRetry();
+  };
+
+  const handleOptimizedRetry = () => {
+    console.log('Optimized retry with reduced data...');
+    toast({
+      title: "Loading optimized view...",
+      description: "Using reduced dataset for faster loading."
+    });
+    
+    // Clear any existing filters and use minimal data
+    localStorage.setItem('inventory_emergency_mode', 'true');
     onRetry();
   };
 
@@ -35,19 +47,32 @@ const InventoryTimeoutError = ({ onBack, onRetry }: InventoryTimeoutErrorProps) 
       <div className="max-w-4xl mx-auto p-6">
         <div className="text-center py-12">
           <div className="max-w-md mx-auto">
-            <RefreshCw className="w-12 h-12 mx-auto text-orange-500 mb-4" />
-            <h3 className="text-lg font-semibold mb-2 text-orange-700">Database Timeout</h3>
-            <p className="text-orange-600 mb-6">
-              The database is taking too long to respond. This might be due to a large amount of data or server load.
+            <AlertTriangle className="w-16 h-16 mx-auto text-red-500 mb-4" />
+            <h3 className="text-xl font-semibold mb-2 text-red-700">Database Connection Timeout</h3>
+            <p className="text-red-600 mb-6">
+              The database query is taking too long to complete. This usually happens when there's a large amount of data or slow server response.
             </p>
-            <div className="space-y-3">
-              <Button onClick={handleRetry} className="w-full">
+            
+            <div className="space-y-4">
+              <Button onClick={handleQuickRetry} className="w-full" variant="default">
                 <RefreshCw className="w-4 h-4 mr-2" />
-                Try Again with Smaller Dataset
+                Quick Retry
               </Button>
-              <p className="text-xs text-gray-500">
-                We'll load fewer items at a time to prevent timeouts.
-              </p>
+              
+              <Button onClick={handleOptimizedRetry} className="w-full" variant="outline">
+                <Settings className="w-4 h-4 mr-2" />
+                Load Minimal Data
+              </Button>
+              
+              <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-left">
+                <h4 className="font-medium text-yellow-800 mb-2">Troubleshooting Tips:</h4>
+                <ul className="text-sm text-yellow-700 space-y-1">
+                  <li>• Try using filters to reduce the amount of data</li>
+                  <li>• Check your internet connection stability</li>
+                  <li>• Consider using the search function to find specific items</li>
+                  <li>• The database may be under heavy load - try again in a few minutes</li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>

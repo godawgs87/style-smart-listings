@@ -5,7 +5,14 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import type { Listing } from '@/types/Listing';
 
-export const useListings = (options?: { statusFilter?: string; limit?: number }) => {
+interface UseListingsOptions {
+  statusFilter?: string;
+  limit?: number;
+  searchTerm?: string;
+  categoryFilter?: string;
+}
+
+export const useListings = (options?: UseListingsOptions) => {
   const { listings, setListings, loading, error, fetchListings, refetch } = useListingData(options || {});
   const { deleteListing: deleteOperation, duplicateListing: duplicateOperation, updateListing: updateOperation, updateListingStatus } = useListingOperations();
   const { toast } = useToast();

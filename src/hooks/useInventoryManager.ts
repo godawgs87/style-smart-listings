@@ -5,8 +5,6 @@ import { useInventoryFilters } from '@/components/inventory/InventoryFilters';
 import type { Listing } from '@/types/Listing';
 
 export const useInventoryManager = () => {
-  const { listings, loading, error, deleteListing, duplicateListing, updateListing, updateListingStatus, refetch } = useListings({ limit: 20 });
-  
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -18,11 +16,29 @@ export const useInventoryManager = () => {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [isBulkMode, setIsBulkMode] = useState(false);
 
+  // Pass server-side filters to the data layer
+  const { 
+    listings, 
+    loading, 
+    error, 
+    deleteListing, 
+    duplicateListing, 
+    updateListing, 
+    updateListingStatus, 
+    refetch 
+  } = useListings({ 
+    limit: 25,
+    statusFilter,
+    searchTerm: searchTerm.trim(),
+    categoryFilter
+  });
+
+  // Apply client-side filters only for complex filters that can't be done server-side
   const { filteredListings } = useInventoryFilters({
     listings,
-    searchTerm,
-    statusFilter,
-    categoryFilter,
+    searchTerm: '', // Already handled server-side
+    statusFilter: 'all', // Already handled server-side
+    categoryFilter: 'all', // Already handled server-side
     sortBy,
     sourceTypeFilter,
     consignmentFilter,
