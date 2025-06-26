@@ -80,11 +80,24 @@ const ListingsTableRowActions = ({
     setShowDeleteDialog(false);
   };
 
+  const handleDuplicateClick = () => {
+    console.log('Duplicate clicked for listing:', listing.id, 'onDuplicate available:', !!onDuplicate);
+    if (onDuplicate) {
+      setShowDuplicateDialog(true);
+    } else {
+      console.error('onDuplicate function not available');
+    }
+  };
+
   const handleDuplicateConfirm = async () => {
+    console.log('Duplicate confirmed for listing:', listing.id);
     if (onDuplicate && !isDuplicating) {
       setIsDuplicating(true);
       try {
         await onDuplicate(listing);
+        console.log('Duplicate operation completed');
+      } catch (error) {
+        console.error('Error during duplicate operation:', error);
       } finally {
         setIsDuplicating(false);
         setShowDuplicateDialog(false);
@@ -124,7 +137,7 @@ const ListingsTableRowActions = ({
               </DropdownMenuItem>
             )}
             {onDuplicate && (
-              <DropdownMenuItem onClick={() => setShowDuplicateDialog(true)}>
+              <DropdownMenuItem onClick={handleDuplicateClick}>
                 <Copy className="mr-2 h-4 w-4" />
                 Duplicate
               </DropdownMenuItem>
