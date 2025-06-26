@@ -89,18 +89,18 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
   return (
     <div className={`min-h-screen bg-gray-50 ${isMobile ? 'pb-20' : ''}`}>
       <StreamlinedHeader
-        title={
-          <div className="flex items-center gap-2">
-            Manage Listings
-            <PageInfoDialog pageName="Manage Listings" />
-          </div>
-        }
+        title="Manage Listings"
         userEmail={user?.email}
         showBack
         onBack={onBack}
       />
 
       <div className="max-w-7xl mx-auto p-4 space-y-6">
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold">Manage Listings</h1>
+          <PageInfoDialog pageName="Manage Listings" />
+        </div>
+
         <ListingsManagerControls
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
