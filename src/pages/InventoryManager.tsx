@@ -8,6 +8,7 @@ import MobileNavigation from '@/components/MobileNavigation';
 import InventoryCard from '@/components/InventoryCard';
 import InventoryStats from '@/components/inventory/InventoryStats';
 import InventoryControls from '@/components/inventory/InventoryControls';
+import ListingsTable from '@/components/ListingsTable';
 import { AlertCircle } from 'lucide-react';
 
 interface InventoryManagerProps {
@@ -36,6 +37,10 @@ const InventoryManager = ({ onBack, onCreateListing }: InventoryManagerProps) =>
     );
   };
 
+  const handleSelectAll = (checked: boolean) => {
+    setSelectedItems(checked ? filteredListings.map(l => l.id) : []);
+  };
+
   const handleBulkDelete = async () => {
     if (selectedItems.length === 0) return;
     
@@ -52,6 +57,15 @@ const InventoryManager = ({ onBack, onCreateListing }: InventoryManagerProps) =>
       await updateListing(id, { status });
     }
     setSelectedItems([]);
+  };
+
+  const handleUpdateListing = async (listingId: string, updates: any) => {
+    await updateListing(listingId, updates);
+  };
+
+  const handleDeleteListing = async (listingId: string) => {
+    await deleteListing(listingId);
+    setSelectedItems(prev => prev.filter(id => id !== listingId));
   };
 
   // Filter and sort listings
@@ -169,9 +183,14 @@ const InventoryManager = ({ onBack, onCreateListing }: InventoryManagerProps) =>
 
         {/* Table View */}
         {viewMode === 'table' && (
-          <div className="bg-white rounded-lg shadow-sm">
-            <p className="p-4 text-gray-500">Table view - use existing ListingsTable component</p>
-          </div>
+          <ListingsTable
+            listings={filteredListings}
+            selectedListings={selectedItems}
+            onSelectListing={handleSelectItem}
+            onSelectAll={handleSelectAll}
+            onUpdateListing={handleUpdateListing}
+            onDeleteListing={handleDeleteListing}
+          />
         )}
 
         {filteredListings.length === 0 && !loading && (

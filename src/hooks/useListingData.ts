@@ -40,11 +40,18 @@ interface Listing {
   user_id: string;
 }
 
-export const useListingData = () => {
+interface UseListingDataOptions {
+  statusFilter?: string;
+  limit?: number;
+}
+
+export const useListingData = (options: UseListingDataOptions = {}) => {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+
+  const { statusFilter, limit = 100 } = options;
 
   const transformListing = (supabaseListing: SupabaseListing): Listing => {
     return {
@@ -55,7 +62,7 @@ export const useListingData = () => {
 
   const fetchListings = async () => {
     try {
-      console.log('Starting to fetch listings...');
+      console.log('Starting to fetch listings with options:', options);
       setError(null);
       
       // Check if user is authenticated
@@ -80,8 +87,8 @@ export const useListingData = () => {
         return;
       }
 
-      // Use a more efficient query with limits and specific columns
-      const { data, error: fetchError } = await supabase
+      // Build query with efficient filtering
+      let query = supabase
         .from('listings')
         .select(`
           id,
@@ -100,9 +107,20 @@ export const useListingData = () => {
           updated_at,
           user_id
         `)
-        .eq('user_id', user.id)
+        .eq('user_id', user.id);
+
+      // Add status filter if provided (this uses our new index)
+      if (statusFilter && statusFilter !== 'all') {
+        query = query.eq('status', statusFilter);
+      }
+
+      // Add ordering and limit
+      query = query
         .order('created_at', { ascending: false })
-        .limit(100);
+        .limit(limit);
+
+      console.log('Executing query with filters:', { statusFilter, limit });
+      const { data, error: fetchError } = await query;
 
       console.log('Supabase query result:', { data, error: fetchError });
 
@@ -134,9 +152,10 @@ export const useListingData = () => {
       
       // Show success message if listings were found
       if (transformedListings.length > 0) {
+        const filterText = statusFilter && statusFilter !== 'all' ? ` ${statusFilter}` : '';
         toast({
           title: "Success",
-          description: `Loaded ${transformedListings.length} listing${transformedListings.length === 1 ? '' : 's'}`,
+          description: `Loaded ${transformedListings.length}${filterText} listing${transformedListings.length === 1 ? '' : 's'}`,
         });
       }
     } catch (error) {
@@ -159,7 +178,7 @@ export const useListingData = () => {
 
   useEffect(() => {
     fetchListings();
-  }, []);
+  }, [statusFilter, limit]); // Re-fetch when options change
 
   return {
     listings,
