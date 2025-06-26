@@ -46,27 +46,30 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
   };
 
   const handleDeleteListing = async (listingId: string) => {
+    console.log('Deleting listing:', listingId);
     await deleteListing(listingId);
     setSelectedListings(prev => prev.filter(id => id !== listingId));
   };
 
   const handlePreviewListing = (listing: any) => {
     console.log('Preview listing:', listing);
-    // TODO: Implement preview functionality
+    // TODO: Implement preview functionality - could open a modal or navigate to preview page
   };
 
   const handleEditListing = (listing: any) => {
     console.log('Edit listing:', listing);
-    // TODO: Implement edit functionality
+    // TODO: Implement edit functionality - could navigate to edit page or open edit modal
   };
 
   const handleBulkDelete = async () => {
     if (selectedListings.length === 0) return;
     
-    for (const id of selectedListings) {
-      await deleteListing(id);
+    if (window.confirm(`Are you sure you want to delete ${selectedListings.length} listings? This action cannot be undone.`)) {
+      for (const id of selectedListings) {
+        await deleteListing(id);
+      }
+      setSelectedListings([]);
     }
-    setSelectedListings([]);
   };
 
   const filteredListings = listings.filter(listing =>
