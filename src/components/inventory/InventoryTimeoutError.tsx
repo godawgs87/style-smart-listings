@@ -1,12 +1,13 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, AlertTriangle, Settings, Database, WifiOff, LogOut } from 'lucide-react';
+import { RefreshCw, AlertTriangle, Settings, WifiOff, LogOut, Database } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
 import { useToast } from '@/hooks/use-toast';
 import { fallbackDataService } from '@/services/fallbackDataService';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 interface InventoryTimeoutErrorProps {
   onBack: () => void;
@@ -21,11 +22,50 @@ const InventoryTimeoutError = ({ onBack, onRetry, onForceOffline, error }: Inven
   const { signOut } = useAuth();
   const hasFallbackData = fallbackDataService.hasFallbackData();
 
-  const isAuthError = error?.includes('Authentication') || error?.includes('JWT') || error?.includes('auth') || error?.includes('policy');
-  const isTimeoutError = error?.includes('timeout') || error?.includes('unavailable') || error?.includes('connection');
+  const isAuthError = error?.includes('Authentication') || error?.includes('JWT') || error?.includes('auth');
 
-  const handleQuickRetry = () => {
-    console.log('Quick retry with database...');
+  const handleConnectionTest = async () => {
+    console.log('🔍 Testing Supabase connection...');
+    toast({
+      title: "Testing Connection...",
+      description: "Attempting to connect to database..."
+    });
+
+    try {
+      const { data, error } = await supabase
+        .from('listings')
+        .select('id')
+        .limit(1);
+        
+      if (error) {
+        console.error('❌ Connection test failed:', error);
+        toast({
+          title: "Connection Test Failed",
+          description: `Error: ${error.message}`,
+          variant: "destructive"
+        });
+      } else {
+        console.log('✅ Connection test successful');
+        toast({
+          title: "Connection Test Successful",
+          description: "Database is accessible. Retrying fetch...",
+          variant: "default"
+        });
+        // If test passes, try the actual retry
+        onRetry();
+      }
+    } catch (err: any) {
+      console.error('💥 Connection test exception:', err);
+      toast({
+        title: "Connection Test Failed",
+        description: `Exception: ${err.message}`,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleRetry = () => {
+    console.log('🔄 Manual retry triggered');
     toast({
       title: "Retrying...",
       description: "Attempting database connection..."
@@ -34,25 +74,20 @@ const InventoryTimeoutError = ({ onBack, onRetry, onForceOffline, error }: Inven
   };
 
   const handleOfflineMode = () => {
-    console.log('Switching to offline mode...');
-    toast({
-      title: "Offline mode activated",
-      description: hasFallbackData ? "Loading cached inventory data." : "No cached data available."
-    });
-    
+    console.log('🔌 Switching to offline mode...');
     if (onForceOffline) {
       onForceOffline();
     }
   };
 
   const handleClearCache = () => {
-    console.log('Clearing all cache and reloading...');
+    console.log('🧹 Clearing cache and retrying...');
     fallbackDataService.clearFallbackData();
     localStorage.clear();
     
     toast({
-      title: "Cache cleared",
-      description: "Attempting fresh database connection..."
+      title: "Cache Cleared",
+      description: "Attempting fresh connection..."
     });
     
     setTimeout(() => {
@@ -61,32 +96,16 @@ const InventoryTimeoutError = ({ onBack, onRetry, onForceOffline, error }: Inven
   };
 
   const handleSignOut = async () => {
-    console.log('Signing out and clearing auth state...');
+    console.log('👋 Signing out...');
     try {
       await signOut();
       toast({
-        title: "Signed out",
-        description: "Please sign back in to access your listings"
+        title: "Signed Out",
+        description: "Please sign back in to continue"
       });
     } catch (error) {
       console.error('Sign out error:', error);
     }
-  };
-
-  const getErrorTitle = () => {
-    if (isAuthError) return "Authentication Error";
-    if (isTimeoutError) return "Database Connection Issues";
-    return "Database Error";
-  };
-
-  const getErrorDescription = () => {
-    if (isAuthError) {
-      return "Your authentication session may have expired or there's an issue with data access permissions.";
-    }
-    if (isTimeoutError) {
-      return "The database is currently unavailable or taking too long to respond.";
-    }
-    return error || "An unexpected database error occurred.";
   };
 
   return (
@@ -102,10 +121,10 @@ const InventoryTimeoutError = ({ onBack, onRetry, onForceOffline, error }: Inven
           <div className="max-w-md mx-auto">
             <AlertTriangle className={`w-16 h-16 mx-auto mb-4 ${isAuthError ? 'text-orange-500' : 'text-red-500'}`} />
             <h3 className={`text-xl font-semibold mb-2 ${isAuthError ? 'text-orange-700' : 'text-red-700'}`}>
-              {getErrorTitle()}
+              {isAuthError ? 'Authentication Error' : 'Database Connection Error'}
             </h3>
             <p className={`mb-6 ${isAuthError ? 'text-orange-600' : 'text-red-600'}`}>
-              {getErrorDescription()}
+              {error || 'Unable to connect to the database'}
             </p>
             
             <div className="space-y-3">
@@ -115,14 +134,19 @@ const InventoryTimeoutError = ({ onBack, onRetry, onForceOffline, error }: Inven
                     <LogOut className="w-4 h-4 mr-2" />
                     Sign Out & Log Back In
                   </Button>
-                  <Button onClick={handleQuickRetry} className="w-full" variant="outline">
+                  <Button onClick={handleRetry} className="w-full" variant="outline">
                     <RefreshCw className="w-4 h-4 mr-2" />
                     Try Again
                   </Button>
                 </>
               ) : (
                 <>
-                  <Button onClick={handleQuickRetry} className="w-full" variant="default">
+                  <Button onClick={handleConnectionTest} className="w-full" variant="default">
+                    <Database className="w-4 h-4 mr-2" />
+                    Test Connection
+                  </Button>
+                  
+                  <Button onClick={handleRetry} className="w-full" variant="outline">
                     <RefreshCw className="w-4 h-4 mr-2" />
                     Try Database Again
                   </Button>
@@ -143,33 +167,13 @@ const InventoryTimeoutError = ({ onBack, onRetry, onForceOffline, error }: Inven
             </div>
 
             <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-left">
-              <h4 className="font-medium text-blue-800 mb-2">Available Options:</h4>
-              <ul className="text-sm text-blue-700 space-y-1">
-                {isAuthError ? (
-                  <>
-                    <li>• <strong>Sign Out & Log Back In:</strong> Refresh your authentication session</li>
-                    <li>• <strong>Try Again:</strong> Retry with current session</li>
-                  </>
-                ) : (
-                  <>
-                    <li>• <strong>Try Database Again:</strong> Attempt to reconnect to the database</li>
-                    {hasFallbackData && (
-                      <li>• <strong>Work Offline:</strong> Use previously cached inventory data</li>
-                    )}
-                  </>
-                )}
-                <li>• <strong>Clear Cache:</strong> Reset all cached data and try fresh connection</li>
-              </ul>
-            </div>
-            
-            {!hasFallbackData && !isAuthError && (
-              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-left">
-                <h4 className="font-medium text-yellow-800 mb-2">No Cached Data Available</h4>
-                <p className="text-sm text-yellow-700">
-                  You'll need a successful database connection to view your inventory. Once connected, data will be cached for offline use.
-                </p>
+              <h4 className="font-medium text-blue-800 mb-2">Debug Information:</h4>
+              <div className="text-sm text-blue-700 space-y-1">
+                <div>Error: {error || 'Unknown'}</div>
+                <div>Has Cached Data: {hasFallbackData ? 'Yes' : 'No'}</div>
+                <div>Check browser console for detailed logs</div>
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>
