@@ -12,7 +12,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Edit, Trash2, Eye, MoreVertical, Copy, Archive } from 'lucide-react';
 
@@ -60,6 +59,7 @@ interface ListingsTableRowActionsProps {
   onDelete: () => void;
   onPreview?: (listing: Listing) => void;
   onEditListing?: (listing: Listing) => void;
+  onDuplicate?: (listing: Listing) => void;
 }
 
 const ListingsTableRowActions = ({ 
@@ -67,14 +67,29 @@ const ListingsTableRowActions = ({
   onEdit, 
   onDelete, 
   onPreview,
-  onEditListing 
+  onEditListing,
+  onDuplicate 
 }: ListingsTableRowActionsProps) => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
+  const [isDuplicating, setIsDuplicating] = useState(false);
   
   const handleDeleteConfirm = () => {
     console.log('Delete confirmed for listing:', listing.id);
     onDelete();
     setShowDeleteDialog(false);
+  };
+
+  const handleDuplicateConfirm = async () => {
+    if (onDuplicate && !isDuplicating) {
+      setIsDuplicating(true);
+      try {
+        await onDuplicate(listing);
+      } finally {
+        setIsDuplicating(false);
+        setShowDuplicateDialog(false);
+      }
+    }
   };
 
   return (
@@ -108,10 +123,12 @@ const ListingsTableRowActions = ({
                 Edit Details
               </DropdownMenuItem>
             )}
-            <DropdownMenuItem onClick={() => console.log('Duplicate listing')}>
-              <Copy className="mr-2 h-4 w-4" />
-              Duplicate
-            </DropdownMenuItem>
+            {onDuplicate && (
+              <DropdownMenuItem onClick={() => setShowDuplicateDialog(true)}>
+                <Copy className="mr-2 h-4 w-4" />
+                Duplicate
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={() => console.log('Archive listing')}>
               <Archive className="mr-2 h-4 w-4" />
               Archive
@@ -143,6 +160,26 @@ const ListingsTableRowActions = ({
               className="bg-red-600 hover:bg-red-700"
             >
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Duplicate Listing</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to create a copy of "{listing.title}"? This will create a new draft listing with the same details.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDuplicateConfirm}
+              disabled={isDuplicating}
+            >
+              {isDuplicating ? "Duplicating..." : "Duplicate"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

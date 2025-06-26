@@ -102,6 +102,7 @@ const InventoryContent = ({
           onSelectAll={onSelectAll}
           onUpdateListing={onUpdateListing}
           onDeleteListing={onDeleteListing}
+          onDuplicateListing={onDuplicateListing}
         />
       )}
     </>

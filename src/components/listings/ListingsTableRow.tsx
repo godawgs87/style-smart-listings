@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -78,6 +79,7 @@ interface ListingsTableRowProps {
   onDeleteListing: (listingId: string) => void;
   onPreviewListing?: (listing: Listing) => void;
   onEditListing?: (listing: Listing) => void;
+  onDuplicateListing?: (listing: Listing) => void;
 }
 
 const ListingsTableRow = ({
@@ -89,7 +91,8 @@ const ListingsTableRow = ({
   onUpdateListing,
   onDeleteListing,
   onPreviewListing,
-  onEditListing
+  onEditListing,
+  onDuplicateListing
 }: ListingsTableRowProps) => {
   const [isEditing, setIsEditing] = useState(false);
 
@@ -133,6 +136,7 @@ const ListingsTableRow = ({
             onDelete={handleDelete}
             onPreview={onPreviewListing}
             onEditListing={onEditListing}
+            onDuplicate={onDuplicateListing}
           />
         </>
       )}

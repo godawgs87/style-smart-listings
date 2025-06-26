@@ -83,6 +83,7 @@ interface ListingsTableViewProps {
   onDeleteListing: (listingId: string) => void;
   onPreviewListing?: (listing: Listing) => void;
   onEditListing?: (listing: Listing) => void;
+  onDuplicateListing?: (listing: Listing) => void;
 }
 
 const ListingsTableView = ({
@@ -93,7 +94,8 @@ const ListingsTableView = ({
   onUpdateListing,
   onDeleteListing,
   onPreviewListing,
-  onEditListing
+  onEditListing,
+  onDuplicateListing
 }: ListingsTableViewProps) => {
   const [visibleColumns, setVisibleColumns] = useState<VisibleColumns>({
     image: true,
@@ -231,6 +233,7 @@ const ListingsTableView = ({
                   onDeleteListing={onDeleteListing}
                   onPreviewListing={onPreviewListing}
                   onEditListing={onEditListing}
+                  onDuplicateListing={onDuplicateListing}
                 />
               ))}
             </TableBody>
