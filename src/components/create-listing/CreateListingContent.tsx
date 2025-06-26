@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import PhotoUpload from '@/components/PhotoUpload';
 import ShippingCalculator from '@/components/ShippingCalculator';
 import EditableListingForm from './EditableListingForm';
+import PreviewHeader from './sections/PreviewHeader';
 import { Step, ListingData } from '@/types/CreateListing';
 
 interface CreateListingContentProps {
@@ -47,18 +48,15 @@ const CreateListingContent = ({
   const [updatedListingData, setUpdatedListingData] = useState<ListingData | null>(null);
 
   const handleListingUpdate = (updates: Partial<ListingData>) => {
+    console.log('Updating listing data:', updates);
     if (listingData) {
       const updated = { ...listingData, ...updates };
       setUpdatedListingData(updated);
-    }
-  };
-
-  const handleSaveListingChanges = () => {
-    if (updatedListingData) {
-      console.log('Saving listing changes:', updatedListingData);
+      
+      // Show feedback for updates
       toast({
-        title: "Success",
-        description: "Listing details updated successfully"
+        title: "Updated",
+        description: "Changes saved automatically"
       });
     }
   };
@@ -94,24 +92,34 @@ const CreateListingContent = ({
 
   if (currentStep === 'preview' && currentListingData) {
     return (
-      <div className="max-w-4xl mx-auto p-6 space-y-8">
-        <EditableListingForm
-          listingData={currentListingData}
-          onUpdate={handleListingUpdate}
-          onSave={handleSaveListingChanges}
-          isEditing={true}
-          onToggleEdit={() => {}}
-        />
+      <div className="max-w-4xl mx-auto p-6 space-y-6">
+        {/* Main Preview Card with Editable Header */}
+        <Card>
+          <PreviewHeader
+            listingData={currentListingData}
+            onUpdate={handleListingUpdate}
+          />
+          
+          {/* Optional/Advanced Fields Section */}
+          <CardContent className="p-6">
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Additional Details</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                These optional fields help improve your listing's searchability and provide more context to buyers.
+              </p>
+            </div>
+            
+            <EditableListingForm
+              listingData={currentListingData}
+              onUpdate={handleListingUpdate}
+              onSave={() => {}}
+              isEditing={true}
+              onToggleEdit={() => {}}
+            />
+          </CardContent>
+        </Card>
 
-        <div className="flex justify-center space-x-4 pt-4">
-          <Button variant="outline" onClick={onBack}>
-            Back to Photos
-          </Button>
-          <Button onClick={onExport} disabled={isSaving}>
-            {isSaving ? 'Saving...' : 'Continue to Shipping'}
-          </Button>
-        </div>
-
+        {/* Photos Section */}
         {currentListingData.photos && currentListingData.photos.length > 0 && (
           <Card>
             <CardHeader>
@@ -131,6 +139,16 @@ const CreateListingContent = ({
             </CardContent>
           </Card>
         )}
+
+        {/* Action Buttons */}
+        <div className="flex justify-center space-x-4 pt-4">
+          <Button variant="outline" onClick={onBack}>
+            Back to Photos
+          </Button>
+          <Button onClick={onExport} disabled={isSaving}>
+            {isSaving ? 'Saving...' : 'Continue to Shipping'}
+          </Button>
+        </div>
       </div>
     );
   }
