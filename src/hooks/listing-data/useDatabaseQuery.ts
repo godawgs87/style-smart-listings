@@ -30,38 +30,19 @@ export const useDatabaseQuery = () => {
         categoryFilter
       });
       
-      // Force a fresh auth check
-      console.log('🔐 Starting fresh authentication check...');
+      // Quick auth check first
+      console.log('🔐 Checking authentication...');
       const { data: authData, error: authError } = await supabase.auth.getUser();
       
-      if (authError) {
-        console.error('❌ Auth error:', authError);
-        return { listings: [], error: `Authentication failed: ${authError.message}` };
-      }
-      
-      if (!authData?.user) {
-        console.error('❌ No user found in auth response');
-        return { listings: [], error: 'No authenticated user found' };
-      }
-      
-      console.log(`✅ User authenticated: ${authData.user.id}`);
-      
-      // Test database connection first with a simple query
-      console.log('🧪 Testing database connection...');
-      const { data: testData, error: testError } = await supabase
-        .from('listings')
-        .select('id')
-        .limit(1);
-        
-      if (testError) {
-        console.error('❌ Database connection test failed:', testError);
+      if (authError || !authData?.user) {
+        console.error('❌ Auth failed:', authError?.message || 'No user');
         return { listings: [], error: 'CONNECTION_ERROR' };
       }
       
-      console.log('✅ Database connection test passed');
+      console.log(`✅ User authenticated: ${authData.user.id}`);
 
-      // Build the main query
-      console.log('🔧 Building main query...');
+      // Build query with short timeout
+      console.log('🔧 Building database query...');
       let query = supabase
         .from('listings')
         .select('*')
@@ -72,26 +53,33 @@ export const useDatabaseQuery = () => {
       // Apply filters
       if (statusFilter && statusFilter !== 'all') {
         query = query.eq('status', statusFilter);
-        console.log(`🎯 Applied status filter: ${statusFilter}`);
       }
 
       if (categoryFilter && categoryFilter !== 'all') {
         query = query.eq('category', categoryFilter);
-        console.log(`🎯 Applied category filter: ${categoryFilter}`);
       }
 
       if (searchTerm && searchTerm.trim()) {
         query = query.ilike('title', `%${searchTerm}%`);
-        console.log(`🎯 Applied search filter: ${searchTerm}`);
       }
 
-      console.log('⏱️ Executing main database query...');
+      console.log('⏱️ Executing database query with 5s timeout...');
       const queryStartTime = Date.now();
       
-      const { data, error: fetchError } = await query;
+      // Set a reasonable timeout for the query
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Query timeout')), 5000); // 5 second timeout
+      });
+      
+      const queryPromise = query;
+      
+      const { data, error: fetchError } = await Promise.race([
+        queryPromise,
+        timeoutPromise
+      ]) as any;
       
       const queryTime = Date.now() - queryStartTime;
-      console.log(`📊 Main query completed in ${queryTime}ms`);
+      console.log(`📊 Query completed in ${queryTime}ms`);
 
       if (fetchError) {
         console.error('❌ Database fetch error:', fetchError);
@@ -120,7 +108,12 @@ export const useDatabaseQuery = () => {
       return { listings: transformedListings, error: null };
       
     } catch (error: any) {
-      console.error('💥 Unexpected error in fetchFromDatabase:', error);
+      console.error('💥 Error in fetchFromDatabase:', error.message);
+      
+      if (error.message === 'Query timeout') {
+        console.log('⏰ Database query timed out');
+      }
+      
       return { listings: [], error: 'CONNECTION_ERROR' };
     }
   };

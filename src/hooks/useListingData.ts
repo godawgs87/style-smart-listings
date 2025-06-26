@@ -30,8 +30,11 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
       setLoading(true);
       setError(null);
       
-      // Always try database first, don't stay in fallback mode
-      setUsingFallback(false);
+      // Force database attempt on manual retry
+      if (isRetry) {
+        setUsingFallback(false);
+        retryCountRef.current = 0;
+      }
       
       const { listings: fetchedListings, error: fetchError } = await fetchFromDatabase({
         statusFilter,
@@ -55,7 +58,7 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
         if (!isRetry) {
           toast({
             title: "Database Unavailable",
-            description: "Switched to offline mode. Click 'Try Database Again' to reconnect.",
+            description: "Switched to offline mode. Use the 'Try Database Again' button to reconnect.",
             variant: "destructive"
           });
         }
@@ -109,6 +112,12 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
     setListings(fallbackListings);
     setError(null);
     setLoading(false);
+    
+    toast({
+      title: "Offline Mode",
+      description: "Working with cached data. Use 'Try Database Again' when ready to reconnect.",
+      variant: "default"
+    });
   };
 
   useEffect(() => {
