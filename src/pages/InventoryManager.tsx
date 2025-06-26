@@ -1,14 +1,13 @@
+
 import React, { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
 import { useListings } from '@/hooks/useListings';
-import StreamlinedHeader from '@/components/StreamlinedHeader';
-import MobileNavigation from '@/components/MobileNavigation';
-import InventoryCard from '@/components/InventoryCard';
+import InventoryManagerHeader from '@/components/inventory/InventoryManagerHeader';
 import InventoryStats from '@/components/inventory/InventoryStats';
 import InventoryControls from '@/components/inventory/InventoryControls';
-import ListingsTable from '@/components/ListingsTable';
-import { AlertCircle } from 'lucide-react';
+import InventoryContent from '@/components/inventory/InventoryContent';
+import { useInventoryFilters } from '@/components/inventory/InventoryFilters';
 
 interface InventoryManagerProps {
   onBack: () => void;
@@ -27,10 +26,17 @@ const InventoryManager = ({ onBack, onCreateListing }: InventoryManagerProps) =>
   const isMobile = useIsMobile();
   const { user } = useAuth();
   
-  // Use lighter options for better performance
   const { listings, loading, error, deleteListing, updateListing } = useListings({
     statusFilter: statusFilter === 'all' ? undefined : statusFilter,
-    limit: 25 // Reduced limit for better performance
+    limit: 25
+  });
+
+  const { filteredListings } = useInventoryFilters({
+    listings,
+    searchTerm,
+    statusFilter,
+    categoryFilter,
+    sortBy
   });
 
   const handleSelectItem = (itemId: string, checked: boolean) => {
@@ -72,65 +78,9 @@ const InventoryManager = ({ onBack, onCreateListing }: InventoryManagerProps) =>
     setSelectedItems(prev => prev.filter(id => id !== listingId));
   };
 
-  // Filter and sort listings
-  const filteredListings = listings
-    .filter(item => {
-      const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           item.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           item.category?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
-      const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
-      
-      return matchesSearch && matchesStatus && matchesCategory;
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case 'created_at_desc':
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-        case 'created_at_asc':
-          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-        case 'price_desc':
-          return b.price - a.price;
-        case 'price_asc':
-          return a.price - b.price;
-        case 'title_asc':
-          return a.title.localeCompare(b.title);
-        default:
-          return 0;
-      }
-    });
-
-  // Calculate summary stats
-  const totalValue = listings.reduce((sum, item) => sum + item.price, 0);
-  const totalCost = listings.reduce((sum, item) => sum + (item.purchase_price || 0), 0);
-  const totalProfit = totalValue - totalCost;
-  const activeItems = listings.filter(item => item.status === 'active');
-  const categories = [...new Set(listings.map(item => item.category).filter(Boolean))];
-
-  if (loading) {
-    return (
-      <div className={`min-h-screen bg-gray-50 ${isMobile ? 'pb-20' : ''}`}>
-        <StreamlinedHeader
-          title="Inventory Manager"
-          userEmail={user?.email}
-          showBack
-          onBack={onBack}
-        />
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className={`min-h-screen bg-gray-50 ${isMobile ? 'pb-20' : ''}`}>
-      <StreamlinedHeader
-        title="Inventory Manager"
-        userEmail={user?.email}
-        showBack
-        onBack={onBack}
-      />
+      <InventoryManagerHeader userEmail={user?.email} onBack={onBack} />
 
       <div className="max-w-7xl mx-auto p-4 space-y-6">
         <InventoryStats
@@ -160,59 +110,19 @@ const InventoryManager = ({ onBack, onCreateListing }: InventoryManagerProps) =>
           categories={[...new Set(listings.map(item => item.category).filter(Boolean))]}
         />
 
-        {error && (
-          <div className="text-red-500 flex items-center">
-            <AlertCircle className="mr-2 h-4 w-4" />
-            Connection timed out. Please try refreshing or check your internet connection.
-          </div>
-        )}
-
-        {/* Inventory Grid */}
-        {viewMode === 'grid' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredListings.map((item) => (
-              <InventoryCard
-                key={item.id}
-                item={item}
-                isBulkMode={isBulkMode}
-                isSelected={selectedItems.includes(item.id)}
-                onSelect={(checked) => handleSelectItem(item.id, checked)}
-                onEdit={() => console.log('Edit', item.id)}
-                onPreview={() => console.log('Preview', item.id)}
-                onDelete={() => deleteListing(item.id)}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Table View */}
-        {viewMode === 'table' && (
-          <ListingsTable
-            listings={filteredListings}
-            selectedListings={selectedItems}
-            onSelectListing={handleSelectItem}
-            onSelectAll={handleSelectAll}
-            onUpdateListing={handleUpdateListing}
-            onDeleteListing={handleDeleteListing}
-          />
-        )}
-
-        {filteredListings.length === 0 && !loading && !error && (
-          <div className="text-center py-12 text-gray-500">
-            No items found matching your criteria.
-          </div>
-        )}
-      </div>
-
-      {isMobile && (
-        <MobileNavigation
-          currentView="inventory"
-          onNavigate={() => {}}
-          showBack
-          onBack={onBack}
-          title="Inventory"
+        <InventoryContent
+          viewMode={viewMode}
+          filteredListings={filteredListings}
+          selectedItems={selectedItems}
+          isBulkMode={isBulkMode}
+          loading={loading}
+          error={error}
+          onSelectItem={handleSelectItem}
+          onSelectAll={handleSelectAll}
+          onUpdateListing={handleUpdateListing}
+          onDeleteListing={handleDeleteListing}
         />
-      )}
+      </div>
     </div>
   );
 };

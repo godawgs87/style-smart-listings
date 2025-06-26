@@ -1,4 +1,6 @@
 
+export type Step = 'photos' | 'analysis' | 'preview' | 'shipping';
+
 export interface ListingData {
   title: string;
   description: string;
@@ -31,6 +33,9 @@ export interface ListingData {
   sold_price?: number;
   days_to_sell?: number;
   performance_notes?: string;
+  features?: string[];
+  includes?: string[];
+  defects?: string[];
 }
 
 export interface CreateListingState {

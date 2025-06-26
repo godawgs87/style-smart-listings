@@ -1,11 +1,11 @@
 
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Edit, Eye, Trash2, Calendar, DollarSign, TrendingUp } from 'lucide-react';
+import { Calendar, DollarSign } from 'lucide-react';
 import InventoryCardDialogs from './inventory/InventoryCardDialogs';
+import InventoryCardHeader from './inventory/InventoryCardHeader';
+import InventoryCardFinancials from './inventory/InventoryCardFinancials';
 
 interface Item {
   id: string;
@@ -90,54 +90,16 @@ const InventoryCard = ({
   return (
     <>
       <Card className="p-4 hover:shadow-md transition-shadow">
-        {/* Header with checkbox and actions */}
-        <div className="flex justify-between items-start mb-3">
-          <div className="flex items-start gap-3 flex-1 min-w-0">
-            {isBulkMode && (
-              <Checkbox
-                checked={isSelected}
-                onCheckedChange={onSelect}
-                className="mt-1 flex-shrink-0"
-              />
-            )}
-            <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 leading-tight">
-              {item.title}
-            </h3>
-          </div>
-          {!isBulkMode && (
-            <div className="flex space-x-1 flex-shrink-0 ml-2">
-              <Button 
-                variant="outline" 
-                size="icon" 
-                className="h-8 w-8" 
-                onClick={() => setShowEditor(true)}
-                title="Edit item"
-              >
-                <Edit className="w-3 h-3" />
-              </Button>
-              <Button 
-                variant="outline" 
-                size="icon" 
-                className="h-8 w-8" 
-                onClick={() => setShowPreview(true)}
-                title="Preview item"
-              >
-                <Eye className="w-3 h-3" />
-              </Button>
-              <Button 
-                variant="destructive" 
-                size="icon" 
-                className="h-8 w-8" 
-                onClick={onDelete}
-                title="Delete item"
-              >
-                <Trash2 className="w-3 h-3" />
-              </Button>
-            </div>
-          )}
-        </div>
+        <InventoryCardHeader
+          title={item.title}
+          isBulkMode={isBulkMode}
+          isSelected={isSelected}
+          onSelect={onSelect}
+          onEdit={() => setShowEditor(true)}
+          onPreview={() => setShowPreview(true)}
+          onDelete={onDelete}
+        />
 
-        {/* Content */}
         <div className="space-y-3 flex-1">
           {/* Main photo */}
           {item.photos && item.photos.length > 0 && (
@@ -180,52 +142,15 @@ const InventoryCard = ({
             </p>
           )}
 
-          {/* Financial info */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500">Sale Price</span>
-              <span className="text-sm font-bold text-green-600">${item.price}</span>
-            </div>
-            
-            {item.purchase_price && (
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">
-                  {item.is_consignment ? 'Consignment Cost' : 'Purchase Cost'}
-                </span>
-                <span className="text-sm text-gray-700">${item.purchase_price}</span>
-              </div>
-            )}
-            
-            {profit !== null && (
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500 flex items-center">
-                  <TrendingUp className="w-3 h-3 mr-1" />
-                  {item.status === 'sold' ? 'Profit' : 'Est. Profit'}
-                </span>
-                <span className={`text-sm font-medium ${profit > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  ${profit.toFixed(2)}
-                </span>
-              </div>
-            )}
-
-            {item.profit_margin && (
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">Margin</span>
-                <span className={`text-xs font-medium ${item.profit_margin > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {item.profit_margin.toFixed(1)}%
-                </span>
-              </div>
-            )}
-
-            {item.is_consignment && item.consignment_percentage && (
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">Your Share</span>
-                <span className="text-xs font-medium text-purple-600">
-                  {item.consignment_percentage}%
-                </span>
-              </div>
-            )}
-          </div>
+          <InventoryCardFinancials
+            price={item.price}
+            purchasePrice={item.purchase_price}
+            isConsignment={item.is_consignment}
+            profit={profit}
+            profitMargin={item.profit_margin}
+            consignmentPercentage={item.consignment_percentage}
+            status={item.status || undefined}
+          />
 
           {/* Dates */}
           <div className="flex items-center gap-4 text-xs text-gray-500">
