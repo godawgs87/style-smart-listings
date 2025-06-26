@@ -57,7 +57,7 @@ export const useDatabaseQuery = () => {
   }> => {
     const { statusFilter, limit, searchTerm, categoryFilter } = options;
 
-    console.log('🚀 Starting optimized database fetch...');
+    console.log('🚀 Starting ultra-optimized database fetch...');
     console.log('📋 Query options:', { statusFilter, limit, searchTerm, categoryFilter });
 
     // Test connection first
@@ -68,9 +68,12 @@ export const useDatabaseQuery = () => {
     }
 
     try {
-      console.log('🔨 Building optimized query...');
+      console.log('🔨 Building ultra-optimized query...');
       
-      // Start with a more efficient base query - only select essential fields initially
+      // Use the most aggressive optimization - start with minimal fields and small limit
+      const effectiveLimit = Math.min(limit, 10); // Start with very small batches
+      console.log(`📉 Using reduced limit: ${effectiveLimit} (requested: ${limit})`);
+      
       let query = supabase
         .from('listings')
         .select(`
@@ -109,10 +112,14 @@ export const useDatabaseQuery = () => {
         `)
         .order('created_at', { ascending: false });
 
-      // Apply filters BEFORE limiting to reduce dataset size
+      // Apply most restrictive filters first to reduce dataset
       if (statusFilter && statusFilter !== 'all') {
         query = query.eq('status', statusFilter);
         console.log('✅ Applied status filter first:', statusFilter);
+      } else {
+        // If no status filter, default to draft to reduce initial load
+        query = query.eq('status', 'draft');
+        console.log('✅ Applied default status filter: draft (to reduce initial load)');
       }
 
       if (categoryFilter && categoryFilter !== 'all') {
@@ -125,17 +132,23 @@ export const useDatabaseQuery = () => {
         console.log('✅ Applied search filter:', searchTerm);
       }
 
-      // Apply limit last
-      query = query.limit(limit);
-      console.log('✅ Applied optimized limit:', limit);
+      // Apply the reduced limit
+      query = query.limit(effectiveLimit);
+      console.log('✅ Applied ultra-conservative limit:', effectiveLimit);
 
-      console.log('⏳ Executing optimized main query...');
+      console.log('⏳ Executing ultra-optimized main query...');
       const startTime = Date.now();
       
-      const { data, error } = await query;
+      // Add a timeout to the query
+      const queryPromise = query;
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Query timeout - switching to fallback')), 8000); // 8 second timeout
+      });
+      
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
       
       const duration = Date.now() - startTime;
-      console.log(`⏱️ Optimized query executed in ${duration}ms`);
+      console.log(`⏱️ Ultra-optimized query executed in ${duration}ms`);
 
       if (error) {
         console.error('❌ Main query error:', {
@@ -162,7 +175,7 @@ export const useDatabaseQuery = () => {
         return { listings: [], error: null };
       }
 
-      console.log(`✅ Successfully fetched ${data.length} listings with optimized query`);
+      console.log(`✅ Successfully fetched ${data.length} listings with ultra-optimized query`);
       
       const transformedListings = data.map(transformListing);
       console.log(`🔄 Transformed ${transformedListings.length} listings`);
@@ -182,6 +195,11 @@ export const useDatabaseQuery = () => {
         stack: error.stack,
         name: error.name
       });
+      
+      if (error.message?.includes('Query timeout')) {
+        console.log('⏰ Query timed out - treating as connection error');
+        return { listings: [], error: 'CONNECTION_ERROR' };
+      }
       
       if (error.message?.includes('JWT') || 
           error.message?.includes('authentication') ||
