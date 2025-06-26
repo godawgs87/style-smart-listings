@@ -20,6 +20,18 @@ export const useStatusListings = ({ status, limit = 20 }: StatusListingsOptions)
       setLoading(true);
       console.log(`Fetching complete ${status} listings data`);
       
+      // Check if user is authenticated
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        setError('Authentication required');
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to view your listings",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       const queryStart = Date.now();
       const { data, error: fetchError } = await supabase
         .from('listings')

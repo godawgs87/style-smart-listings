@@ -9,6 +9,17 @@ export const useListingOperations = () => {
     try {
       console.log('Attempting to delete listing:', id);
       
+      // Check if user is authenticated
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to delete listings",
+          variant: "destructive"
+        });
+        return false;
+      }
+      
       const { error } = await supabase
         .from('listings')
         .delete()
@@ -45,6 +56,17 @@ export const useListingOperations = () => {
     try {
       console.log('Attempting to duplicate listing:', originalItem.id);
       
+      // Check if user is authenticated
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to duplicate listings",
+          variant: "destructive"
+        });
+        return null;
+      }
+      
       // Create a copy of the item without the id and with updated title
       const duplicateData = {
         ...originalItem,
@@ -57,7 +79,8 @@ export const useListingOperations = () => {
         sold_price: null,
         net_profit: null,
         days_to_sell: null,
-        listed_date: null
+        listed_date: null,
+        user_id: user.id // Ensure the correct user_id is set
       };
 
       // Remove undefined fields
@@ -104,6 +127,17 @@ export const useListingOperations = () => {
     try {
       console.log('Updating listing:', id, updateData);
       
+      // Check if user is authenticated
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to update listings",
+          variant: "destructive"
+        });
+        return false;
+      }
+      
       const { error } = await supabase
         .from('listings')
         .update({ 
@@ -142,6 +176,17 @@ export const useListingOperations = () => {
   const updateListingStatus = async (id: string, status: string, additionalData?: any) => {
     try {
       console.log('Updating listing status:', id, status, additionalData);
+      
+      // Check if user is authenticated
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to update listings",
+          variant: "destructive"
+        });
+        return false;
+      }
       
       const updateData = { status, updated_at: new Date().toISOString(), ...additionalData };
       

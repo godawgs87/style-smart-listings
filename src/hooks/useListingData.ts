@@ -149,12 +149,22 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
       setError(null);
       setUsingFallback(false);
       
+      // Check if user is authenticated first
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        console.error('Authentication required for listings access:', authError);
+        setError('Please log in to view your listings');
+        setLoading(false);
+        return;
+      }
+      
       // Reasonable timeout for database queries
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Database timeout - switching to fallback')), 8000)
       );
 
-      // Build comprehensive query
+      // Build comprehensive query - RLS will automatically filter by user_id
       let query = supabase
         .from('listings')
         .select('*')
