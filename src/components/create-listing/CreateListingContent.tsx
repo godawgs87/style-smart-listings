@@ -1,9 +1,11 @@
+
 import React, { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import PhotoUpload from '@/components/PhotoUpload';
 import ShippingCalculator from '@/components/ShippingCalculator';
+import EditableListingForm from './EditableListingForm';
 import PreviewHeader from './sections/PreviewHeader';
 import { Step, ListingData } from '@/types/CreateListing';
 
@@ -97,6 +99,24 @@ const CreateListingContent = ({
             listingData={currentListingData}
             onUpdate={handleListingUpdate}
           />
+          
+          {/* Optional/Advanced Fields Section */}
+          <CardContent className="p-6">
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Additional Details</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                These optional fields help improve your listing's searchability and provide more context to buyers.
+              </p>
+            </div>
+            
+            <EditableListingForm
+              listingData={currentListingData}
+              onUpdate={handleListingUpdate}
+              onSave={() => {}}
+              isEditing={true}
+              onToggleEdit={() => {}}
+            />
+          </CardContent>
         </Card>
 
         {/* Photos Section */}
