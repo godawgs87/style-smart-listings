@@ -29,21 +29,6 @@ const EditableListingForm = ({
   backButtonText,
   isSaving
 }: EditableListingFormProps) => {
-  const handleFieldUpdate = (field: keyof ListingData, value: any) => {
-    console.log('Updating field:', field, 'with value:', value);
-    onUpdate({ [field]: value });
-  };
-
-  const handleMeasurementUpdate = (field: string, value: string) => {
-    console.log('Updating measurement:', field, 'with value:', value);
-    onUpdate({
-      measurements: {
-        ...listingData.measurements,
-        [field]: value
-      }
-    });
-  };
-
   const handleConsignmentUpdate = (field: string, value: any) => {
     console.log('Updating consignment field:', field, 'with value:', value);
     onUpdate({ [field]: value });
@@ -64,34 +49,23 @@ const EditableListingForm = ({
 
         <div className="space-y-8">
           <BasicInformationSection
-            data={{
-              title: listingData.title,
-              description: listingData.description,
-              price: listingData.price,
-              category: listingData.category,
-              condition: listingData.condition,
-              priceResearch: listingData.priceResearch
-            }}
-            onChange={handleFieldUpdate}
+            listingData={listingData}
+            onUpdate={onUpdate}
           />
 
           <MeasurementsSection
-            measurements={listingData.measurements}
-            onChange={handleMeasurementUpdate}
+            listingData={listingData}
+            onUpdate={onUpdate}
           />
 
           <KeywordsSection
-            keywords={listingData.keywords || []}
-            onChange={(keywords) => handleFieldUpdate('keywords', keywords)}
+            listingData={listingData}
+            onUpdate={onUpdate}
           />
 
           <FeaturesSection
-            features={(listingData as any).features || []}
-            defects={(listingData as any).defects || []}
-            includes={(listingData as any).includes || []}
-            onFeaturesChange={(features) => handleFieldUpdate('features' as any, features)}
-            onDefectsChange={(defects) => handleFieldUpdate('defects' as any, defects)}
-            onIncludesChange={(includes) => handleFieldUpdate('includes' as any, includes)}
+            listingData={listingData}
+            onUpdate={onUpdate}
           />
 
           <PurchaseConsignmentSection

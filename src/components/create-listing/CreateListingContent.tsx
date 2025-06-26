@@ -58,7 +58,6 @@ const CreateListingContent = ({
           </div>
 
           <PhotoUpload
-            photos={photos}
             onPhotosChange={onPhotosChange}
             maxPhotos={10}
           />
@@ -119,8 +118,8 @@ const CreateListingContent = ({
           </div>
 
           <ShippingCalculator
-            weight={getWeight()}
-            dimensions={getDimensions()}
+            itemWeight={getWeight()}
+            itemDimensions={getDimensions()}
             onShippingSelect={onShippingSelect}
           />
 
