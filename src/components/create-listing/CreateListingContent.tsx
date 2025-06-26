@@ -7,6 +7,8 @@ import PhotoUpload from '@/components/PhotoUpload';
 import ShippingCalculator from '@/components/ShippingCalculator';
 import EditableListingForm from './EditableListingForm';
 import PreviewHeader from './sections/PreviewHeader';
+import ProgressIndicator from './ProgressIndicator';
+import PhotoAnalysisProgress from './PhotoAnalysisProgress';
 import { Step, ListingData } from '@/types/CreateListing';
 
 interface CreateListingContentProps {
@@ -53,20 +55,26 @@ const CreateListingContent = ({
       const updated = { ...listingData, ...updates };
       setUpdatedListingData(updated);
       
-      // Show feedback for updates
+      // Show feedback for updates with animation
       toast({
-        title: "Updated",
-        description: "Changes saved automatically"
+        title: "✅ Updated",
+        description: "Changes saved automatically",
+        duration: 2000
       });
     }
   };
 
   const currentListingData = updatedListingData || listingData;
 
+  // Show progress indicator for all steps except photos
+  const showProgress = currentStep !== 'photos';
+
   // Render different content based on the current step
   if (currentStep === 'photos') {
     return (
       <div className="max-w-4xl mx-auto p-6 space-y-8">
+        <ProgressIndicator currentStep={currentStep} />
+        
         <Card>
           <CardHeader>
             <CardTitle>Upload Photos</CardTitle>
@@ -84,6 +92,13 @@ const CreateListingContent = ({
                 </Button>
               </div>
             )}
+            
+            {/* Show analysis progress */}
+            {isAnalyzing && (
+              <div className="mt-6">
+                <PhotoAnalysisProgress />
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -93,8 +108,10 @@ const CreateListingContent = ({
   if (currentStep === 'preview' && currentListingData) {
     return (
       <div className="max-w-4xl mx-auto p-6 space-y-6">
+        {showProgress && <ProgressIndicator currentStep={currentStep} />}
+        
         {/* Main Preview Card with Editable Header */}
-        <Card>
+        <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
           <PreviewHeader
             listingData={currentListingData}
             onUpdate={handleListingUpdate}
@@ -121,7 +138,7 @@ const CreateListingContent = ({
 
         {/* Photos Section */}
         {currentListingData.photos && currentListingData.photos.length > 0 && (
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader>
               <CardTitle>Photos</CardTitle>
             </CardHeader>
@@ -132,7 +149,7 @@ const CreateListingContent = ({
                     key={index}
                     src={photo}
                     alt={`Product ${index + 1}`}
-                    className="w-full h-24 object-cover rounded border"
+                    className="w-full h-24 object-cover rounded border hover:scale-105 transition-transform duration-200"
                   />
                 ))}
               </div>
@@ -142,10 +159,14 @@ const CreateListingContent = ({
 
         {/* Action Buttons */}
         <div className="flex justify-center space-x-4 pt-4">
-          <Button variant="outline" onClick={onBack}>
+          <Button variant="outline" onClick={onBack} className="min-w-[120px]">
             Back to Photos
           </Button>
-          <Button onClick={onExport} disabled={isSaving}>
+          <Button 
+            onClick={onExport} 
+            disabled={isSaving}
+            className="min-w-[120px] bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
+          >
             {isSaving ? 'Saving...' : 'Continue to Shipping'}
           </Button>
         </div>
@@ -158,12 +179,14 @@ const CreateListingContent = ({
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-4xl mx-auto p-6">
           <div className="space-y-6">
+            <ProgressIndicator currentStep={currentStep} />
+            
             <div className="text-center">
               <h1 className="text-2xl font-bold text-gray-900">Configure Shipping</h1>
               <p className="text-gray-600 mt-2">Set up shipping options for your listing</p>
             </div>
 
-            <Card className="shadow-sm">
+            <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <span>Shipping Calculator</span>
@@ -192,7 +215,7 @@ const CreateListingContent = ({
               <Button 
                 onClick={onExport} 
                 disabled={isSaving}
-                className="min-w-[120px] bg-blue-600 hover:bg-blue-700"
+                className="min-w-[120px] bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
               >
                 {isSaving ? 'Publishing...' : 'Publish Listing'}
               </Button>

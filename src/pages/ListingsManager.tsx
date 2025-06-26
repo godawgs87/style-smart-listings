@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
 import { useListings } from '@/hooks/useListings';
@@ -11,6 +11,7 @@ import ListingsManagerControls from '@/components/ListingsManagerControls';
 import ListingsLoadingState from '@/components/ListingsLoadingState';
 import ListingsErrorState from '@/components/ListingsErrorState';
 import ListingsEmptyState from '@/components/ListingsEmptyState';
+import QuickFilters from '@/components/listings/QuickFilters';
 import PageInfoDialog from '@/components/PageInfoDialog';
 
 interface ListingsManagerProps {
@@ -21,6 +22,9 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
   const [selectedListings, setSelectedListings] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [conditionFilter, setConditionFilter] = useState('all');
+  const [priceRangeFilter, setPriceRangeFilter] = useState('all');
   
   const isMobile = useIsMobile();
   const { user } = useAuth();
@@ -28,6 +32,12 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
   const { listings, loading, error, deleteListing, updateListing } = useListings({
     limit: 25
   });
+
+  // Get unique categories for filters
+  const categories = useMemo(() => {
+    const uniqueCategories = [...new Set(listings.map(l => l.category).filter(Boolean))];
+    return uniqueCategories as string[];
+  }, [listings]);
 
   const handleSelectListing = (listingId: string, checked: boolean) => {
     setSelectedListings(prev => 
@@ -38,7 +48,7 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
   };
 
   const handleSelectAll = (checked: boolean) => {
-    setSelectedListings(checked ? listings.map(l => l.id) : []);
+    setSelectedListings(checked ? filteredListings.map(l => l.id) : []);
   };
 
   const handleUpdateListing = async (listingId: string, updates: any) => {
@@ -72,11 +82,48 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
     }
   };
 
-  const filteredListings = listings.filter(listing =>
-    listing.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    listing.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    listing.category?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Apply filters
+  const filteredListings = useMemo(() => {
+    return listings.filter(listing => {
+      // Search filter
+      const matchesSearch = searchTerm === '' || 
+        listing.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        listing.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        listing.category?.toLowerCase().includes(searchTerm.toLowerCase());
+
+      // Category filter
+      const matchesCategory = categoryFilter === 'all' || listing.category === categoryFilter;
+
+      // Condition filter
+      const matchesCondition = conditionFilter === 'all' || 
+        listing.condition?.toLowerCase() === conditionFilter;
+
+      // Price range filter
+      const matchesPriceRange = () => {
+        if (priceRangeFilter === 'all') return true;
+        const price = listing.price;
+        switch (priceRangeFilter) {
+          case 'under-25': return price < 25;
+          case '25-100': return price >= 25 && price <= 100;
+          case '100-500': return price > 100 && price <= 500;
+          case 'over-500': return price > 500;
+          default: return true;
+        }
+      };
+
+      return matchesSearch && matchesCategory && matchesCondition && matchesPriceRange();
+    });
+  }, [listings, searchTerm, categoryFilter, conditionFilter, priceRangeFilter]);
+
+  const activeFiltersCount = [categoryFilter, conditionFilter, priceRangeFilter]
+    .filter(filter => filter !== 'all').length;
+
+  const handleClearFilters = () => {
+    setCategoryFilter('all');
+    setConditionFilter('all');
+    setPriceRangeFilter('all');
+    setSearchTerm('');
+  };
 
   if (loading) {
     return (
@@ -112,6 +159,18 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
           viewMode={viewMode}
           setViewMode={setViewMode}
           filteredCount={filteredListings.length}
+        />
+
+        <QuickFilters
+          categories={categories}
+          selectedCategory={categoryFilter}
+          onCategoryChange={setCategoryFilter}
+          conditionFilter={conditionFilter}
+          onConditionChange={setConditionFilter}
+          priceRange={priceRangeFilter}
+          onPriceRangeChange={setPriceRangeFilter}
+          activeFiltersCount={activeFiltersCount}
+          onClearFilters={handleClearFilters}
         />
 
         {error && <ListingsErrorState error={error} />}

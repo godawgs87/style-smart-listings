@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Edit, Eye, Trash2 } from 'lucide-react';
 import ListingImagePreview from '@/components/ListingImagePreview';
+import ProfitIndicator from '@/components/listing-card/ProfitIndicator';
 
 interface Listing {
   id: string;
@@ -18,6 +19,10 @@ interface Listing {
   shipping_cost: number | null;
   photos: string[] | null;
   created_at: string;
+  purchase_price?: number;
+  net_profit?: number;
+  profit_margin?: number;
+  days_to_sell?: number;
 }
 
 interface ListingCardProps {
@@ -39,8 +44,23 @@ const ListingCard = ({
   onPreview,
   onDelete
 }: ListingCardProps) => {
+  const getDaysListedBadge = () => {
+    if (!listing.days_to_sell && !listing.created_at) return null;
+    
+    const daysListed = listing.days_to_sell || 
+      Math.floor((new Date().getTime() - new Date(listing.created_at).getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (daysListed <= 7) {
+      return <Badge variant="default" className="text-xs bg-green-100 text-green-800">New</Badge>;
+    } else if (daysListed <= 30) {
+      return <Badge variant="secondary" className="text-xs">{daysListed} days</Badge>;
+    } else {
+      return <Badge variant="outline" className="text-xs text-orange-600">{daysListed} days</Badge>;
+    }
+  };
+
   return (
-    <Card className="p-4 flex flex-col">
+    <Card className="p-4 flex flex-col hover:shadow-md transition-all duration-200 hover:scale-[1.02]">
       {/* Header with checkbox and actions */}
       <div className="flex justify-between items-start mb-3">
         <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -62,7 +82,7 @@ const ListingCard = ({
             <Button 
               variant="outline" 
               size="icon" 
-              className="h-8 w-8" 
+              className="h-8 w-8 hover:bg-blue-50 hover:border-blue-200 transition-colors duration-200" 
               onClick={onEdit}
             >
               <Edit className="w-3 h-3" />
@@ -70,7 +90,7 @@ const ListingCard = ({
             <Button 
               variant="outline" 
               size="icon" 
-              className="h-8 w-8" 
+              className="h-8 w-8 hover:bg-green-50 hover:border-green-200 transition-colors duration-200" 
               onClick={onPreview}
             >
               <Eye className="w-3 h-3" />
@@ -78,7 +98,7 @@ const ListingCard = ({
             <Button 
               variant="destructive" 
               size="icon" 
-              className="h-8 w-8" 
+              className="h-8 w-8 hover:bg-red-600 transition-colors duration-200" 
               onClick={onDelete}
             >
               <Trash2 className="w-3 h-3" />
@@ -108,7 +128,16 @@ const ListingCard = ({
               {listing.status}
             </Badge>
           )}
+          {getDaysListedBadge()}
         </div>
+
+        {/* Profit Indicator */}
+        <ProfitIndicator
+          purchasePrice={listing.purchase_price}
+          price={listing.price}
+          netProfit={listing.net_profit}
+          profitMargin={listing.profit_margin}
+        />
 
         {/* Description */}
         <p className="text-xs text-gray-700 line-clamp-3">
