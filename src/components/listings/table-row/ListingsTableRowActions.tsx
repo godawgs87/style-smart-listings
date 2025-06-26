@@ -59,7 +59,7 @@ interface ListingsTableRowActionsProps {
   onDelete: () => void;
   onPreview?: (listing: Listing) => void;
   onEditListing?: (listing: Listing) => void;
-  onDuplicate?: (listing: Listing) => void;
+  onDuplicate?: (listing: Listing) => Promise<Listing | null>;
 }
 
 const ListingsTableRowActions = ({ 
@@ -111,10 +111,10 @@ const ListingsTableRowActions = ({
         const result = await onDuplicate(listing);
         console.log('Duplicate operation result:', result);
         
-        if (result) {
+        if (result !== null) {
           console.log('Duplicate operation completed successfully');
         } else {
-          console.log('Duplicate operation failed - no result returned');
+          console.log('Duplicate operation failed - null result returned');
         }
       } catch (error) {
         console.error('Error during duplicate operation:', error);

@@ -23,27 +23,45 @@ export const useDatabaseQuery = () => {
     const { statusFilter, limit, searchTerm, categoryFilter } = options;
 
     try {
-      console.log(`Fetching ${limit} listings from database...`);
+      console.log(`🔍 Fetching ${limit} listings from database with filters:`, {
+        statusFilter,
+        searchTerm: searchTerm ? `"${searchTerm}"` : 'none',
+        categoryFilter,
+        timestamp: new Date().toISOString()
+      });
       
-      // Quick authentication check
-      const { data: authData, error: authError } = await supabase.auth.getUser();
+      // Quick authentication check with timeout
+      const authStartTime = Date.now();
+      console.log('🔐 Checking authentication...');
+      
+      const authTimeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Authentication timeout')), 5000)
+      );
+      
+      const authPromise = supabase.auth.getUser();
+      const authResult = await Promise.race([authPromise, authTimeoutPromise]);
+      const { data: authData, error: authError } = authResult as any;
+      
+      const authTime = Date.now() - authStartTime;
+      console.log(`🔐 Auth check completed in ${authTime}ms`);
       
       if (authError || !authData?.user) {
-        console.error('Authentication failed:', authError?.message);
+        console.error('❌ Authentication failed:', authError?.message);
         return { 
           listings: [], 
-          error: 'AUTHENTICATION_ERROR'
+          error: 'AUTHENTICATION_ERROR: Please sign in again'
         };
       }
       
-      console.log('User authenticated:', authData.user.id);
+      console.log('✅ User authenticated:', authData.user.id);
       
-      // Set a more reasonable timeout (30 seconds)
+      // Set a 30-second timeout for the database query
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Database query timeout')), 30000)
+        setTimeout(() => reject(new Error('Database query timeout after 30 seconds')), 30000)
       );
 
-      // Build optimized query
+      // Build optimized query with detailed logging
+      console.log('🔧 Building database query...');
       let query = supabase
         .from('listings')
         .select('*')
@@ -51,94 +69,126 @@ export const useDatabaseQuery = () => {
         .order('created_at', { ascending: false })
         .limit(Math.min(limit, 100));
 
-      // Apply filters
+      const appliedFilters = [];
+      
+      // Apply filters with logging
       if (statusFilter && statusFilter !== 'all') {
         query = query.eq('status', statusFilter);
+        appliedFilters.push(`status=${statusFilter}`);
       }
 
       if (categoryFilter && categoryFilter !== 'all') {
         query = query.eq('category', categoryFilter);
+        appliedFilters.push(`category=${categoryFilter}`);
       }
 
       if (searchTerm && searchTerm.trim()) {
         query = query.or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
+        appliedFilters.push(`search="${searchTerm}"`);
       }
 
-      console.log('Executing database query...');
+      console.log('🎯 Query filters applied:', appliedFilters.length > 0 ? appliedFilters.join(', ') : 'none');
+      console.log('⏱️ Executing database query with 30s timeout...');
       const queryStartTime = Date.now();
       
       const result = await Promise.race([query, timeoutPromise]);
       const { data, error: fetchError } = result as any;
       
       const queryTime = Date.now() - queryStartTime;
-      console.log(`Database query completed in ${queryTime}ms`);
+      console.log(`📊 Database query completed in ${queryTime}ms`);
 
       if (fetchError) {
-        console.error('Database fetch error:', fetchError);
+        console.error('❌ Database fetch error:', {
+          code: fetchError.code,
+          message: fetchError.message,
+          details: fetchError.details,
+          hint: fetchError.hint
+        });
         
-        // More specific error handling
+        // More specific error handling with detailed logging
         if (fetchError.code === 'PGRST116') {
-          console.error('RLS policy violation detected');
+          console.error('🚫 RLS policy violation detected - checking permissions');
           return { 
             listings: [], 
-            error: 'RLS_POLICY_ERROR: Check your permissions or contact support'
+            error: 'ACCESS_DENIED: Row Level Security policy violation. Please check your account permissions.'
           };
         }
         
-        if (fetchError.message?.includes('JWT')) {
-          console.error('JWT token issue detected');
+        if (fetchError.message?.includes('JWT') || fetchError.code === 'PGRST301') {
+          console.error('🔑 JWT token issue detected - token may be expired');
           return { 
             listings: [], 
-            error: 'JWT_ERROR: Please sign out and back in'
+            error: 'JWT_ERROR: Authentication token expired. Please sign out and back in.'
           };
         }
         
-        // Only treat network/timeout errors as connection issues
+        // Network/timeout errors for fallback mode
         if (fetchError.message?.includes('fetch') || 
             fetchError.message?.includes('network') ||
+            fetchError.message?.includes('timeout') ||
             fetchError.code === 'ECONNREFUSED') {
-          console.error('Network connection error detected');
+          console.error('🌐 Network/connection error detected');
           return { listings: [], error: 'CONNECTION_ERROR' };
         }
         
         // All other errors are returned as-is (not connection errors)
         return { 
           listings: [], 
-          error: `Database error: ${fetchError.message}`
+          error: `Database error: ${fetchError.message} (Code: ${fetchError.code || 'unknown'})`
         };
       }
 
       if (!data) {
-        console.log('No data returned from query');
+        console.log('📭 No data returned from query');
         return { listings: [], error: null };
       }
 
-      console.log(`Successfully loaded ${data.length} listings from database`);
+      console.log(`✅ Successfully loaded ${data.length} listings from database`);
       
-      // Transform the data
-      const transformedListings = data.map(transformListing);
+      // Transform the data with error catching
+      let transformedListings: Listing[] = [];
+      try {
+        transformedListings = data.map(transformListing);
+        console.log(`🔄 Successfully transformed ${transformedListings.length} listings`);
+      } catch (transformError) {
+        console.error('❌ Error transforming listings:', transformError);
+        return { 
+          listings: [], 
+          error: `Data transformation error: ${transformError instanceof Error ? transformError.message : 'Unknown error'}`
+        };
+      }
       
       // Save successful data for fallback
-      fallbackDataService.saveFallbackData(data);
+      try {
+        fallbackDataService.saveFallbackData(data);
+        console.log('💾 Fallback data saved successfully');
+      } catch (saveError) {
+        console.warn('⚠️ Failed to save fallback data:', saveError);
+        // Don't fail the whole operation for this
+      }
       
       return { listings: transformedListings, error: null };
       
     } catch (error: any) {
-      console.error('Unexpected error in fetchFromDatabase:', error);
+      console.error('💥 Unexpected error in fetchFromDatabase:', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack?.substring(0, 500)
+      });
       
       // Only treat actual network/timeout errors as connection issues
       if (error.message?.includes('timeout') || 
           error.message?.includes('fetch') ||
           error.message?.includes('network') ||
           error.name === 'AbortError') {
-        console.log('Network/timeout error - will use fallback');
+        console.log('🔌 Timeout/network error - will use fallback');
         return { listings: [], error: 'CONNECTION_ERROR' };
       }
       
       // All other errors are real errors, not connection issues
       return { 
         listings: [], 
-        error: error.message || 'Unexpected database error'
+        error: `Unexpected error: ${error.message || 'Unknown database error'}`
       };
     }
   };
