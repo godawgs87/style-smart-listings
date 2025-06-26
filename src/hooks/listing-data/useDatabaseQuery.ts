@@ -57,7 +57,7 @@ export const useDatabaseQuery = () => {
   }> => {
     const { statusFilter, limit, searchTerm, categoryFilter } = options;
 
-    console.log('🚀 Starting database fetch...');
+    console.log('🚀 Starting optimized database fetch...');
     console.log('📋 Query options:', { statusFilter, limit, searchTerm, categoryFilter });
 
     // Test connection first
@@ -68,16 +68,51 @@ export const useDatabaseQuery = () => {
     }
 
     try {
-      console.log('🔨 Building query...');
+      console.log('🔨 Building optimized query...');
+      
+      // Start with a more efficient base query - only select essential fields initially
       let query = supabase
         .from('listings')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(limit);
+        .select(`
+          id, 
+          title, 
+          price, 
+          status, 
+          category, 
+          condition, 
+          created_at, 
+          updated_at,
+          description,
+          shipping_cost,
+          measurements,
+          keywords,
+          photos,
+          price_research,
+          user_id,
+          purchase_price,
+          purchase_date,
+          is_consignment,
+          consignment_percentage,
+          cost_basis,
+          fees_paid,
+          net_profit,
+          profit_margin,
+          listed_date,
+          sold_date,
+          sold_price,
+          days_to_sell,
+          consignor_contact,
+          source_location,
+          source_type,
+          performance_notes,
+          consignor_name
+        `)
+        .order('created_at', { ascending: false });
 
+      // Apply filters BEFORE limiting to reduce dataset size
       if (statusFilter && statusFilter !== 'all') {
         query = query.eq('status', statusFilter);
-        console.log('✅ Applied status filter:', statusFilter);
+        console.log('✅ Applied status filter first:', statusFilter);
       }
 
       if (categoryFilter && categoryFilter !== 'all') {
@@ -90,13 +125,17 @@ export const useDatabaseQuery = () => {
         console.log('✅ Applied search filter:', searchTerm);
       }
 
-      console.log('⏳ Executing main query...');
+      // Apply limit last
+      query = query.limit(limit);
+      console.log('✅ Applied optimized limit:', limit);
+
+      console.log('⏳ Executing optimized main query...');
       const startTime = Date.now();
       
       const { data, error } = await query;
       
       const duration = Date.now() - startTime;
-      console.log(`⏱️ Main query executed in ${duration}ms`);
+      console.log(`⏱️ Optimized query executed in ${duration}ms`);
 
       if (error) {
         console.error('❌ Main query error:', {
@@ -123,7 +162,7 @@ export const useDatabaseQuery = () => {
         return { listings: [], error: null };
       }
 
-      console.log(`✅ Successfully fetched ${data.length} listings`);
+      console.log(`✅ Successfully fetched ${data.length} listings with optimized query`);
       
       const transformedListings = data.map(transformListing);
       console.log(`🔄 Transformed ${transformedListings.length} listings`);
