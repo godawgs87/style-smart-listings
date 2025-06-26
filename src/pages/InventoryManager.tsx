@@ -8,6 +8,7 @@ import InventoryManagerHeader from '@/components/inventory/InventoryManagerHeade
 import InventoryContent from '@/components/inventory/InventoryContent';
 import InventoryStats from '@/components/inventory/InventoryStats';
 import InventoryControls from '@/components/inventory/InventoryControls';
+import BulkActionsBar from '@/components/BulkActionsBar';
 import { useInventoryFilters } from '@/components/inventory/InventoryFilters';
 import type { Listing } from '@/types/Listing';
 
@@ -18,7 +19,7 @@ interface InventoryManagerProps {
 
 const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) => {
   const isMobile = useIsMobile();
-  const { listings, loading, error, deleteListing, duplicateListing, updateListing } = useListings();
+  const { listings, loading, error, deleteListing, duplicateListing, updateListing, updateListingStatus } = useListings();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -67,6 +68,11 @@ const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) =>
     };
   }, [listings]);
 
+  // Enable bulk mode when items are selected
+  useEffect(() => {
+    setIsBulkMode(selectedItems.length > 0);
+  }, [selectedItems]);
+
   const handleSelectItem = (itemId: string, checked: boolean) => {
     setSelectedItems(prev => 
       checked 
@@ -80,7 +86,27 @@ const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) =>
   };
 
   const handleDuplicateListing = async (item: Listing) => {
-    await duplicateListing(item);
+    console.log('Duplicating listing:', item.id);
+    const success = await duplicateListing(item);
+    if (success) {
+      console.log('Listing duplicated successfully');
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    console.log('Bulk deleting items:', selectedItems);
+    for (const itemId of selectedItems) {
+      await deleteListing(itemId);
+    }
+    setSelectedItems([]);
+  };
+
+  const handleBulkStatusUpdate = async (status: string) => {
+    console.log('Bulk updating status:', selectedItems, status);
+    for (const itemId of selectedItems) {
+      await updateListingStatus(itemId, status);
+    }
+    setSelectedItems([]);
   };
 
   return (
@@ -112,6 +138,14 @@ const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) =>
           onCreateListing={onCreateListing}
           categories={categories}
         />
+
+        {selectedItems.length > 0 && (
+          <BulkActionsBar
+            selectedCount={selectedItems.length}
+            onBulkDelete={handleBulkDelete}
+            onBulkStatusUpdate={handleBulkStatusUpdate}
+          />
+        )}
         
         <InventoryContent
           viewMode={viewMode}

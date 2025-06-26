@@ -2,10 +2,11 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Camera, List, Package } from "lucide-react";
+import { Camera, List, Package, Settings } from "lucide-react";
 import CreateListing from "./CreateListing";
 import ListingsManager from "./ListingsManager";
 import InventoryManager from "./InventoryManager";
+import ActiveListingsPage from "./ActiveListingsPage";
 import AuthForm from "@/components/AuthForm";
 import StreamlinedHeader from "@/components/StreamlinedHeader";
 import MobileNavigation from "@/components/MobileNavigation";
@@ -13,15 +14,15 @@ import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const Index = () => {
-  const [currentView, setCurrentView] = useState<'dashboard' | 'create' | 'listings' | 'inventory'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'create' | 'listings' | 'inventory' | 'active-listings'>('dashboard');
   const { user, loading } = useAuth();
   const isMobile = useIsMobile();
 
   // Handle URL-based navigation (for when hamburger menu navigates to /?view=listings)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const view = urlParams.get('view') as 'dashboard' | 'create' | 'listings' | 'inventory';
-    if (view && ['dashboard', 'create', 'listings', 'inventory'].includes(view)) {
+    const view = urlParams.get('view') as 'dashboard' | 'create' | 'listings' | 'inventory' | 'active-listings';
+    if (view && ['dashboard', 'create', 'listings', 'inventory', 'active-listings'].includes(view)) {
       setCurrentView(view);
       // Clean up URL
       window.history.replaceState({}, '', '/');
@@ -69,6 +70,10 @@ const Index = () => {
     );
   }
 
+  if (currentView === 'active-listings') {
+    return <ActiveListingsPage onBack={() => setCurrentView('dashboard')} />;
+  }
+
   return (
     <div className={`min-h-screen bg-gray-50 dark:bg-gray-900 ${isMobile ? 'pb-20' : ''}`}>
       <StreamlinedHeader
@@ -88,7 +93,7 @@ const Index = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           <Card className="p-6 md:p-8 hover:shadow-lg transition-shadow cursor-pointer bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700" 
                 onClick={() => setCurrentView('create')}>
             <div className="text-center">
@@ -117,11 +122,23 @@ const Index = () => {
                 onClick={() => setCurrentView('listings')}>
             <div className="text-center">
               <List className="w-12 md:w-16 h-12 md:h-16 mx-auto text-purple-600 mb-4" />
-              <h3 className="text-lg md:text-xl font-semibold mb-2 text-gray-900 dark:text-gray-100">Active Listings</h3>
+              <h3 className="text-lg md:text-xl font-semibold mb-2 text-gray-900 dark:text-gray-100">Listings Manager</h3>
               <p className="text-gray-600 dark:text-gray-400 mb-4 text-sm md:text-base">
-                View and manage your active listings across platforms.
+                View and manage your listings with advanced controls.
               </p>
               <Button variant="outline" className="w-full">View Listings</Button>
+            </div>
+          </Card>
+
+          <Card className="p-6 md:p-8 hover:shadow-lg transition-shadow cursor-pointer bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                onClick={() => setCurrentView('active-listings')}>
+            <div className="text-center">
+              <Settings className="w-12 md:w-16 h-12 md:h-16 mx-auto text-orange-600 mb-4" />
+              <h3 className="text-lg md:text-xl font-semibold mb-2 text-gray-900 dark:text-gray-100">Active Listings</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-4 text-sm md:text-base">
+                Cross-platform management, automation, and offers.
+              </p>
+              <Button variant="outline" className="w-full">Manage Platforms</Button>
             </div>
           </Card>
         </div>

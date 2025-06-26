@@ -9,6 +9,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import Index from "./pages/Index";
 import AdminDashboard from "./pages/AdminDashboard";
 import InventoryManager from "./pages/InventoryManager";
+import ActiveListingsPage from "./pages/ActiveListingsPage";
 import NotFound from "./pages/NotFound";
 
 const App = () => {
@@ -29,6 +30,9 @@ const App = () => {
                   onBack={() => window.history.back()} 
                   onCreateListing={() => window.location.href = '/'} 
                 />
+              } />
+              <Route path="/active-listings" element={
+                <ActiveListingsPage onBack={() => window.history.back()} />
               } />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

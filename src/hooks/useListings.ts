@@ -18,8 +18,10 @@ export const useListings = (options?: { statusFilter?: string; limit?: number })
   };
 
   const duplicateListing = async (originalItem: Listing) => {
+    console.log('useListings: Starting duplicate operation for:', originalItem.id);
     const newListing = await duplicateOperation(originalItem);
     if (newListing) {
+      console.log('useListings: Duplicate operation successful, updating state');
       // Ensure the newListing matches the Listing interface structure
       const transformedListing: Listing = {
         ...newListing,
@@ -36,8 +38,9 @@ export const useListings = (options?: { statusFilter?: string; limit?: number })
         status: newListing.status || null
       };
       setListings(prev => [transformedListing, ...prev]);
+      return transformedListing;
     }
-    return newListing;
+    return null;
   };
 
   const updateListing = async (id: string, updateData: any) => {
