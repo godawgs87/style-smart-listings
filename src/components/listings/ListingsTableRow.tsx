@@ -8,6 +8,17 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Edit, Save, X, Trash2, Eye } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import ListingImagePreview from '@/components/ListingImagePreview';
 
 interface Listing {
@@ -94,6 +105,24 @@ const ListingsTableRow = ({
     setEditData(prev => ({
       ...prev,
       [field]: value
+    }));
+  };
+
+  const updateMeasurements = (field: string, value: string) => {
+    setEditData(prev => ({
+      ...prev,
+      measurements: {
+        ...prev.measurements,
+        [field]: value
+      }
+    }));
+  };
+
+  const updateKeywords = (keywords: string) => {
+    const keywordArray = keywords.split(',').map(k => k.trim()).filter(k => k.length > 0);
+    setEditData(prev => ({
+      ...prev,
+      keywords: keywordArray
     }));
   };
 
@@ -286,40 +315,74 @@ const ListingsTableRow = ({
       {/* Measurements */}
       {visibleColumns.measurements && (
         <TableCell>
-          <div className="text-xs text-gray-600">
-            {listing.measurements?.length && listing.measurements?.width && listing.measurements?.height
-              ? `${listing.measurements.length}" x ${listing.measurements.width}" x ${listing.measurements.height}"`
-              : 'Not set'
-            }
-          </div>
+          {isEditing ? (
+            <div className="space-y-1">
+              <Input
+                placeholder="L x W x H"
+                value={`${currentData.measurements?.length || ''} x ${currentData.measurements?.width || ''} x ${currentData.measurements?.height || ''}`}
+                onChange={(e) => {
+                  const parts = e.target.value.split('x').map(p => p.trim());
+                  updateMeasurements('length', parts[0] || '');
+                  updateMeasurements('width', parts[1] || '');
+                  updateMeasurements('height', parts[2] || '');
+                }}
+                className="text-xs"
+              />
+            </div>
+          ) : (
+            <div className="text-xs text-gray-600">
+              {listing.measurements?.length && listing.measurements?.width && listing.measurements?.height
+                ? `${listing.measurements.length}" x ${listing.measurements.width}" x ${listing.measurements.height}"`
+                : 'Not set'
+              }
+            </div>
+          )}
         </TableCell>
       )}
 
       {/* Keywords */}
       {visibleColumns.keywords && (
         <TableCell>
-          <div className="flex flex-wrap gap-1">
-            {listing.keywords?.slice(0, 2).map((keyword, idx) => (
-              <span key={idx} className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
-                {keyword}
-              </span>
-            ))}
-            {(listing.keywords?.length || 0) > 2 && (
-              <span className="text-xs text-gray-400">+{(listing.keywords?.length || 0) - 2}</span>
-            )}
-          </div>
+          {isEditing ? (
+            <Textarea
+              placeholder="keyword1, keyword2, keyword3"
+              value={currentData.keywords?.join(', ') || ''}
+              onChange={(e) => updateKeywords(e.target.value)}
+              className="text-xs min-h-[60px]"
+            />
+          ) : (
+            <div className="flex flex-wrap gap-1">
+              {listing.keywords?.slice(0, 2).map((keyword, idx) => (
+                <span key={idx} className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
+                  {keyword}
+                </span>
+              ))}
+              {(listing.keywords?.length || 0) > 2 && (
+                <span className="text-xs text-gray-400">+{(listing.keywords?.length || 0) - 2}</span>
+              )}
+            </div>
+          )}
         </TableCell>
       )}
 
       {/* Description */}
       {visibleColumns.description && (
         <TableCell>
-          <div className="text-xs text-gray-600 line-clamp-3">
-            {listing.description && listing.description.length > 0 
-              ? listing.description.substring(0, 100) + '...'
-              : 'No description'
-            }
-          </div>
+          {isEditing ? (
+            <Textarea
+              placeholder="Description..."
+              value={currentData.description || ''}
+              onChange={(e) => updateEditData('description', e.target.value)}
+              className="text-xs min-h-[80px]"
+            />
+          ) : (
+            <div className="text-xs text-gray-600 line-clamp-3">
+              {listing.description && listing.description.length > 0 
+                ? listing.description.substring(0, 100) + '...'
+                : 'No description'
+              }
+            </div>
+          )}
         </TableCell>
       )}
 
@@ -363,18 +426,34 @@ const ListingsTableRow = ({
               >
                 <Eye className="h-4 w-4 text-gray-600" />
               </Button>
-              <Button
-                size="icon"
-                variant="destructive"
-                className="h-8 w-8"
-                onClick={() => {
-                  if (window.confirm('Are you sure you want to delete this listing?')) {
-                    onDeleteListing(listing.id);
-                  }
-                }}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant="destructive"
+                    className="h-8 w-8"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Listing</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete "{listing.title}"? This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => onDeleteListing(listing.id)}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </>
           )}
         </div>

@@ -8,9 +8,10 @@ import MobileNavigation from '@/components/MobileNavigation';
 import ListingsTable from '@/components/ListingsTable';
 import ListingsCardView from '@/components/ListingsCardView';
 import ListingsManagerControls from '@/components/ListingsManagerControls';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { AlertCircle } from 'lucide-react';
+import ListingsLoadingState from '@/components/ListingsLoadingState';
+import ListingsErrorState from '@/components/ListingsErrorState';
+import ListingsEmptyState from '@/components/ListingsEmptyState';
+import PageInfoDialog from '@/components/PageInfoDialog';
 
 interface ListingsManagerProps {
   onBack: () => void;
@@ -76,83 +77,42 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
 
   if (loading) {
     return (
-      <div className={`min-h-screen bg-gray-50 ${isMobile ? 'pb-20' : ''}`}>
-        <StreamlinedHeader
-          title="Manage Listings"
-          userEmail={user?.email}
-          showBack
-          onBack={onBack}
-        />
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
-          <span className="ml-2">Loading listings...</span>
-        </div>
-      </div>
+      <ListingsLoadingState 
+        title="Manage Listings"
+        userEmail={user?.email}
+        onBack={onBack}
+        isMobile={isMobile}
+      />
     );
   }
 
   return (
     <div className={`min-h-screen bg-gray-50 ${isMobile ? 'pb-20' : ''}`}>
       <StreamlinedHeader
-        title="Manage Listings"
+        title={
+          <div className="flex items-center gap-2">
+            Manage Listings
+            <PageInfoDialog pageName="Manage Listings" />
+          </div>
+        }
         userEmail={user?.email}
         showBack
         onBack={onBack}
       />
 
       <div className="max-w-7xl mx-auto p-4 space-y-6">
-        {/* Controls */}
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Input 
-              type="text" 
-              placeholder="Search listings..." 
-              className="max-w-xs"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            {selectedListings.length > 0 && (
-              <Button 
-                variant="destructive" 
-                size="sm" 
-                onClick={handleBulkDelete}
-              >
-                Delete Selected ({selectedListings.length})
-              </Button>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant={viewMode === 'grid' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('grid')}
-            >
-              Grid
-            </Button>
-            <Button
-              variant={viewMode === 'table' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('table')}
-            >
-              Table
-            </Button>
-            <div className="text-sm text-gray-600">
-              {filteredListings.length} listings
-            </div>
-          </div>
-        </div>
+        <ListingsManagerControls
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          selectedListings={selectedListings}
+          onBulkDelete={handleBulkDelete}
+          viewMode={viewMode}
+          setViewMode={setViewMode}
+          filteredCount={filteredListings.length}
+        />
 
-        {error && (
-          <div className="text-red-500 flex items-center bg-red-50 p-4 rounded-lg">
-            <AlertCircle className="mr-2 h-4 w-4" />
-            <div>
-              <p className="font-medium">Connection timeout</p>
-              <p className="text-sm">Please check your internet connection and try refreshing the page.</p>
-            </div>
-          </div>
-        )}
+        {error && <ListingsErrorState error={error} />}
 
-        {/* Grid View */}
         {viewMode === 'grid' && (
           <ListingsCardView
             listings={filteredListings}
@@ -165,7 +125,6 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
           />
         )}
 
-        {/* Table View */}
         {viewMode === 'table' && (
           <ListingsTable
             listings={filteredListings}
@@ -180,9 +139,7 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
         )}
 
         {filteredListings.length === 0 && !loading && !error && (
-          <div className="text-center py-12 text-gray-500">
-            No listings found. Create your first listing to get started!
-          </div>
+          <ListingsEmptyState />
         )}
       </div>
 

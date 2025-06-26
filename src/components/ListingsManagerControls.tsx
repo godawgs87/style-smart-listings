@@ -2,6 +2,17 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface ListingsManagerControlsProps {
   searchTerm: string;
@@ -33,13 +44,30 @@ const ListingsManagerControls = ({
           onChange={(e) => setSearchTerm(e.target.value)}
         />
         {selectedListings.length > 0 && (
-          <Button 
-            variant="destructive" 
-            size="sm" 
-            onClick={onBulkDelete}
-          >
-            Delete Selected ({selectedListings.length})
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm">
+                Delete Selected ({selectedListings.length})
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Selected Listings</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete {selectedListings.length} listing{selectedListings.length !== 1 ? 's' : ''}? This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={onBulkDelete}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  Delete {selectedListings.length} Listing{selectedListings.length !== 1 ? 's' : ''}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         )}
       </div>
       <div className="flex items-center gap-2">
