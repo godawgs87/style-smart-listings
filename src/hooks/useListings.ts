@@ -22,12 +22,6 @@ export const useListings = (options?: { statusFilter?: string; limit?: number })
   const duplicateListing = async (originalItem: Listing) => {
     console.log('useListings: Starting duplicate operation for:', originalItem.id);
     
-    // Show loading toast
-    toast({
-      title: "Duplicating listing...",
-      description: "Please wait while we create a copy of your listing."
-    });
-
     const newListing = await duplicateOperation(originalItem);
     if (newListing) {
       console.log('useListings: Duplicate operation successful, updating state');
@@ -49,19 +43,7 @@ export const useListings = (options?: { statusFilter?: string; limit?: number })
       };
       
       setListings(prev => [transformedListing, ...prev]);
-      
-      toast({
-        title: "Success!",
-        description: "Listing duplicated successfully. You can now edit the copy."
-      });
-      
       return transformedListing;
-    } else {
-      toast({
-        title: "Error",
-        description: "Failed to duplicate listing. Please try again.",
-        variant: "destructive"
-      });
     }
     return null;
   };

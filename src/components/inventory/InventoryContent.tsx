@@ -1,6 +1,7 @@
 
 import React from 'react';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import InventoryCard from '@/components/InventoryCard';
 import ListingsTable from '@/components/ListingsTable';
 import type { Listing } from '@/types/Listing';
@@ -17,6 +18,7 @@ interface InventoryContentProps {
   onUpdateListing: (listingId: string, updates: any) => void;
   onDeleteListing: (listingId: string) => void;
   onDuplicateListing?: (item: Listing) => void;
+  onRetry?: () => void;
 }
 
 const InventoryContent = ({
@@ -30,21 +32,36 @@ const InventoryContent = ({
   onSelectAll,
   onUpdateListing,
   onDeleteListing,
-  onDuplicateListing
+  onDuplicateListing,
+  onRetry
 }: InventoryContentProps) => {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your inventory...</p>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="text-red-500 flex items-center">
-        <AlertCircle className="mr-2 h-4 w-4" />
-        Connection timed out. Please try refreshing or check your internet connection.
+      <div className="text-center py-12">
+        <div className="max-w-md mx-auto">
+          <AlertCircle className="w-12 h-12 mx-auto text-red-500 mb-4" />
+          <h3 className="text-lg font-semibold mb-2 text-red-700">Error Loading Data</h3>
+          <p className="text-red-600 mb-4">
+            Unable to load listings. Please check your internet connection and try again.
+          </p>
+          {onRetry && (
+            <Button onClick={onRetry} className="flex items-center gap-2 mx-auto">
+              <RefreshCw className="w-4 h-4" />
+              Try Again
+            </Button>
+          )}
+        </div>
       </div>
     );
   }

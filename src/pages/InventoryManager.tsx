@@ -10,6 +10,7 @@ import InventoryStats from '@/components/inventory/InventoryStats';
 import InventoryControls from '@/components/inventory/InventoryControls';
 import BulkActionsBar from '@/components/BulkActionsBar';
 import { useInventoryFilters } from '@/components/inventory/InventoryFilters';
+import { useToast } from '@/hooks/use-toast';
 import type { Listing } from '@/types/Listing';
 
 interface InventoryManagerProps {
@@ -19,7 +20,8 @@ interface InventoryManagerProps {
 
 const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) => {
   const isMobile = useIsMobile();
-  const { listings, loading, error, deleteListing, duplicateListing, updateListing, updateListingStatus } = useListings();
+  const { listings, loading, error, deleteListing, duplicateListing, updateListing, updateListingStatus, refetch } = useListings();
+  const { toast } = useToast();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -73,6 +75,13 @@ const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) =>
     setIsBulkMode(selectedItems.length > 0);
   }, [selectedItems]);
 
+  // If there's an error, show a retry option
+  useEffect(() => {
+    if (error) {
+      console.log('Inventory Manager detected error:', error);
+    }
+  }, [error]);
+
   const handleSelectItem = (itemId: string, checked: boolean) => {
     setSelectedItems(prev => 
       checked 
@@ -86,10 +95,35 @@ const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) =>
   };
 
   const handleDuplicateListing = async (item: Listing) => {
-    console.log('Duplicating listing:', item.id);
-    const success = await duplicateListing(item);
-    if (success) {
-      console.log('Listing duplicated successfully');
+    console.log('InventoryManager: Duplicating listing:', item.id);
+    
+    toast({
+      title: "Duplicating listing...",
+      description: "Please wait while we create a copy of your listing."
+    });
+    
+    try {
+      const success = await duplicateListing(item);
+      if (success) {
+        console.log('InventoryManager: Listing duplicated successfully');
+        toast({
+          title: "Success!",
+          description: "Listing duplicated successfully. You can now edit the copy."
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to duplicate listing. Please try again.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('InventoryManager: Error duplicating listing:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while duplicating the listing.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -107,6 +141,11 @@ const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) =>
       await updateListingStatus(itemId, status);
     }
     setSelectedItems([]);
+  };
+
+  const handleRetry = () => {
+    console.log('Retrying data fetch...');
+    refetch();
   };
 
   return (
@@ -159,6 +198,7 @@ const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) =>
           onUpdateListing={updateListing}
           onDeleteListing={deleteListing}
           onDuplicateListing={handleDuplicateListing}
+          onRetry={handleRetry}
         />
       </div>
 

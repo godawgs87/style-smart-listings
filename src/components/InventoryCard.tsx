@@ -62,19 +62,27 @@ const InventoryCard = ({
   const [showEditor, setShowEditor] = useState(false);
   const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDuplicating, setIsDuplicating] = useState(false);
 
   const handleSaveEdit = (updatedListing: any) => {
     setShowEditor(false);
     console.log('Updated listing:', updatedListing);
   };
 
-  const handleDuplicate = () => {
+  const handleDuplicateClick = () => {
+    console.log('Duplicate button clicked for item:', item.id);
     setShowDuplicateConfirm(true);
   };
 
-  const confirmDuplicate = () => {
-    if (onDuplicate) {
-      onDuplicate(item);
+  const confirmDuplicate = async () => {
+    console.log('Confirming duplicate for item:', item.id);
+    if (onDuplicate && !isDuplicating) {
+      setIsDuplicating(true);
+      try {
+        await onDuplicate(item);
+      } finally {
+        setIsDuplicating(false);
+      }
     }
   };
 
@@ -121,7 +129,7 @@ const InventoryCard = ({
           onEdit={() => setShowEditor(true)}
           onPreview={() => setShowPreview(true)}
           onDelete={handleDelete}
-          onDuplicate={handleDuplicate}
+          onDuplicate={handleDuplicateClick}
         />
 
         <div className="space-y-3 flex-1">
@@ -206,7 +214,7 @@ const InventoryCard = ({
         onOpenChange={setShowDuplicateConfirm}
         title="Duplicate Listing"
         description={`Are you sure you want to create a copy of "${item.title}"? This will create a new draft listing with the same details.`}
-        confirmText="Duplicate"
+        confirmText={isDuplicating ? "Duplicating..." : "Duplicate"}
         onConfirm={confirmDuplicate}
       />
 
