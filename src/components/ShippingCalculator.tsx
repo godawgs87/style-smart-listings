@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface ShippingOption {
   carrier: string;
@@ -10,6 +11,7 @@ interface ShippingOption {
   cost: number;
   deliveryTime: string;
   recommended?: boolean;
+  isLocalPickup?: boolean;
 }
 
 interface ShippingCalculatorProps {
@@ -25,6 +27,7 @@ interface ShippingCalculatorProps {
 const ShippingCalculator = ({ weight, dimensions, onShippingSelect }: ShippingCalculatorProps) => {
   const [selectedOption, setSelectedOption] = useState<ShippingOption | null>(null);
   const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([]);
+  const [showLocalPickup, setShowLocalPickup] = useState(false);
 
   useEffect(() => {
     // Calculate realistic shipping options based on weight and dimensions
@@ -34,6 +37,18 @@ const ShippingCalculator = ({ weight, dimensions, onShippingSelect }: ShippingCa
       
       const options: ShippingOption[] = [];
 
+      // Local Pickup Option (always available)
+      if (showLocalPickup) {
+        options.push({
+          carrier: 'Local',
+          service: 'Pickup',
+          cost: 0,
+          deliveryTime: 'Immediate',
+          recommended: true,
+          isLocalPickup: true
+        });
+      }
+
       // USPS First Class (up to 1 lb)
       if (weight <= 1) {
         options.push({
@@ -41,7 +56,7 @@ const ShippingCalculator = ({ weight, dimensions, onShippingSelect }: ShippingCa
           service: 'First Class',
           cost: Math.max(4.95, weight * 3.5),
           deliveryTime: '2-5 business days',
-          recommended: true
+          recommended: !showLocalPickup && true
         });
       }
 
@@ -52,7 +67,7 @@ const ShippingCalculator = ({ weight, dimensions, onShippingSelect }: ShippingCa
         service: 'Priority Mail',
         cost: priorityBase + (billableWeight > weight ? (billableWeight - weight) * 2 : 0),
         deliveryTime: '1-3 business days',
-        recommended: weight > 1 && weight <= 5
+        recommended: !showLocalPickup && weight > 1 && weight <= 5
       });
 
       // UPS Ground
@@ -87,7 +102,7 @@ const ShippingCalculator = ({ weight, dimensions, onShippingSelect }: ShippingCa
     };
 
     setShippingOptions(calculateShippingOptions());
-  }, [weight, dimensions]);
+  }, [weight, dimensions, showLocalPickup]);
 
   const handleSelect = (option: ShippingOption) => {
     setSelectedOption(option);
@@ -106,6 +121,18 @@ const ShippingCalculator = ({ weight, dimensions, onShippingSelect }: ShippingCa
         </div>
       </div>
 
+      {/* Local Pickup Toggle */}
+      <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
+        <Checkbox
+          id="local-pickup"
+          checked={showLocalPickup}
+          onCheckedChange={setShowLocalPickup}
+        />
+        <label htmlFor="local-pickup" className="text-sm font-medium">
+          Offer Local Pickup (Free)
+        </label>
+      </div>
+
       <div className="space-y-3">
         <h3 className="font-medium text-gray-900">Shipping Options</h3>
         {shippingOptions.map((option, index) => (
@@ -113,7 +140,7 @@ const ShippingCalculator = ({ weight, dimensions, onShippingSelect }: ShippingCa
             key={index}
             className={`p-4 cursor-pointer transition-all hover:shadow-md ${
               selectedOption === option ? 'ring-2 ring-primary' : ''
-            }`}
+            } ${option.isLocalPickup ? 'border-green-200 bg-green-50' : ''}`}
             onClick={() => handleSelect(option)}
           >
             <div className="flex justify-between items-start">
@@ -124,21 +151,38 @@ const ShippingCalculator = ({ weight, dimensions, onShippingSelect }: ShippingCa
                   {option.recommended && (
                     <Badge variant="default" className="text-xs">Recommended</Badge>
                   )}
+                  {option.isLocalPickup && (
+                    <Badge className="bg-green-100 text-green-800 text-xs">Local Pickup</Badge>
+                  )}
                 </div>
                 <p className="text-sm text-gray-500">{option.deliveryTime}</p>
+                {option.isLocalPickup && (
+                  <p className="text-xs text-green-600 mt-1">
+                    Buyer picks up item directly from seller
+                  </p>
+                )}
               </div>
-              <span className="text-lg font-bold text-green-600">${option.cost.toFixed(2)}</span>
+              <span className={`text-lg font-bold ${option.isLocalPickup ? 'text-green-600' : 'text-green-600'}`}>
+                {option.cost === 0 ? 'FREE' : `$${option.cost.toFixed(2)}`}
+              </span>
             </div>
           </Card>
         ))}
       </div>
 
       {selectedOption && (
-        <div className="bg-green-50 p-4 rounded-lg">
-          <h4 className="font-medium text-green-900 mb-2">Selected Shipping</h4>
-          <p className="text-sm text-green-700">
-            {selectedOption.carrier} {selectedOption.service} - ${selectedOption.cost.toFixed(2)}
+        <div className={`p-4 rounded-lg ${selectedOption.isLocalPickup ? 'bg-green-50' : 'bg-green-50'}`}>
+          <h4 className={`font-medium mb-2 ${selectedOption.isLocalPickup ? 'text-green-900' : 'text-green-900'}`}>
+            Selected Shipping
+          </h4>
+          <p className={`text-sm ${selectedOption.isLocalPickup ? 'text-green-700' : 'text-green-700'}`}>
+            {selectedOption.carrier} {selectedOption.service} - {selectedOption.cost === 0 ? 'FREE' : `$${selectedOption.cost.toFixed(2)}`}
           </p>
+          {selectedOption.isLocalPickup && (
+            <p className="text-xs text-green-600 mt-1">
+              Remember to coordinate pickup location and time with the buyer
+            </p>
+          )}
         </div>
       )}
     </div>

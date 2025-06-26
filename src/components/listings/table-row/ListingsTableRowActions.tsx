@@ -1,18 +1,9 @@
 
 import React from 'react';
+import { TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Edit, Save, X, Trash2, Eye } from 'lucide-react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Edit, Trash2, Eye, MoreVertical, Copy, Archive } from 'lucide-react';
 
 interface Listing {
   id: string;
@@ -31,98 +22,93 @@ interface Listing {
   } | null;
   keywords: string[] | null;
   photos: string[] | null;
+  price_research: string | null;
   created_at: string;
+  purchase_price?: number | null;
+  purchase_date?: string | null;
+  is_consignment?: boolean;
+  consignment_percentage?: number | null;
+  consignor_name?: string | null;
+  consignor_contact?: string | null;
+  source_type?: string | null;
+  source_location?: string | null;
+  cost_basis?: number | null;
+  fees_paid?: number | null;
+  net_profit?: number | null;
+  profit_margin?: number | null;
+  listed_date?: string | null;
+  sold_date?: string | null;
+  sold_price?: number | null;
+  days_to_sell?: number | null;
+  performance_notes?: string | null;
 }
 
 interface ListingsTableRowActionsProps {
   listing: Listing;
-  isEditing: boolean;
-  onSave: () => void;
-  onCancel: () => void;
   onEdit: () => void;
-  onPreview: () => void;
-  onDelete: (listingId: string) => void;
+  onDelete: () => void;
+  onPreview?: (listing: Listing) => void;
+  onEditListing?: (listing: Listing) => void;
 }
 
-const ListingsTableRowActions = ({
-  listing,
-  isEditing,
-  onSave,
-  onCancel,
-  onEdit,
+const ListingsTableRowActions = ({ 
+  listing, 
+  onEdit, 
+  onDelete, 
   onPreview,
-  onDelete
+  onEditListing 
 }: ListingsTableRowActionsProps) => {
-  if (isEditing) {
-    return (
-      <div className="flex items-center gap-1">
-        <Button
-          size="icon"
-          variant="outline"
-          className="h-8 w-8 bg-green-50 hover:bg-green-100 border-green-200"
-          onClick={onSave}
-        >
-          <Save className="h-4 w-4 text-green-600" />
-        </Button>
-        <Button
-          size="icon"
-          variant="outline"
-          className="h-8 w-8 bg-gray-50 hover:bg-gray-100"
-          onClick={onCancel}
-        >
-          <X className="h-4 w-4 text-gray-600" />
-        </Button>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex items-center gap-1">
-      <Button
-        size="icon"
-        variant="outline"
-        className="h-8 w-8 bg-blue-50 hover:bg-blue-100 border-blue-200"
-        onClick={onEdit}
-      >
-        <Edit className="h-4 w-4 text-blue-600" />
-      </Button>
-      <Button
-        size="icon"
-        variant="outline"
-        className="h-8 w-8 bg-gray-50 hover:bg-gray-100"
-        onClick={onPreview}
-      >
-        <Eye className="h-4 w-4 text-gray-600" />
-      </Button>
-      <AlertDialog>
-        <AlertDialogTrigger asChild>
-          <Button
-            size="icon"
-            variant="destructive"
-            className="h-8 w-8"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Listing</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete "{listing.title}"? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => onDelete(listing.id)}
-              className="bg-red-600 hover:bg-red-700"
+    <TableCell className="sticky right-0 bg-white z-10 border-l">
+      <div className="flex items-center space-x-1">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onEdit}
+          className="h-8 w-8 p-0"
+        >
+          <Edit className="h-4 w-4" />
+        </Button>
+        
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-40">
+            {onPreview && (
+              <DropdownMenuItem onClick={() => onPreview(listing)}>
+                <Eye className="mr-2 h-4 w-4" />
+                Preview
+              </DropdownMenuItem>
+            )}
+            {onEditListing && (
+              <DropdownMenuItem onClick={() => onEditListing(listing)}>
+                <Edit className="mr-2 h-4 w-4" />
+                Edit Details
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem onClick={() => console.log('Duplicate listing')}>
+              <Copy className="mr-2 h-4 w-4" />
+              Duplicate
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => console.log('Archive listing')}>
+              <Archive className="mr-2 h-4 w-4" />
+              Archive
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={onDelete}
+              className="text-red-600 focus:text-red-600"
             >
+              <Trash2 className="mr-2 h-4 w-4" />
               Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </TableCell>
   );
 };
 

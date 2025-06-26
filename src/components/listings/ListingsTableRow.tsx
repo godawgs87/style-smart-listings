@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { TableCell, TableRow } from '@/components/ui/table';
+import { TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
-import ListingImagePreview from '@/components/ListingImagePreview';
-import ListingsTableRowEdit from './table-row/ListingsTableRowEdit';
+import { TableCell } from '@/components/ui/table';
 import ListingsTableRowDisplay from './table-row/ListingsTableRowDisplay';
+import ListingsTableRowEdit from './table-row/ListingsTableRowEdit';
 import ListingsTableRowActions from './table-row/ListingsTableRowActions';
 
 interface Listing {
@@ -92,278 +92,50 @@ const ListingsTableRow = ({
   onEditListing
 }: ListingsTableRowProps) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [editData, setEditData] = useState<Partial<Listing>>({});
 
-  const startEditing = () => {
-    setEditData({ ...listing });
-    setIsEditing(true);
-  };
-
-  const cancelEditing = () => {
+  const handleSave = (updates: Partial<Listing>) => {
+    onUpdateListing(listing.id, updates);
     setIsEditing(false);
-    setEditData({});
   };
 
-  const saveEditing = () => {
-    onUpdateListing(listing.id, editData);
-    setIsEditing(false);
-    setEditData({});
-  };
-
-  const updateEditData = (field: keyof Listing, value: any) => {
-    setEditData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const updateMeasurements = (field: string, value: string) => {
-    setEditData(prev => ({
-      ...prev,
-      measurements: {
-        ...prev.measurements,
-        [field]: value
-      }
-    }));
-  };
-
-  const updateKeywords = (keywords: string) => {
-    const keywordArray = keywords.split(',').map(k => k.trim()).filter(k => k.length > 0);
-    setEditData(prev => ({
-      ...prev,
-      keywords: keywordArray
-    }));
-  };
-
-  const handlePreview = () => {
-    if (onPreviewListing) {
-      onPreviewListing(listing);
-    } else {
-      console.log('Preview listing:', listing.id);
+  const handleDelete = () => {
+    if (window.confirm('Are you sure you want to delete this listing?')) {
+      onDeleteListing(listing.id);
     }
-  };
-
-  const handleEdit = () => {
-    if (onEditListing) {
-      onEditListing(listing);
-    } else {
-      startEditing();
-    }
-  };
-
-  const editComponents = ListingsTableRowEdit({
-    editData,
-    updateEditData,
-    updateMeasurements,
-    updateKeywords
-  });
-
-  const displayComponents = ListingsTableRowDisplay({ listing });
-
-  // Helper function to format currency
-  const formatCurrency = (value: number | null | undefined) => {
-    if (!value) return '-';
-    return `$${value.toFixed(2)}`;
-  };
-
-  // Helper function to format percentage
-  const formatPercentage = (value: number | null | undefined) => {
-    if (!value) return '-';
-    return `${value.toFixed(1)}%`;
-  };
-
-  // Helper function to format date
-  const formatDate = (value: string | null | undefined) => {
-    if (!value) return '-';
-    return new Date(value).toLocaleDateString();
   };
 
   return (
-    <TableRow 
-      className={`
-        ${isSelected ? 'bg-blue-50' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}
-        hover:bg-blue-100/50 transition-colors
-      `}
-    >
-      {/* Checkbox */}
+    <TableRow className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50`}>
       <TableCell className="sticky left-0 bg-inherit z-10 border-r">
         <Checkbox
           checked={isSelected}
           onCheckedChange={(checked) => onSelectListing(listing.id, checked as boolean)}
         />
       </TableCell>
-      
-      {/* Core columns */}
-      {visibleColumns.image && (
-        <TableCell className="sticky left-12 bg-inherit z-10 border-r p-2">
-          <ListingImagePreview 
-            photos={listing.photos} 
-            title={listing.title}
-          />
-        </TableCell>
-      )}
 
-      {visibleColumns.title && (
-        <TableCell className="sticky left-28 bg-inherit z-10 border-r">
-          {isEditing ? editComponents.title : displayComponents.title}
-        </TableCell>
-      )}
-
-      {visibleColumns.price && (
-        <TableCell>
-          {isEditing ? editComponents.price : displayComponents.price}
-        </TableCell>
-      )}
-
-      {visibleColumns.status && (
-        <TableCell>
-          {isEditing ? editComponents.status : displayComponents.status}
-        </TableCell>
-      )}
-
-      {visibleColumns.category && (
-        <TableCell>
-          {isEditing ? editComponents.category : displayComponents.category}
-        </TableCell>
-      )}
-
-      {visibleColumns.condition && (
-        <TableCell>
-          {isEditing ? editComponents.condition : displayComponents.condition}
-        </TableCell>
-      )}
-
-      {visibleColumns.shipping && (
-        <TableCell>
-          {isEditing ? editComponents.shipping : displayComponents.shipping}
-        </TableCell>
-      )}
-
-      {visibleColumns.measurements && (
-        <TableCell>
-          {isEditing ? editComponents.measurements : displayComponents.measurements}
-        </TableCell>
-      )}
-
-      {visibleColumns.keywords && (
-        <TableCell>
-          {isEditing ? editComponents.keywords : displayComponents.keywords}
-        </TableCell>
-      )}
-
-      {visibleColumns.description && (
-        <TableCell>
-          {isEditing ? editComponents.description : displayComponents.description}
-        </TableCell>
-      )}
-
-      {/* New financial columns */}
-      {visibleColumns.purchasePrice && (
-        <TableCell>
-          <div className="font-medium">
-            {formatCurrency(listing.purchase_price)}
-          </div>
-        </TableCell>
-      )}
-
-      {visibleColumns.purchaseDate && (
-        <TableCell>
-          <div className="text-sm">
-            {formatDate(listing.purchase_date)}
-          </div>
-        </TableCell>
-      )}
-
-      {visibleColumns.consignmentStatus && (
-        <TableCell>
-          <div className="text-sm">
-            {listing.is_consignment ? (
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
-                Consignment ({listing.consignment_percentage}%)
-              </span>
-            ) : (
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
-                Owned
-              </span>
-            )}
-          </div>
-        </TableCell>
-      )}
-
-      {visibleColumns.sourceType && (
-        <TableCell>
-          <div className="text-sm capitalize">
-            {listing.source_type?.replace('_', ' ') || '-'}
-          </div>
-        </TableCell>
-      )}
-
-      {visibleColumns.sourceLocation && (
-        <TableCell>
-          <div className="text-sm truncate max-w-[150px]" title={listing.source_location || ''}>
-            {listing.source_location || '-'}
-          </div>
-        </TableCell>
-      )}
-
-      {visibleColumns.costBasis && (
-        <TableCell>
-          <div className="font-medium">
-            {formatCurrency(listing.cost_basis)}
-          </div>
-        </TableCell>
-      )}
-
-      {visibleColumns.netProfit && (
-        <TableCell>
-          <div className={`font-medium ${
-            listing.net_profit && listing.net_profit > 0 ? 'text-green-600' : 
-            listing.net_profit && listing.net_profit < 0 ? 'text-red-600' : ''
-          }`}>
-            {formatCurrency(listing.net_profit)}
-          </div>
-        </TableCell>
-      )}
-
-      {visibleColumns.profitMargin && (
-        <TableCell>
-          <div className={`font-medium ${
-            listing.profit_margin && listing.profit_margin > 0 ? 'text-green-600' : 
-            listing.profit_margin && listing.profit_margin < 0 ? 'text-red-600' : ''
-          }`}>
-            {formatPercentage(listing.profit_margin)}
-          </div>
-        </TableCell>
-      )}
-
-      {visibleColumns.daysToSell && (
-        <TableCell>
-          <div className="text-sm">
-            {listing.days_to_sell ? `${listing.days_to_sell} days` : '-'}
-          </div>
-        </TableCell>
-      )}
-
-      {visibleColumns.performanceNotes && (
-        <TableCell>
-          <div className="text-sm truncate max-w-[200px]" title={listing.performance_notes || ''}>
-            {listing.performance_notes || '-'}
-          </div>
-        </TableCell>
-      )}
-
-      {/* Actions */}
-      <TableCell className="sticky right-0 bg-inherit z-10 border-l">
-        <ListingsTableRowActions
+      {isEditing ? (
+        <ListingsTableRowEdit
           listing={listing}
-          isEditing={isEditing}
-          onSave={saveEditing}
-          onCancel={cancelEditing}
-          onEdit={handleEdit}
-          onPreview={handlePreview}
-          onDelete={onDeleteListing}
+          visibleColumns={visibleColumns}
+          onSave={handleSave}
+          onCancel={() => setIsEditing(false)}
         />
-      </TableCell>
+      ) : (
+        <>
+          <ListingsTableRowDisplay
+            listing={listing}
+            index={index}
+            visibleColumns={visibleColumns}
+          />
+          <ListingsTableRowActions
+            listing={listing}
+            onEdit={() => setIsEditing(true)}
+            onDelete={handleDelete}
+            onPreview={onPreviewListing}
+            onEditListing={onEditListing}
+          />
+        </>
+      )}
     </TableRow>
   );
 };

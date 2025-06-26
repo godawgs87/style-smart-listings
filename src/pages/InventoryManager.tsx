@@ -1,139 +1,119 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useAuth } from '@/hooks/useAuth';
 import { useListings } from '@/hooks/useListings';
+import StreamlinedHeader from '@/components/StreamlinedHeader';
+import MobileNavigation from '@/components/MobileNavigation';
 import InventoryManagerHeader from '@/components/inventory/InventoryManagerHeader';
+import InventoryContent from '@/components/inventory/InventoryContent';
 import InventoryStats from '@/components/inventory/InventoryStats';
 import InventoryControls from '@/components/inventory/InventoryControls';
-import InventoryContent from '@/components/inventory/InventoryContent';
-import { useInventoryFilters } from '@/components/inventory/InventoryFilters';
+import InventoryFilters from '@/components/inventory/InventoryFilters';
 
 interface InventoryManagerProps {
-  onBack: () => void;
   onCreateListing: () => void;
+  onBack: () => void;
 }
 
-const InventoryManager = ({ onBack, onCreateListing }: InventoryManagerProps) => {
-  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) => {
+  const isMobile = useIsMobile();
+  const { listings, loading, error, deleteListing, updateListing } = useListings();
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('created_at_desc');
   const [sourceTypeFilter, setSourceTypeFilter] = useState('all');
   const [consignmentFilter, setConsignmentFilter] = useState('all');
-  const [priceRangeFilter, setPriceRangeFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('created_at');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
-  const [isBulkMode, setIsBulkMode] = useState(false);
-  
-  const isMobile = useIsMobile();
-  const { user } = useAuth();
-  
-  const { listings, loading, error, deleteListing, updateListing } = useListings({
-    statusFilter: statusFilter === 'all' ? undefined : statusFilter,
-    limit: 25
-  });
 
-  const { filteredListings } = useInventoryFilters({
-    listings,
-    searchTerm,
-    statusFilter,
-    categoryFilter,
-    sortBy,
-    sourceTypeFilter,
-    consignmentFilter,
-    priceRangeFilter
-  });
-
-  const handleSelectItem = (itemId: string, checked: boolean) => {
-    setSelectedItems(prev => 
-      checked 
-        ? [...prev, itemId]
-        : prev.filter(id => id !== itemId)
+  const filteredAndSortedListings = useMemo(() => {
+    return InventoryFilters.filterAndSortListings(
+      listings, 
+      searchTerm, 
+      statusFilter, 
+      categoryFilter,
+      sourceTypeFilter,
+      consignmentFilter,
+      sortBy
     );
-  };
+  }, [listings, searchTerm, statusFilter, categoryFilter, sourceTypeFilter, consignmentFilter, sortBy]);
 
-  const handleSelectAll = (checked: boolean) => {
-    setSelectedItems(checked ? filteredListings.map(l => l.id) : []);
-  };
+  const categories = useMemo(() => {
+    const uniqueCategories = [...new Set(listings.map(l => l.category).filter(Boolean))];
+    return uniqueCategories as string[];
+  }, [listings]);
 
-  const handleBulkDelete = async () => {
-    if (selectedItems.length === 0) return;
-    
-    for (const id of selectedItems) {
-      await deleteListing(id);
-    }
-    setSelectedItems([]);
-  };
+  const stats = useMemo(() => {
+    const totalItems = listings.length;
+    const totalValue = listings.reduce((sum, listing) => sum + (listing.price || 0), 0);
+    const profitableListings = listings.filter(l => l.net_profit && l.net_profit > 0);
+    const averageProfit = profitableListings.length > 0 
+      ? profitableListings.reduce((sum, l) => sum + (l.net_profit || 0), 0) / profitableListings.length 
+      : 0;
+    const listingsWithDays = listings.filter(l => l.days_to_sell);
+    const averageDaysToSell = listingsWithDays.length > 0
+      ? listingsWithDays.reduce((sum, l) => sum + (l.days_to_sell || 0), 0) / listingsWithDays.length
+      : 0;
 
-  const handleBulkStatusUpdate = async (status: string) => {
-    if (selectedItems.length === 0) return;
-    
-    for (const id of selectedItems) {
-      await updateListing(id, { status });
-    }
-    setSelectedItems([]);
-  };
-
-  const handleUpdateListing = async (listingId: string, updates: any) => {
-    await updateListing(listingId, updates);
-  };
-
-  const handleDeleteListing = async (listingId: string) => {
-    await deleteListing(listingId);
-    setSelectedItems(prev => prev.filter(id => id !== listingId));
-  };
+    return {
+      totalItems,
+      totalValue,
+      averageProfit,
+      averageDaysToSell
+    };
+  }, [listings]);
 
   return (
     <div className={`min-h-screen bg-gray-50 ${isMobile ? 'pb-20' : ''}`}>
-      <InventoryManagerHeader userEmail={user?.email} onBack={onBack} />
-
-      <div className="max-w-7xl mx-auto p-4 space-y-6">
-        <InventoryStats
-          totalItems={listings.length}
-          activeItems={listings.filter(item => item.status === 'active').length}
-          totalValue={listings.reduce((sum, item) => sum + item.price, 0)}
-          totalProfit={listings.reduce((sum, item) => sum + item.price - (item.purchase_price || 0), 0)}
-        />
-
+      <StreamlinedHeader
+        title="Inventory Manager"
+        showBack
+        onBack={onBack}
+      />
+      
+      <div className="max-w-7xl mx-auto p-4">
+        <InventoryManagerHeader onCreateListing={onCreateListing} />
+        
+        <InventoryStats {...stats} />
+        
         <InventoryControls
-          isBulkMode={isBulkMode}
-          setIsBulkMode={setIsBulkMode}
-          selectedItems={selectedItems}
-          handleBulkDelete={handleBulkDelete}
-          handleBulkStatusUpdate={handleBulkStatusUpdate}
-          viewMode={viewMode}
-          setViewMode={setViewMode}
-          onCreateListing={onCreateListing}
           searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
+          onSearchChange={setSearchTerm}
           statusFilter={statusFilter}
-          setStatusFilter={setStatusFilter}
+          onStatusFilterChange={setStatusFilter}
           categoryFilter={categoryFilter}
-          setCategoryFilter={setCategoryFilter}
-          sortBy={sortBy}
-          setSortBy={setSortBy}
-          categories={[...new Set(listings.map(item => item.category).filter(Boolean))]}
+          onCategoryFilterChange={setCategoryFilter}
           sourceTypeFilter={sourceTypeFilter}
-          setSourceTypeFilter={setSourceTypeFilter}
+          onSourceTypeFilterChange={setSourceTypeFilter}
           consignmentFilter={consignmentFilter}
-          setConsignmentFilter={setConsignmentFilter}
-          priceRangeFilter={priceRangeFilter}
-          setPriceRangeFilter={setPriceRangeFilter}
-        />
-
-        <InventoryContent
+          onConsignmentFilterChange={setConsignmentFilter}
+          sortBy={sortBy}
+          onSortByChange={setSortBy}
           viewMode={viewMode}
-          filteredListings={filteredListings}
-          selectedItems={selectedItems}
-          isBulkMode={isBulkMode}
+          onViewModeChange={setViewMode}
+          onCreateListing={onCreateListing}
+          categories={categories}
+        />
+        
+        <InventoryContent
+          listings={filteredAndSortedListings}
+          viewMode={viewMode}
           loading={loading}
           error={error}
-          onSelectItem={handleSelectItem}
-          onSelectAll={handleSelectAll}
-          onUpdateListing={handleUpdateListing}
-          onDeleteListing={handleDeleteListing}
+          onDeleteListing={deleteListing}
+          onUpdateListing={updateListing}
         />
       </div>
+
+      {isMobile && (
+        <MobileNavigation
+          currentView="inventory"
+          onNavigate={() => {}}
+          showBack
+          onBack={onBack}
+          title="Inventory"
+        />
+      )}
     </div>
   );
 };
