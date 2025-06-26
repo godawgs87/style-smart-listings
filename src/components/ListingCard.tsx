@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -109,13 +108,12 @@ const ListingCard = ({
 
       {/* Image Preview with on-demand loading */}
       <div className="mb-3 flex justify-center">
-        <div className="w-24 h-24">
-          <ListingImagePreview 
-            photos={listing.photos} 
-            title={listing.title}
-            listingId={listing.id}
-          />
-        </div>
+        <ListingImagePreview 
+          photos={listing.photos} 
+          title={listing.title}
+          listingId={listing.id}
+          className="w-32 h-32"
+        />
       </div>
 
       {/* Content */}
