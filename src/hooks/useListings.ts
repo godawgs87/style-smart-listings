@@ -1,11 +1,13 @@
 
 import { useListingData } from './useListingData';
 import { useListingOperations } from './useListingOperations';
+import { useToast } from '@/hooks/use-toast';
 import type { Listing } from '@/types/Listing';
 
 export const useListings = (options?: { statusFilter?: string; limit?: number }) => {
   const { listings, setListings, loading, error, fetchListings, refetch } = useListingData(options || {});
   const { deleteListing: deleteOperation, duplicateListing: duplicateOperation, updateListing: updateOperation, updateListingStatus } = useListingOperations();
+  const { toast } = useToast();
 
   console.log('useListings hook - listings count:', listings.length, 'loading:', loading, 'error:', error);
 
@@ -19,9 +21,17 @@ export const useListings = (options?: { statusFilter?: string; limit?: number })
 
   const duplicateListing = async (originalItem: Listing) => {
     console.log('useListings: Starting duplicate operation for:', originalItem.id);
+    
+    // Show loading toast
+    toast({
+      title: "Duplicating listing...",
+      description: "Please wait while we create a copy of your listing."
+    });
+
     const newListing = await duplicateOperation(originalItem);
     if (newListing) {
       console.log('useListings: Duplicate operation successful, updating state');
+      
       // Ensure the newListing matches the Listing interface structure
       const transformedListing: Listing = {
         ...newListing,
@@ -37,8 +47,21 @@ export const useListings = (options?: { statusFilter?: string; limit?: number })
         price_research: newListing.price_research || null,
         status: newListing.status || null
       };
+      
       setListings(prev => [transformedListing, ...prev]);
+      
+      toast({
+        title: "Success!",
+        description: "Listing duplicated successfully. You can now edit the copy."
+      });
+      
       return transformedListing;
+    } else {
+      toast({
+        title: "Error",
+        description: "Failed to duplicate listing. Please try again.",
+        variant: "destructive"
+      });
     }
     return null;
   };

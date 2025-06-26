@@ -6,6 +6,7 @@ import { Calendar, DollarSign } from 'lucide-react';
 import InventoryCardDialogs from './inventory/InventoryCardDialogs';
 import InventoryCardHeader from './inventory/InventoryCardHeader';
 import InventoryCardFinancials from './inventory/InventoryCardFinancials';
+import ConfirmationDialog from './ConfirmationDialog';
 
 interface Item {
   id: string;
@@ -59,6 +60,8 @@ const InventoryCard = ({
 }: InventoryCardProps) => {
   const [showPreview, setShowPreview] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
+  const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleSaveEdit = (updatedListing: any) => {
     setShowEditor(false);
@@ -66,9 +69,21 @@ const InventoryCard = ({
   };
 
   const handleDuplicate = () => {
+    setShowDuplicateConfirm(true);
+  };
+
+  const confirmDuplicate = () => {
     if (onDuplicate) {
       onDuplicate(item);
     }
+  };
+
+  const handleDelete = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = () => {
+    onDelete();
   };
 
   const getStatusColor = (status: string | null) => {
@@ -105,7 +120,7 @@ const InventoryCard = ({
           onSelect={onSelect}
           onEdit={() => setShowEditor(true)}
           onPreview={() => setShowPreview(true)}
-          onDelete={onDelete}
+          onDelete={handleDelete}
           onDuplicate={handleDuplicate}
         />
 
@@ -184,6 +199,25 @@ const InventoryCard = ({
         showEditor={showEditor}
         setShowEditor={setShowEditor}
         onSaveEdit={handleSaveEdit}
+      />
+
+      <ConfirmationDialog
+        open={showDuplicateConfirm}
+        onOpenChange={setShowDuplicateConfirm}
+        title="Duplicate Listing"
+        description={`Are you sure you want to create a copy of "${item.title}"? This will create a new draft listing with the same details.`}
+        confirmText="Duplicate"
+        onConfirm={confirmDuplicate}
+      />
+
+      <ConfirmationDialog
+        open={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        title="Delete Listing"
+        description={`Are you sure you want to delete "${item.title}"? This action cannot be undone.`}
+        confirmText="Delete"
+        onConfirm={confirmDelete}
+        variant="destructive"
       />
     </>
   );
