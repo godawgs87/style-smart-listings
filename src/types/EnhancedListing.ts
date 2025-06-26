@@ -1,5 +1,5 @@
 
-export interface ListingData {
+export interface EnhancedListingData {
   title: string;
   description: string;
   price: number;
@@ -22,6 +22,8 @@ export interface ListingData {
   keywords?: string[];
   photos: string[];
   priceResearch?: string;
+  shipping_cost?: number;
+  status?: string;
   cost_basis?: number;
   fees_paid?: number;
   net_profit?: number;
@@ -33,14 +35,16 @@ export interface ListingData {
   performance_notes?: string;
 }
 
-export interface CreateListingState {
-  step: number;
-  listingData: ListingData;
-  shippingCost: number;
-  isSubmitting: boolean;
-  photos: File[];
-  photoUrls: string[];
-  keywords: string[];
-  isAnalyzing: boolean;
-  analysisResults: any;
+export interface PurchaseInfo {
+  purchase_price?: number;
+  purchase_date?: string;
+  source_location?: string;
+  source_type?: 'thrift_store' | 'estate_sale' | 'garage_sale' | 'consignment' | 'wholesale' | 'online' | 'other';
+}
+
+export interface ConsignmentInfo {
+  is_consignment: boolean;
+  consignment_percentage?: number;
+  consignor_name?: string;
+  consignor_contact?: string;
 }

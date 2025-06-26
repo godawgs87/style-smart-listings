@@ -28,10 +28,28 @@ export const useListingSave = () => {
         return { success: false, listingId: null };
       }
 
+      // Calculate profit if both purchase price and listing price are available
+      let calculatedCostBasis = listingData.purchase_price || 0;
+      let calculatedNetProfit = null;
+      let calculatedProfitMargin = null;
+      
+      if (listingData.purchase_price && listingData.price) {
+        calculatedNetProfit = listingData.price - calculatedCostBasis;
+        calculatedProfitMargin = calculatedCostBasis > 0 ? (calculatedNetProfit / calculatedCostBasis) * 100 : 0;
+      }
+
       const listingToSave = {
         title: listingData.title,
         description: listingData.description,
         price: listingData.price,
+        purchase_price: listingData.purchase_price,
+        purchase_date: listingData.purchase_date,
+        is_consignment: listingData.is_consignment || false,
+        consignment_percentage: listingData.consignment_percentage,
+        consignor_name: listingData.consignor_name,
+        consignor_contact: listingData.consignor_contact,
+        source_location: listingData.source_location,
+        source_type: listingData.source_type,
         category: listingData.category,
         condition: listingData.condition,
         measurements: listingData.measurements,
@@ -40,6 +58,11 @@ export const useListingSave = () => {
         price_research: listingData.priceResearch || '',
         shipping_cost: shippingCost,
         status: status,
+        cost_basis: calculatedCostBasis,
+        fees_paid: listingData.fees_paid || 0,
+        net_profit: calculatedNetProfit,
+        profit_margin: calculatedProfitMargin,
+        listed_date: status === 'active' ? new Date().toISOString().split('T')[0] : null,
         user_id: user.id
       };
 

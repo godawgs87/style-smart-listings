@@ -1,12 +1,16 @@
 
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
+import { TrendingUp } from 'lucide-react';
 
 interface Listing {
   id: string;
   title: string;
   description: string | null;
   price: number;
+  purchase_price?: number;
+  is_consignment?: boolean;
+  consignment_percentage?: number;
   category: string | null;
   condition: string | null;
   status: string | null;
@@ -20,6 +24,8 @@ interface Listing {
   keywords: string[] | null;
   photos: string[] | null;
   created_at: string;
+  net_profit?: number;
+  profit_margin?: number;
 }
 
 interface ListingsTableRowDisplayProps {
@@ -27,14 +33,57 @@ interface ListingsTableRowDisplayProps {
 }
 
 const ListingsTableRowDisplay = ({ listing }: ListingsTableRowDisplayProps) => {
+  const calculateEstimatedProfit = () => {
+    if (listing.net_profit !== null && listing.net_profit !== undefined) {
+      return listing.net_profit;
+    }
+    if (listing.price && listing.purchase_price) {
+      return listing.price - listing.purchase_price;
+    }
+    return null;
+  };
+
+  const estimatedProfit = calculateEstimatedProfit();
+
   return {
     title: (
       <div className="font-medium text-gray-900 line-clamp-2 text-sm leading-tight">
         {listing.title}
+        {listing.is_consignment && (
+          <Badge variant="outline" className="ml-2 text-xs bg-purple-50 text-purple-700 border-purple-200">
+            Consignment
+          </Badge>
+        )}
       </div>
     ),
     price: (
-      <div className="font-bold text-green-600 text-lg">${listing.price}</div>
+      <div className="space-y-1">
+        <div className="font-bold text-green-600 text-lg">${listing.price}</div>
+        {listing.purchase_price && (
+          <div className="text-xs text-gray-500">
+            Cost: ${listing.purchase_price}
+          </div>
+        )}
+      </div>
+    ),
+    profit: (
+      <div className="space-y-1">
+        {estimatedProfit !== null ? (
+          <>
+            <div className={`font-medium flex items-center ${estimatedProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <TrendingUp className="w-3 h-3 mr-1" />
+              ${estimatedProfit.toFixed(2)}
+            </div>
+            {listing.profit_margin && (
+              <div className={`text-xs ${listing.profit_margin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {listing.profit_margin.toFixed(1)}% margin
+              </div>
+            )}
+          </>
+        ) : (
+          <span className="text-xs text-gray-400">No cost data</span>
+        )}
+      </div>
     ),
     status: (
       <Badge 

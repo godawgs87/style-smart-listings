@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Edit, Eye, Trash2, Calendar } from 'lucide-react';
+import { Edit, Eye, Trash2, Calendar, DollarSign, TrendingUp } from 'lucide-react';
 import InventoryCardDialogs from './inventory/InventoryCardDialogs';
 
 interface Item {
@@ -13,6 +13,10 @@ interface Item {
   description: string | null;
   price: number;
   purchase_price?: number;
+  purchase_date?: string;
+  is_consignment?: boolean;
+  consignment_percentage?: number;
+  consignor_name?: string;
   category: string | null;
   condition: string | null;
   measurements: {
@@ -28,6 +32,8 @@ interface Item {
   status: string | null;
   created_at: string;
   sold_price?: number;
+  net_profit?: number;
+  profit_margin?: number;
 }
 
 interface InventoryCardProps {
@@ -70,7 +76,16 @@ const InventoryCard = ({
     }
   };
 
-  const profit = item.sold_price ? (item.sold_price - (item.purchase_price || item.price)) : null;
+  const calculateProfit = () => {
+    if (item.sold_price && item.purchase_price) {
+      return item.sold_price - item.purchase_price;
+    } else if (item.price && item.purchase_price) {
+      return item.price - item.purchase_price;
+    }
+    return item.net_profit || null;
+  };
+
+  const profit = calculateProfit();
 
   return (
     <>
@@ -151,6 +166,11 @@ const InventoryCard = ({
                 {item.status}
               </Badge>
             )}
+            {item.is_consignment && (
+              <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
+                Consignment
+              </Badge>
+            )}
           </div>
 
           {/* Description */}
@@ -169,16 +189,39 @@ const InventoryCard = ({
             
             {item.purchase_price && (
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">Cost</span>
+                <span className="text-xs text-gray-500">
+                  {item.is_consignment ? 'Consignment Cost' : 'Purchase Cost'}
+                </span>
                 <span className="text-sm text-gray-700">${item.purchase_price}</span>
               </div>
             )}
             
             {profit !== null && (
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">Profit</span>
+                <span className="text-xs text-gray-500 flex items-center">
+                  <TrendingUp className="w-3 h-3 mr-1" />
+                  {item.status === 'sold' ? 'Profit' : 'Est. Profit'}
+                </span>
                 <span className={`text-sm font-medium ${profit > 0 ? 'text-green-600' : 'text-red-600'}`}>
                   ${profit.toFixed(2)}
+                </span>
+              </div>
+            )}
+
+            {item.profit_margin && (
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-500">Margin</span>
+                <span className={`text-xs font-medium ${item.profit_margin > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {item.profit_margin.toFixed(1)}%
+                </span>
+              </div>
+            )}
+
+            {item.is_consignment && item.consignment_percentage && (
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-500">Your Share</span>
+                <span className="text-xs font-medium text-purple-600">
+                  {item.consignment_percentage}%
                 </span>
               </div>
             )}
@@ -190,6 +233,12 @@ const InventoryCard = ({
               <Calendar className="w-3 h-3" />
               <span>Added {new Date(item.created_at).toLocaleDateString()}</span>
             </div>
+            {item.purchase_date && (
+              <div className="flex items-center gap-1">
+                <DollarSign className="w-3 h-3" />
+                <span>Bought {new Date(item.purchase_date).toLocaleDateString()}</span>
+              </div>
+            )}
           </div>
         </div>
       </Card>

@@ -13,15 +13,32 @@ export type Database = {
         Row: {
           category: string | null
           condition: string | null
+          consignment_percentage: number | null
+          consignor_contact: string | null
+          consignor_name: string | null
+          cost_basis: number | null
           created_at: string
+          days_to_sell: number | null
           description: string | null
+          fees_paid: number | null
           id: string
+          is_consignment: boolean | null
           keywords: string[] | null
+          listed_date: string | null
           measurements: Json | null
+          net_profit: number | null
+          performance_notes: string | null
           photos: string[] | null
           price: number
           price_research: string | null
+          profit_margin: number | null
+          purchase_date: string | null
+          purchase_price: number | null
           shipping_cost: number | null
+          sold_date: string | null
+          sold_price: number | null
+          source_location: string | null
+          source_type: string | null
           status: string | null
           title: string
           updated_at: string
@@ -30,15 +47,32 @@ export type Database = {
         Insert: {
           category?: string | null
           condition?: string | null
+          consignment_percentage?: number | null
+          consignor_contact?: string | null
+          consignor_name?: string | null
+          cost_basis?: number | null
           created_at?: string
+          days_to_sell?: number | null
           description?: string | null
+          fees_paid?: number | null
           id?: string
+          is_consignment?: boolean | null
           keywords?: string[] | null
+          listed_date?: string | null
           measurements?: Json | null
+          net_profit?: number | null
+          performance_notes?: string | null
           photos?: string[] | null
           price: number
           price_research?: string | null
+          profit_margin?: number | null
+          purchase_date?: string | null
+          purchase_price?: number | null
           shipping_cost?: number | null
+          sold_date?: string | null
+          sold_price?: number | null
+          source_location?: string | null
+          source_type?: string | null
           status?: string | null
           title: string
           updated_at?: string
@@ -47,15 +81,32 @@ export type Database = {
         Update: {
           category?: string | null
           condition?: string | null
+          consignment_percentage?: number | null
+          consignor_contact?: string | null
+          consignor_name?: string | null
+          cost_basis?: number | null
           created_at?: string
+          days_to_sell?: number | null
           description?: string | null
+          fees_paid?: number | null
           id?: string
+          is_consignment?: boolean | null
           keywords?: string[] | null
+          listed_date?: string | null
           measurements?: Json | null
+          net_profit?: number | null
+          performance_notes?: string | null
           photos?: string[] | null
           price?: number
           price_research?: string | null
+          profit_margin?: number | null
+          purchase_date?: string | null
+          purchase_price?: number | null
           shipping_cost?: number | null
+          sold_date?: string | null
+          sold_price?: number | null
+          source_location?: string | null
+          source_type?: string | null
           status?: string | null
           title?: string
           updated_at?: string
