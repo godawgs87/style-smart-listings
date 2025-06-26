@@ -21,8 +21,8 @@ const InventoryTimeoutError = ({ onBack, onRetry, onForceOffline, error }: Inven
   const { signOut } = useAuth();
   const hasFallbackData = fallbackDataService.hasFallbackData();
 
-  const isAuthError = error?.includes('Access denied') || error?.includes('Authentication') || error?.includes('policy');
-  const isTimeoutError = error?.includes('timeout') || error?.includes('unavailable');
+  const isAuthError = error?.includes('Authentication') || error?.includes('JWT') || error?.includes('auth') || error?.includes('policy');
+  const isTimeoutError = error?.includes('timeout') || error?.includes('unavailable') || error?.includes('connection');
 
   const handleQuickRetry = () => {
     console.log('Quick retry with database...');
@@ -74,7 +74,7 @@ const InventoryTimeoutError = ({ onBack, onRetry, onForceOffline, error }: Inven
   };
 
   const getErrorTitle = () => {
-    if (isAuthError) return "Access Permission Error";
+    if (isAuthError) return "Authentication Error";
     if (isTimeoutError) return "Database Connection Issues";
     return "Database Error";
   };

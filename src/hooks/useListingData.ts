@@ -32,6 +32,7 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
       
       // Force database attempt on manual retry
       if (isRetry) {
+        console.log('🔄 Manual retry - resetting fallback state');
         setUsingFallback(false);
         retryCountRef.current = 0;
       }
@@ -43,32 +44,61 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
         categoryFilter
       });
 
-      if (fetchError === 'CONNECTION_ERROR') {
-        console.log('🔌 Connection error - switching to fallback');
-        setUsingFallback(true);
-        const fallbackListings = loadFallbackData({
-          statusFilter,
-          limit,
-          searchTerm,
-          categoryFilter
-        });
-        setListings(fallbackListings);
-        setError(null);
+      if (fetchError === 'AUTH_ERROR') {
+        console.log('🔒 Authentication error - showing auth error');
+        setError('Authentication failed. Please sign out and sign back in.');
+        setListings([]);
+        setUsingFallback(false);
         
         if (!isRetry) {
           toast({
-            title: "Database Unavailable",
-            description: "Switched to offline mode. Use the 'Try Database Again' button to reconnect.",
+            title: "Authentication Error",
+            description: "Please sign out and sign back in to continue.",
             variant: "destructive"
           });
         }
+      } else if (fetchError === 'CONNECTION_ERROR') {
+        console.log('🔌 Connection error - attempting fallback only after multiple failures');
+        retryCountRef.current += 1;
+        
+        // Only switch to fallback after 2 failed attempts or if manually retrying
+        if (retryCountRef.current >= 2 || isRetry) {
+          console.log('🔌 Switching to fallback mode');
+          setUsingFallback(true);
+          const fallbackListings = loadFallbackData({
+            statusFilter,
+            limit,
+            searchTerm,
+            categoryFilter
+          });
+          setListings(fallbackListings);
+          setError(null);
+          
+          if (!isRetry) {
+            toast({
+              title: "Database Unavailable",
+              description: "Switched to offline mode. Use the 'Try Database Again' button to reconnect.",
+              variant: "destructive"
+            });
+          }
+        } else {
+          console.log('🔁 First connection failure - will retry automatically');
+          setError('Database connection failed. Retrying...');
+          setListings([]);
+          setUsingFallback(false);
+          
+          // Auto retry after 1 second for first failure
+          setTimeout(() => {
+            fetchListings();
+          }, 1000);
+        }
       } else if (fetchError) {
-        console.error('❌ Database error:', fetchError);
+        console.error('❌ Other database error:', fetchError);
         setError(fetchError);
         setListings([]);
         setUsingFallback(false);
       } else {
-        console.log('✅ Database fetch successful - exiting offline mode');
+        console.log('✅ Database fetch successful');
         setListings(fetchedListings);
         setError(null);
         setUsingFallback(false);
