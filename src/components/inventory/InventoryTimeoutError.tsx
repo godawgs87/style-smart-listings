@@ -7,7 +7,7 @@ import StreamlinedHeader from '@/components/StreamlinedHeader';
 import { useToast } from '@/hooks/use-toast';
 import { fallbackDataService } from '@/services/fallbackDataService';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import DatabaseDiagnostics from './DatabaseDiagnostics';
 
 interface InventoryTimeoutErrorProps {
   onBack: () => void;
@@ -21,75 +21,9 @@ const InventoryTimeoutError = ({ onBack, onRetry, onForceOffline, error }: Inven
   const { toast } = useToast();
   const { signOut } = useAuth();
   const hasFallbackData = fallbackDataService.hasFallbackData();
-  const [testResults, setTestResults] = useState<string>('');
-  const [isRunningTest, setIsRunningTest] = useState(false);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
 
   const isAuthError = error?.includes('Authentication') || error?.includes('JWT') || error?.includes('auth');
-
-  const handleDetailedTest = async () => {
-    setIsRunningTest(true);
-    setTestResults('');
-    
-    let results = '🔍 DETAILED CONNECTION TEST\n';
-    results += `📅 ${new Date().toISOString()}\n\n`;
-    
-    try {
-      // Test 1: Basic connection
-      results += '1️⃣ Testing basic connection...\n';
-      const { data: basicData, error: basicError } = await supabase
-        .from('listings')
-        .select('id')
-        .limit(1);
-      
-      if (basicError) {
-        results += `❌ Basic connection failed: ${basicError.message}\n`;
-        results += `   Code: ${basicError.code}\n`;
-        results += `   Details: ${basicError.details}\n`;
-      } else {
-        results += `✅ Basic connection successful (${basicData?.length || 0} rows)\n`;
-      }
-      
-      // Test 2: Auth check
-      results += '\n2️⃣ Testing authentication...\n';
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
-      if (authError) {
-        results += `❌ Auth check failed: ${authError.message}\n`;
-      } else if (user) {
-        results += `✅ User authenticated: ${user.email}\n`;
-      } else {
-        results += `❌ No authenticated user\n`;
-      }
-      
-      // Test 3: Full query
-      results += '\n3️⃣ Testing full query...\n';
-      const { data: fullData, error: fullError } = await supabase
-        .from('listings')
-        .select('*')
-        .limit(5);
-      
-      if (fullError) {
-        results += `❌ Full query failed: ${fullError.message}\n`;
-        results += `   Code: ${fullError.code}\n`;
-      } else {
-        results += `✅ Full query successful (${fullData?.length || 0} rows)\n`;
-      }
-      
-      // Test 4: Network info
-      results += '\n4️⃣ Network information...\n';
-      results += `📡 Supabase URL: https://ekzaaptxfwixgmbrooqr.supabase.co\n`;
-      results += `🔑 API Key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\n`;
-      results += `🌐 Online: ${navigator.onLine}\n`;
-      
-    } catch (err: any) {
-      results += `💥 Test exception: ${err.message}\n`;
-    }
-    
-    setTestResults(results);
-    setIsRunningTest(false);
-    
-    console.log(results);
-  };
 
   const handleRetry = () => {
     console.log('🔄 Manual retry triggered from error screen');
@@ -169,13 +103,12 @@ const InventoryTimeoutError = ({ onBack, onRetry, onForceOffline, error }: Inven
               ) : (
                 <>
                   <Button 
-                    onClick={handleDetailedTest} 
+                    onClick={() => setShowDiagnostics(!showDiagnostics)} 
                     className="w-full" 
                     variant="default"
-                    disabled={isRunningTest}
                   >
                     <Database className="w-4 h-4 mr-2" />
-                    {isRunningTest ? 'Running Test...' : 'Run Detailed Test'}
+                    {showDiagnostics ? 'Hide Diagnostics' : 'Run Diagnostics'}
                   </Button>
                   
                   <Button onClick={handleRetry} className="w-full" variant="outline">
@@ -198,12 +131,9 @@ const InventoryTimeoutError = ({ onBack, onRetry, onForceOffline, error }: Inven
               </Button>
             </div>
 
-            {testResults && (
-              <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg text-left">
-                <h4 className="font-medium text-gray-800 mb-2">Test Results:</h4>
-                <pre className="text-xs text-gray-700 whitespace-pre-wrap font-mono">
-                  {testResults}
-                </pre>
+            {showDiagnostics && (
+              <div className="mb-6">
+                <DatabaseDiagnostics />
               </div>
             )}
 
