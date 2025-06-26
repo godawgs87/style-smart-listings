@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
@@ -27,7 +26,12 @@ const InventoryManager = ({ onBack, onCreateListing }: InventoryManagerProps) =>
   
   const isMobile = useIsMobile();
   const { user } = useAuth();
-  const { listings, loading, error, deleteListing, updateListing } = useListings();
+  
+  // Use lighter options for better performance
+  const { listings, loading, error, deleteListing, updateListing } = useListings({
+    statusFilter: statusFilter === 'all' ? undefined : statusFilter,
+    limit: 25 // Reduced limit for better performance
+  });
 
   const handleSelectItem = (itemId: string, checked: boolean) => {
     setSelectedItems(prev => 
@@ -131,9 +135,9 @@ const InventoryManager = ({ onBack, onCreateListing }: InventoryManagerProps) =>
       <div className="max-w-7xl mx-auto p-4 space-y-6">
         <InventoryStats
           totalItems={listings.length}
-          activeItems={activeItems.length}
-          totalValue={totalValue}
-          totalProfit={totalProfit}
+          activeItems={listings.filter(item => item.status === 'active').length}
+          totalValue={listings.reduce((sum, item) => sum + item.price, 0)}
+          totalProfit={listings.reduce((sum, item) => sum + item.price - (item.purchase_price || 0), 0)}
         />
 
         <InventoryControls
@@ -153,13 +157,13 @@ const InventoryManager = ({ onBack, onCreateListing }: InventoryManagerProps) =>
           setCategoryFilter={setCategoryFilter}
           sortBy={sortBy}
           setSortBy={setSortBy}
-          categories={categories}
+          categories={[...new Set(listings.map(item => item.category).filter(Boolean))]}
         />
 
         {error && (
           <div className="text-red-500 flex items-center">
             <AlertCircle className="mr-2 h-4 w-4" />
-            Failed to load inventory. Please try again.
+            Connection timed out. Please try refreshing or check your internet connection.
           </div>
         )}
 
@@ -193,7 +197,7 @@ const InventoryManager = ({ onBack, onCreateListing }: InventoryManagerProps) =>
           />
         )}
 
-        {filteredListings.length === 0 && !loading && (
+        {filteredListings.length === 0 && !loading && !error && (
           <div className="text-center py-12 text-gray-500">
             No items found matching your criteria.
           </div>

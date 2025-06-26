@@ -51,7 +51,7 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const { statusFilter, limit = 50 } = options; // Reduced default limit
+  const { statusFilter, limit = 25 } = options; // Further reduced default limit
 
   const transformListing = (supabaseListing: SupabaseListing): Listing => {
     return {
@@ -62,126 +62,97 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
 
   const fetchListings = async () => {
     try {
-      console.log('Starting to fetch listings with options:', options);
+      console.log('Fetching listings with optimized query...');
+      setLoading(true);
       setError(null);
       
-      // Check if user is authenticated first
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       
-      if (authError) {
-        console.error('Auth error:', authError);
-        setError('Authentication error');
-        toast({
-          title: "Authentication Error",
-          description: "Please log in to view your listings",
-          variant: "destructive"
-        });
-        setLoading(false);
-        return;
-      }
-
-      if (!user) {
-        console.log('No user logged in');
+      if (authError || !user) {
+        console.log('No authenticated user');
         setError('Please log in to view your listings');
         setListings([]);
         setLoading(false);
         return;
       }
 
-      console.log('Current user:', user.id);
-
-      // Use a simpler, more efficient query with timeout handling
+      // Create a more aggressive timeout
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Query timeout')), 8000); // 8 second timeout
+        setTimeout(() => reject(new Error('Request timeout')), 5000); // 5 second timeout
       });
 
-      // Build a more efficient query - fetch only essential columns first
+      // Build the most efficient query possible - only essential fields
       let query = supabase
         .from('listings')
         .select(`
           id,
           title,
-          description,
           price,
+          status,
           category,
           condition,
-          status,
           created_at,
-          updated_at,
-          user_id,
-          measurements,
-          keywords,
-          photos,
-          price_research,
-          shipping_cost
+          user_id
         `)
         .eq('user_id', user.id);
 
-      // Apply status filter using the index
+      // Apply status filter efficiently using the index
       if (statusFilter && statusFilter !== 'all') {
         query = query.eq('status', statusFilter);
       }
 
-      // Order and limit for better performance
+      // Always order and limit for performance
       query = query
         .order('created_at', { ascending: false })
         .limit(limit);
 
-      console.log('Executing optimized query with filters:', { statusFilter, limit, userId: user.id });
+      console.log('Executing minimal query:', { statusFilter, limit, userId: user.id });
 
-      // Race the query against timeout
-      const queryPromise = query;
       const { data, error: fetchError } = await Promise.race([
-        queryPromise,
+        query,
         timeoutPromise
       ]) as any;
 
       if (fetchError) {
-        console.error('Error fetching listings:', fetchError);
-        setError('Failed to load listings');
-        toast({
-          title: "Error",
-          description: `Failed to load listings: ${fetchError.message}`,
-          variant: "destructive"
-        });
-        setLoading(false);
-        return;
+        console.error('Query error:', fetchError);
+        throw new Error(`Database error: ${fetchError.message}`);
       }
 
       if (!data) {
-        console.log('No data returned from query');
+        console.log('No data returned');
         setListings([]);
-        setLoading(false);
         return;
       }
 
-      const transformedListings = data.map(transformListing);
-      console.log('Successfully loaded listings:', transformedListings.length, 'items');
-      setListings(transformedListings);
-      
-      // Show success message for status-filtered results
-      if (transformedListings.length > 0 && statusFilter && statusFilter !== 'all') {
-        toast({
-          title: "Success",
-          description: `Loaded ${transformedListings.length} ${statusFilter} listing${transformedListings.length === 1 ? '' : 's'}`,
-        });
-      }
+      // Transform minimal data
+      const minimalListings = data.map((item: any) => ({
+        ...item,
+        description: null, // We'll load this on demand if needed
+        measurements: {},
+        keywords: null,
+        photos: null,
+        price_research: null,
+        shipping_cost: null
+      }));
+
+      console.log(`Successfully loaded ${minimalListings.length} listings`);
+      setListings(minimalListings);
       
     } catch (error: any) {
-      console.error('Query error:', error);
+      console.error('Fetch error:', error);
       
-      if (error.message === 'Query timeout') {
-        setError('Database query timed out - please try again');
+      if (error.message === 'Request timeout') {
+        setError('Connection timeout - please check your internet connection');
         toast({
-          title: "Timeout Error",
-          description: "The request is taking too long. Please try refreshing or contact support.",
+          title: "Connection Timeout",
+          description: "The request is taking too long. Please check your connection and try again.",
           variant: "destructive"
         });
       } else {
-        setError('Connection failed - please check your internet connection');
+        setError('Failed to load listings');
         toast({
-          title: "Connection Error",
-          description: "Unable to connect to the database. Please check your connection and try again.",
+          title: "Error",
+          description: "Unable to load listings. Please try again.",
           variant: "destructive"
         });
       }
@@ -191,13 +162,12 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
   };
 
   const refetch = () => {
-    setLoading(true);
     fetchListings();
   };
 
   useEffect(() => {
     fetchListings();
-  }, [statusFilter, limit]); // Re-fetch when options change
+  }, [statusFilter, limit]);
 
   return {
     listings,

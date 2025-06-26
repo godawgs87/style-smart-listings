@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
@@ -20,7 +19,11 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
   
   const isMobile = useIsMobile();
   const { user } = useAuth();
-  const { listings, loading, error, deleteListing, updateListing } = useListings();
+  
+  // Use smaller limit for better performance
+  const { listings, loading, error, deleteListing, updateListing } = useListings({
+    limit: 25
+  });
 
   const handleSelectListing = (listingId: string, checked: boolean) => {
     setSelectedListings(prev => 
@@ -69,6 +72,7 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
         />
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+          <span className="ml-2">Loading listings...</span>
         </div>
       </div>
     );
@@ -110,9 +114,12 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
         </div>
 
         {error && (
-          <div className="text-red-500 flex items-center">
+          <div className="text-red-500 flex items-center bg-red-50 p-4 rounded-lg">
             <AlertCircle className="mr-2 h-4 w-4" />
-            Failed to load listings. Please try again.
+            <div>
+              <p className="font-medium">Connection timeout</p>
+              <p className="text-sm">Please check your internet connection and try refreshing the page.</p>
+            </div>
           </div>
         )}
 
@@ -125,6 +132,12 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
           onUpdateListing={handleUpdateListing}
           onDeleteListing={handleDeleteListing}
         />
+
+        {filteredListings.length === 0 && !loading && !error && (
+          <div className="text-center py-12 text-gray-500">
+            No listings found. Create your first listing to get started!
+          </div>
+        )}
       </div>
 
       {isMobile && (
