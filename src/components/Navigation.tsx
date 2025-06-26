@@ -26,6 +26,9 @@ const Navigation = ({ currentView, onNavigate }: NavigationProps) => {
       window.location.href = path;
     } else if (onNavigate) {
       onNavigate(path as 'dashboard' | 'create' | 'listings' | 'inventory');
+    } else {
+      // If no onNavigate handler, navigate to home and use URL params or state
+      window.location.href = `/?view=${path}`;
     }
   };
 

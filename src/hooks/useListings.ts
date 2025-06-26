@@ -6,6 +6,8 @@ export const useListings = (options?: { statusFilter?: string; limit?: number })
   const { listings, setListings, loading, error, fetchListings, refetch } = useListingData(options || {});
   const { deleteListing: deleteOperation, updateListing: updateOperation, updateListingStatus } = useListingOperations();
 
+  console.log('useListings hook - listings count:', listings.length, 'loading:', loading, 'error:', error);
+
   const deleteListing = async (id: string) => {
     const success = await deleteOperation(id);
     if (success) {

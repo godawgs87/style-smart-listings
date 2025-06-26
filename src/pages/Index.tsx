@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Camera, List, Package } from "lucide-react";
@@ -16,6 +16,17 @@ const Index = () => {
   const [currentView, setCurrentView] = useState<'dashboard' | 'create' | 'listings' | 'inventory'>('dashboard');
   const { user, loading } = useAuth();
   const isMobile = useIsMobile();
+
+  // Handle URL-based navigation (for when hamburger menu navigates to /?view=listings)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const view = urlParams.get('view') as 'dashboard' | 'create' | 'listings' | 'inventory';
+    if (view && ['dashboard', 'create', 'listings', 'inventory'].includes(view)) {
+      setCurrentView(view);
+      // Clean up URL
+      window.history.replaceState({}, '', '/');
+    }
+  }, []);
 
   if (loading) {
     return (
@@ -78,7 +89,7 @@ const Index = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-          <Card className="p-6 md:p-8 hover:shadow-lg transition-shadow cursor-pointer" 
+          <Card className="p-6 md:p-8 hover:shadow-lg transition-shadow cursor-pointer bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700" 
                 onClick={() => setCurrentView('create')}>
             <div className="text-center">
               <Camera className="w-12 md:w-16 h-12 md:h-16 mx-auto text-blue-600 mb-4" />
@@ -90,7 +101,7 @@ const Index = () => {
             </div>
           </Card>
 
-          <Card className="p-6 md:p-8 hover:shadow-lg transition-shadow cursor-pointer"
+          <Card className="p-6 md:p-8 hover:shadow-lg transition-shadow cursor-pointer bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
                 onClick={() => setCurrentView('inventory')}>
             <div className="text-center">
               <Package className="w-12 md:w-16 h-12 md:h-16 mx-auto text-green-600 mb-4" />
@@ -102,7 +113,7 @@ const Index = () => {
             </div>
           </Card>
 
-          <Card className="p-6 md:p-8 hover:shadow-lg transition-shadow cursor-pointer"
+          <Card className="p-6 md:p-8 hover:shadow-lg transition-shadow cursor-pointer bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
                 onClick={() => setCurrentView('listings')}>
             <div className="text-center">
               <List className="w-12 md:w-16 h-12 md:h-16 mx-auto text-purple-600 mb-4" />
@@ -115,7 +126,7 @@ const Index = () => {
           </Card>
         </div>
 
-        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 md:p-6">
+        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 md:p-6 border border-blue-200 dark:border-blue-800">
           <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">How Hustly works:</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-blue-800 dark:text-blue-200">
             <div>
