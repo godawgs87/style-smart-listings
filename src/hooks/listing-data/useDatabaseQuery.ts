@@ -16,26 +16,40 @@ export const useDatabaseQuery = () => {
   const { toast } = useToast();
   const { transformListing } = useListingTransforms();
 
-  const testConnection = async (): Promise<boolean> => {
+  const testConnection = async (): Promise<{ success: boolean; error?: string }> => {
     try {
-      console.log('🔍 Testing basic Supabase connection...');
+      console.log('🔍 Testing Supabase connection...');
+      console.log('📡 Supabase URL:', supabase.supabaseUrl);
+      console.log('🔑 Supabase Key (first 20 chars):', supabase.supabaseKey.substring(0, 20) + '...');
       
-      // Test basic connection with a simple query
+      const startTime = Date.now();
       const { data, error } = await supabase
         .from('listings')
         .select('id')
         .limit(1);
+      
+      const duration = Date.now() - startTime;
+      console.log(`⏱️ Connection test took ${duration}ms`);
         
       if (error) {
-        console.error('❌ Connection test failed:', error);
-        return false;
+        console.error('❌ Connection test failed:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        return { success: false, error: error.message };
       }
       
-      console.log('✅ Connection test successful');
-      return true;
-    } catch (error) {
-      console.error('❌ Connection test exception:', error);
-      return false;
+      console.log('✅ Connection test successful, data:', data);
+      return { success: true };
+    } catch (error: any) {
+      console.error('💥 Connection test exception:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+      return { success: false, error: error.message };
     }
   };
 
@@ -45,13 +59,13 @@ export const useDatabaseQuery = () => {
   }> => {
     const { statusFilter, limit, searchTerm, categoryFilter } = options;
 
-    console.log(`🚀 Starting database fetch - ${new Date().toISOString()}`);
+    console.log('🚀 Starting database fetch...');
     console.log('📋 Query options:', { statusFilter, limit, searchTerm, categoryFilter });
 
-    // First test basic connection
-    const isConnected = await testConnection();
-    if (!isConnected) {
-      console.log('🔌 Basic connection test failed - returning connection error');
+    // Test connection first
+    const connectionTest = await testConnection();
+    if (!connectionTest.success) {
+      console.log('🔌 Connection test failed:', connectionTest.error);
       return { listings: [], error: 'CONNECTION_ERROR' };
     }
 
@@ -63,7 +77,6 @@ export const useDatabaseQuery = () => {
         .order('created_at', { ascending: false })
         .limit(limit);
 
-      // Apply filters
       if (statusFilter && statusFilter !== 'all') {
         query = query.eq('status', statusFilter);
         console.log('✅ Applied status filter:', statusFilter);
@@ -79,23 +92,22 @@ export const useDatabaseQuery = () => {
         console.log('✅ Applied search filter:', searchTerm);
       }
 
-      console.log('⏳ Executing query...');
+      console.log('⏳ Executing main query...');
       const startTime = Date.now();
       
       const { data, error } = await query;
       
       const duration = Date.now() - startTime;
-      console.log(`⏱️ Query executed in ${duration}ms`);
+      console.log(`⏱️ Main query executed in ${duration}ms`);
 
       if (error) {
-        console.error('❌ Query error:', {
+        console.error('❌ Main query error:', {
           message: error.message,
           details: error.details,
           hint: error.hint,
           code: error.code
         });
 
-        // Check for authentication errors
         if (error.message.includes('JWT') || 
             error.message.includes('authentication') || 
             error.message.includes('not authenticated') ||
@@ -104,7 +116,6 @@ export const useDatabaseQuery = () => {
           return { listings: [], error: 'AUTH_ERROR' };
         }
 
-        // All other errors are connection errors
         console.log('🔌 Treating as connection error');
         return { listings: [], error: 'CONNECTION_ERROR' };
       }
@@ -116,11 +127,9 @@ export const useDatabaseQuery = () => {
 
       console.log(`✅ Successfully fetched ${data.length} listings`);
       
-      // Transform listings
       const transformedListings = data.map(transformListing);
       console.log(`🔄 Transformed ${transformedListings.length} listings`);
       
-      // Save for fallback
       try {
         fallbackDataService.saveFallbackData(data);
         console.log('💾 Saved fallback data');
@@ -131,13 +140,12 @@ export const useDatabaseQuery = () => {
       return { listings: transformedListings, error: null };
       
     } catch (error: any) {
-      console.error('💥 Fetch exception:', {
+      console.error('💥 Main fetch exception:', {
         message: error.message,
         stack: error.stack,
         name: error.name
       });
       
-      // Check for auth errors in exception
       if (error.message?.includes('JWT') || 
           error.message?.includes('authentication') ||
           error.message?.includes('not authenticated')) {
@@ -145,13 +153,13 @@ export const useDatabaseQuery = () => {
         return { listings: [], error: 'AUTH_ERROR' };
       }
       
-      // All other exceptions are connection errors
       console.log('🔌 Exception treated as connection error');
       return { listings: [], error: 'CONNECTION_ERROR' };
     }
   };
 
   return {
-    fetchFromDatabase
+    fetchFromDatabase,
+    testConnection
   };
 };
