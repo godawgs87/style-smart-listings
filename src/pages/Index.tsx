@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -18,10 +19,10 @@ const Index = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p>Loading...</p>
+          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
         </div>
       </div>
     );
@@ -29,7 +30,7 @@ const Index = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
         <AuthForm onAuthSuccess={() => setCurrentView('dashboard')} />
       </div>
     );
@@ -58,7 +59,7 @@ const Index = () => {
   }
 
   return (
-    <div className={`min-h-screen bg-gray-50 ${isMobile ? 'pb-20' : ''}`}>
+    <div className={`min-h-screen bg-gray-50 dark:bg-gray-900 ${isMobile ? 'pb-20' : ''}`}>
       <StreamlinedHeader
         title="Hustly"
         userEmail={user.email}
@@ -66,47 +67,47 @@ const Index = () => {
         onNavigate={setCurrentView}
       />
 
-      <div className="max-w-4xl mx-auto p-6 space-y-8">
+      <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-6 md:space-y-8">
         <div className="text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">
             Your Reseller Business Hub
           </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-base md:text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
             Manage inventory, create listings, track profits, and grow your reselling business.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6">
-          <Card className="p-8 hover:shadow-lg transition-shadow cursor-pointer" 
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+          <Card className="p-6 md:p-8 hover:shadow-lg transition-shadow cursor-pointer" 
                 onClick={() => setCurrentView('create')}>
             <div className="text-center">
-              <Camera className="w-16 h-16 mx-auto text-blue-600 mb-4" />
-              <h3 className="text-xl font-semibold mb-2">Create Listing</h3>
-              <p className="text-gray-600 mb-4">
+              <Camera className="w-12 md:w-16 h-12 md:h-16 mx-auto text-blue-600 mb-4" />
+              <h3 className="text-lg md:text-xl font-semibold mb-2 text-gray-900 dark:text-gray-100">Create Listing</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-4 text-sm md:text-base">
                 Upload photos and create professional listings with AI assistance.
               </p>
               <Button className="w-full">Start Creating</Button>
             </div>
           </Card>
 
-          <Card className="p-8 hover:shadow-lg transition-shadow cursor-pointer"
+          <Card className="p-6 md:p-8 hover:shadow-lg transition-shadow cursor-pointer"
                 onClick={() => setCurrentView('inventory')}>
             <div className="text-center">
-              <Package className="w-16 h-16 mx-auto text-green-600 mb-4" />
-              <h3 className="text-xl font-semibold mb-2">Inventory Manager</h3>
-              <p className="text-gray-600 mb-4">
+              <Package className="w-12 md:w-16 h-12 md:h-16 mx-auto text-green-600 mb-4" />
+              <h3 className="text-lg md:text-xl font-semibold mb-2 text-gray-900 dark:text-gray-100">Inventory Manager</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-4 text-sm md:text-base">
                 Track purchases, calculate profits, and manage your reseller inventory.
               </p>
               <Button variant="outline" className="w-full">Manage Inventory</Button>
             </div>
           </Card>
 
-          <Card className="p-8 hover:shadow-lg transition-shadow cursor-pointer"
+          <Card className="p-6 md:p-8 hover:shadow-lg transition-shadow cursor-pointer"
                 onClick={() => setCurrentView('listings')}>
             <div className="text-center">
-              <List className="w-16 h-16 mx-auto text-purple-600 mb-4" />
-              <h3 className="text-xl font-semibold mb-2">Active Listings</h3>
-              <p className="text-gray-600 mb-4">
+              <List className="w-12 md:w-16 h-12 md:h-16 mx-auto text-purple-600 mb-4" />
+              <h3 className="text-lg md:text-xl font-semibold mb-2 text-gray-900 dark:text-gray-100">Active Listings</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-4 text-sm md:text-base">
                 View and manage your active listings across platforms.
               </p>
               <Button variant="outline" className="w-full">View Listings</Button>
@@ -114,9 +115,9 @@ const Index = () => {
           </Card>
         </div>
 
-        <div className="bg-blue-50 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-blue-900 mb-2">How Hustly works:</h3>
-          <div className="grid md:grid-cols-3 gap-4 text-sm text-blue-800">
+        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 md:p-6">
+          <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">How Hustly works:</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-blue-800 dark:text-blue-200">
             <div>
               <strong>1. Track Inventory:</strong> Log purchases with cost basis, source, and photos
             </div>

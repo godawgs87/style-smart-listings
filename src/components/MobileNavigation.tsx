@@ -1,8 +1,9 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Camera, List, Settings, LogOut, ArrowLeft, Package } from 'lucide-react';
+import { Camera, List, Settings, LogOut, ArrowLeft, Package, Moon, Sun } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/components/ThemeProvider';
 
 interface MobileNavigationProps {
   currentView: string;
@@ -20,10 +21,11 @@ const MobileNavigation = ({
   title 
 }: MobileNavigationProps) => {
   const { signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   if (showBack && onBack) {
     return (
-      <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-50">
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center space-x-3">
           <Button
             variant="ghost"
@@ -33,14 +35,22 @@ const MobileNavigation = ({
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-lg font-semibold text-gray-900">{title}</h1>
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{title}</h1>
         </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={toggleTheme}
+          className="p-2"
+        >
+          {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
+    <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 z-50">
       <div className="flex justify-around items-center py-2">
         <Button
           variant={currentView === 'dashboard' ? 'default' : 'ghost'}
@@ -85,11 +95,11 @@ const MobileNavigation = ({
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => window.location.href = '/admin'}
+          onClick={toggleTheme}
           className="flex flex-col items-center p-3 min-h-16"
         >
-          <Settings className="w-5 h-5 mb-1" />
-          <span className="text-xs">Settings</span>
+          {theme === 'light' ? <Moon className="w-5 h-5 mb-1" /> : <Sun className="w-5 h-5 mb-1" />}
+          <span className="text-xs">Theme</span>
         </Button>
       </div>
     </div>
