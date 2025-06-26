@@ -30,12 +30,12 @@ export const useDatabaseQuery = () => {
         timestamp: new Date().toISOString()
       });
       
-      // Quick authentication check with timeout
+      // Quick authentication check with reduced timeout
       const authStartTime = Date.now();
       console.log('🔐 Checking authentication...');
       
       const authTimeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Authentication timeout')), 5000)
+        setTimeout(() => reject(new Error('Authentication timeout')), 3000)
       );
       
       const authPromise = supabase.auth.getUser();
@@ -55,19 +55,21 @@ export const useDatabaseQuery = () => {
       
       console.log('✅ User authenticated:', authData.user.id);
       
-      // Set a 30-second timeout for the database query
+      // Set a reduced timeout for the database query
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Database query timeout after 30 seconds')), 30000)
+        setTimeout(() => reject(new Error('Database query timeout after 15 seconds')), 15000)
       );
 
-      // Build optimized query with detailed logging
-      console.log('🔧 Building database query...');
+      // Build optimized query with smaller limit to reduce timeout risk
+      console.log('🔧 Building optimized database query...');
+      const optimizedLimit = Math.min(limit, 50); // Reduce limit to prevent timeouts
+      
       let query = supabase
         .from('listings')
-        .select('*')
+        .select('id, title, description, price, category, condition, status, shipping_cost, created_at, updated_at, photos, measurements, keywords, purchase_price, purchase_date, is_consignment, source_type, cost_basis, net_profit, profit_margin, days_to_sell')
         .eq('user_id', authData.user.id)
         .order('created_at', { ascending: false })
-        .limit(Math.min(limit, 100));
+        .limit(optimizedLimit);
 
       const appliedFilters = [];
       
@@ -83,12 +85,13 @@ export const useDatabaseQuery = () => {
       }
 
       if (searchTerm && searchTerm.trim()) {
-        query = query.or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
+        // Simplify search to reduce query complexity
+        query = query.ilike('title', `%${searchTerm}%`);
         appliedFilters.push(`search="${searchTerm}"`);
       }
 
       console.log('🎯 Query filters applied:', appliedFilters.length > 0 ? appliedFilters.join(', ') : 'none');
-      console.log('⏱️ Executing database query with 30s timeout...');
+      console.log('⏱️ Executing database query with 15s timeout...');
       const queryStartTime = Date.now();
       
       const result = await Promise.race([query, timeoutPromise]);

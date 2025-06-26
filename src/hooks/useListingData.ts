@@ -17,7 +17,7 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
   const [error, setError] = useState<string | null>(null);
   const [usingFallback, setUsingFallback] = useState(false);
   const retryCountRef = useRef(0);
-  const maxRetries = 2;
+  const maxRetries = 1; // Reduce retries to fail faster
 
   const { statusFilter, limit = 20, searchTerm, categoryFilter } = options;
   const { fetchFromDatabase } = useDatabaseQuery();
@@ -45,25 +45,17 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
       if (fetchError === 'CONNECTION_ERROR') {
         console.log('Connection error detected');
         
-        // Only use fallback after retries or if explicitly requested
-        if (retryCountRef.current >= maxRetries || isRetry) {
-          console.log('Using fallback data after retries');
-          setUsingFallback(true);
-          const fallbackListings = loadFallbackData({
-            statusFilter,
-            limit,
-            searchTerm,
-            categoryFilter
-          });
-          setListings(fallbackListings);
-          setError(null);
-        } else {
-          // Retry automatically
-          retryCountRef.current++;
-          console.log(`Retrying database connection (attempt ${retryCountRef.current})`);
-          setTimeout(() => fetchListings(true), 2000);
-          return;
-        }
+        // Use fallback immediately instead of retrying
+        console.log('Using fallback data due to connection error');
+        setUsingFallback(true);
+        const fallbackListings = loadFallbackData({
+          statusFilter,
+          limit,
+          searchTerm,
+          categoryFilter
+        });
+        setListings(fallbackListings);
+        setError(null);
       } else if (fetchError) {
         // Real errors (not connection issues)
         console.error('Database error:', fetchError);
@@ -89,7 +81,7 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
   };
 
   const refetch = () => {
-    console.log('Manual refetch triggered');
+    console.log('Manual refetch triggered - attempting database connection');
     retryCountRef.current = 0;
     setUsingFallback(false);
     fetchListings();
@@ -113,7 +105,7 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       fetchListings();
-    }, 300);
+    }, 100); // Reduced debounce time
 
     return () => clearTimeout(timeoutId);
   }, [statusFilter, limit, searchTerm, categoryFilter]);
