@@ -65,28 +65,11 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
 
   const fetchListings = async () => {
     try {
-      console.log('Fetching inventory data with optimized query...');
+      console.log('Fetching inventory data - simplified approach');
       setLoading(true);
       setError(null);
       
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
-      if (authError || !user) {
-        console.error('Auth error:', authError);
-        setError('Authentication required');
-        setListings([]);
-        setLoading(false);
-        return;
-      }
-
-      console.log('Authenticated user:', user.id);
-
-      // Increased timeout back to 12 seconds for better reliability
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Request timeout')), 12000);
-      });
-
-      // Build optimized query - fetch only necessary fields first
+      // Build simple, fast query
       let query = supabase
         .from('listings')
         .select('id, title, price, status, category, condition, photos, created_at, updated_at, user_id');
@@ -99,13 +82,10 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
         .order('created_at', { ascending: false })
         .limit(limit);
 
-      console.log('Executing optimized query...');
+      console.log('Executing simplified query...');
       const queryStart = Date.now();
       
-      const { data, error: fetchError } = await Promise.race([
-        query,
-        timeoutPromise
-      ]) as any;
+      const { data, error: fetchError } = await query;
 
       const queryTime = Date.now() - queryStart;
       console.log('Query completed in', queryTime, 'ms');
@@ -121,38 +101,29 @@ export const useListingData = (options: UseListingDataOptions = {}) => {
         return;
       }
 
-      // Transform listings with minimal data and defaults
+      // Simple transformation with minimal processing
       const transformedListings = data.map((item: any) => ({
         ...item,
-        description: null, // Don't fetch heavy description field initially
+        description: null,
         measurements: {},
         keywords: [],
         price_research: null,
         shipping_cost: 9.95
       }));
       
-      console.log(`Successfully loaded ${transformedListings.length} listings with optimized data`);
+      console.log(`Successfully loaded ${transformedListings.length} listings`);
       setListings(transformedListings);
       
     } catch (error: any) {
       console.error('Fetch error:', error);
       const errorMessage = error.message || 'Unknown error';
       
-      if (errorMessage.includes('timeout')) {
-        setError('Request timeout - please try refreshing');
-        toast({
-          title: "Connection Timeout",
-          description: "Data is taking too long to load. Try refreshing or using fewer filters.",
-          variant: "destructive"
-        });
-      } else {
-        setError('Failed to load listings');
-        toast({
-          title: "Database Error",
-          description: `Unable to load listings: ${errorMessage}`,
-          variant: "destructive"
-        });
-      }
+      setError('Failed to load listings');
+      toast({
+        title: "Error Loading Data",
+        description: "Unable to load listings. Please try refreshing.",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }

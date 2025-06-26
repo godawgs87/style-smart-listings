@@ -18,36 +18,16 @@ export const useStatusListings = ({ status, limit = 20 }: StatusListingsOptions)
     try {
       setError(null);
       setLoading(true);
-      console.log(`Fetching ${status} listings with optimized query`);
+      console.log(`Fetching ${status} listings - simplified approach`);
       
-      // Auth check is critical for RLS
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
-      if (authError || !user) {
-        setError('Authentication required');
-        setListings([]);
-        setLoading(false);
-        return;
-      }
-
-      console.log('Authenticated user:', user.id, 'fetching status:', status);
-
-      // Increased timeout back to 10 seconds for better reliability
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Query timeout')), 10000);
-      });
-
-      // Ultra-minimal query - only essential fields for display
+      // Simple, fast query - no complex auth checks
       const queryStart = Date.now();
-      const { data, error: fetchError } = await Promise.race([
-        supabase
-          .from('listings')
-          .select('id, title, price, status, photos, created_at')
-          .eq('status', status)
-          .order('created_at', { ascending: false })
-          .limit(limit),
-        timeoutPromise
-      ]) as any;
+      const { data, error: fetchError } = await supabase
+        .from('listings')
+        .select('id, title, price, status, photos, created_at')
+        .eq('status', status)
+        .order('created_at', { ascending: false })
+        .limit(limit);
 
       const queryTime = Date.now() - queryStart;
       console.log(`${status} listings query completed in ${queryTime}ms`);
@@ -57,14 +37,14 @@ export const useStatusListings = ({ status, limit = 20 }: StatusListingsOptions)
         throw new Error(`Database error: ${fetchError.message}`);
       }
 
-      // Transform data with default values to prevent UI errors
+      // Simple transformation with minimal processing
       const transformedData = (data || []).map((item: any) => ({
         ...item,
         category: null,
         condition: null,
         description: null,
-        measurements: null,
-        keywords: null,
+        measurements: {},
+        keywords: [],
         shipping_cost: 9.95
       }));
 
@@ -75,21 +55,12 @@ export const useStatusListings = ({ status, limit = 20 }: StatusListingsOptions)
       console.error('Status listings error:', error);
       const errorMsg = error.message || 'Unknown error';
       
-      if (errorMsg.includes('timeout')) {
-        setError('Query timeout - please try refreshing');
-        toast({
-          title: "Timeout Error",
-          description: `${status} listings are taking too long to load. Try refreshing or reducing filters.`,
-          variant: "destructive"
-        });
-      } else {
-        setError('Connection failed');
-        toast({
-          title: "Database Error",
-          description: `Failed to load ${status} listings`,
-          variant: "destructive"
-        });
-      }
+      setError('Failed to load listings');
+      toast({
+        title: "Error Loading Listings",
+        description: `Unable to load ${status} listings. Please try refreshing.`,
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
