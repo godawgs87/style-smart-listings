@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo } from 'react';
 import { useListings } from '@/hooks/useListings';
 import { useInventoryFilters } from '@/components/inventory/InventoryFilters';
@@ -16,14 +17,14 @@ export const useInventoryManager = () => {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [isBulkMode, setIsBulkMode] = useState(false);
 
-  // Ultra-minimal progressive loading to reduce database egress
+  // Better progressive loading settings - start with more items
   const progressiveLoading = useProgressiveLoading({
-    initialLimit: 3,  // Start with just 3 items
-    incrementSize: 3, // Small increments
-    maxLimit: 12      // Even lower max to reduce egress
+    initialLimit: 12,   // Start with 12 items instead of 3
+    incrementSize: 6,   // Load 6 more at a time
+    maxLimit: 50        // Reasonable max to avoid excessive data
   });
 
-  // Data fetching with minimal initial load
+  // Data fetching with better initial load
   const { 
     listings, 
     loading, 
@@ -93,34 +94,21 @@ export const useInventoryManager = () => {
     setIsBulkMode(selectedItems.length > 0);
   }, [selectedItems]);
 
-  // FIXED: Much smarter reset logic to prevent flickering
+  // Much simpler reset logic - only reset on meaningful filter changes
   useEffect(() => {
-    // Only reset if we have meaningful filter changes and are not already at minimum
     const hasServerSideFilters = statusFilter !== 'all' || categoryFilter !== 'all' || searchTerm.trim();
-    const isAtMinimum = progressiveLoading.currentLimit <= 3;
     
-    // Debounce the reset to prevent rapid successive resets
-    const timer = setTimeout(() => {
-      console.log('🎯 Checking if progressive loading reset needed');
-      
-      // Only reset if:
-      // 1. We have server-side filters that would change the query
-      // 2. We're not already at the minimum limit
-      // 3. We're not currently loading (to prevent interrupting ongoing queries)
-      if (hasServerSideFilters && !isAtMinimum && !loading) {
-        console.log('🔄 Smart reset: Server-side filters active, reducing to minimum');
+    // Only reset if we have meaningful server-side filter changes
+    // Don't reset if we're loading or if we don't have server-side filters
+    if (hasServerSideFilters && !loading) {
+      const timer = setTimeout(() => {
+        console.log('🔄 Filter change detected, resetting to show fresh results');
         progressiveLoading.reset();
-      } else {
-        console.log('⏭️ Smart reset: Skipping unnecessary reset', {
-          hasServerSideFilters,
-          isAtMinimum,
-          loading
-        });
-      }
-    }, 2000); // Shorter debounce but smarter logic
+      }, 1000); // Short delay to batch rapid filter changes
 
-    return () => clearTimeout(timer);
-  }, [statusFilter, categoryFilter, searchTerm, loading]); // Added loading dependency
+      return () => clearTimeout(timer);
+    }
+  }, [statusFilter, categoryFilter, searchTerm]); // Removed loading dependency to avoid loops
 
   const handleSelectItem = (itemId: string, checked: boolean) => {
     setSelectedItems(prev => 

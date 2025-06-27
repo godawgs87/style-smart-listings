@@ -31,15 +31,15 @@ export const useListings = (options: UseListingsOptions = {}) => {
     const now = Date.now();
     const currentOptionsKey = JSON.stringify(options);
     
-    // IMPROVED: Prevent overlapping fetches
+    // Prevent overlapping fetches
     if (isCurrentlyFetching) {
       console.log('⏸️ Skipping fetch - another fetch already in progress');
       return;
     }
     
-    // OPTIMIZED: Prevent redundant calls with same options
-    if (currentOptionsKey === lastOptionsRef.current && now - lastFetchTime < 2000) {
-      console.log('⏸️ Skipping redundant fetch - same options within 2s');
+    // Reduced redundancy check time for better responsiveness
+    if (currentOptionsKey === lastOptionsRef.current && now - lastFetchTime < 1000) {
+      console.log('⏸️ Skipping redundant fetch - same options within 1s');
       return;
     }
     
@@ -56,7 +56,7 @@ export const useListings = (options: UseListingsOptions = {}) => {
         statusFilter: options.statusFilter,
         categoryFilter: options.categoryFilter, 
         searchTerm: options.searchTerm,
-        limit: Math.min(options.limit || 3, 15) // Cap at 15 to reduce egress
+        limit: Math.min(options.limit || 12, 50) // Better default and reasonable cap
       };
 
       console.log('📋 Final query options:', queryOptions);
@@ -144,13 +144,13 @@ export const useListings = (options: UseListingsOptions = {}) => {
     }
   }, [getFallbackData, hasFallbackData, toast]);
 
-  // IMPROVED: Prevent rapid successive useEffect triggers
+  // Reduced delay for better responsiveness
   useEffect(() => {
     const timer = setTimeout(() => {
       if (!isCurrentlyFetching) {
         fetchListings();
       }
-    }, 500); // Shorter delay but with fetch lock protection
+    }, 200); // Much shorter delay
 
     return () => clearTimeout(timer);
   }, [fetchListings]);
