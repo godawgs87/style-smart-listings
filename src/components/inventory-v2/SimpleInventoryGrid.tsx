@@ -1,9 +1,8 @@
-
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Image, RefreshCw, AlertCircle, Wifi, WifiOff } from 'lucide-react';
+import { Image, RefreshCw, AlertCircle, Wifi, WifiOff, Package } from 'lucide-react';
 
 interface SimpleListing {
   id: string;
