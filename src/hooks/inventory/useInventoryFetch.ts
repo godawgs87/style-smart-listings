@@ -42,11 +42,15 @@ export const useInventoryFetch = ({
   const { executeOptimizedQuery } = useInventoryQuery();
 
   const fetchInventory = useCallback(async () => {
-    if (!mountedRef.current || isCurrentlyFetching) return;
+    if (!mountedRef.current || isCurrentlyFetching) {
+      console.log('⏸️ Skipping fetch - already fetching or unmounted');
+      return;
+    }
 
     const now = Date.now();
-    if (now - lastFetchTime < 2000) {
-      console.log('⏸️ Skipping fetch - too frequent');
+    // Increase debounce time to prevent duplicate requests
+    if (now - lastFetchTime < 3000) {
+      console.log('⏸️ Skipping fetch - too frequent (debounced)');
       return;
     }
 
@@ -56,9 +60,9 @@ export const useInventoryFetch = ({
     setError(null);
 
     try {
-      // Reduced timeout to 5 seconds for faster feedback
+      // Reduced timeout to 3 seconds for ultra-fast queries
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Database query timeout')), 5000)
+        setTimeout(() => reject(new Error('Database query timeout')), 3000)
       );
 
       const realListings = await Promise.race([
@@ -69,7 +73,7 @@ export const useInventoryFetch = ({
       if (!mountedRef.current) return;
 
       setListings(realListings);
-      setCachedListings(realListings); // Cache the real data
+      setCachedListings(realListings);
       setUsingFallback(false);
       setError(null);
       setRetryCount(0);
@@ -108,19 +112,19 @@ export const useInventoryFetch = ({
         setError('Please log in to view your inventory');
         setListings([]);
         setUsingFallback(false);
-      } else if (isTimeoutError && retryCount < 2) {
-        console.log(`🔄 Connection failed, will retry (attempt ${retryCount + 1}/3)`);
+      } else if (isTimeoutError && retryCount < 1) { // Reduced retry attempts
+        console.log(`🔄 Connection failed, will retry (attempt ${retryCount + 1}/2)`);
         setRetryCount(prev => prev + 1);
         setError('Loading your inventory data...');
         setListings([]);
         setUsingFallback(false);
         
-        // Retry after a short delay
+        // Longer delay between retries
         setTimeout(() => {
           if (mountedRef.current) {
             fetchInventory();
           }
-        }, 1000 * (retryCount + 1)); // Progressive delay
+        }, 2000 * (retryCount + 1));
         return;
       } else {
         console.log('💥 No cached data available - showing empty state');

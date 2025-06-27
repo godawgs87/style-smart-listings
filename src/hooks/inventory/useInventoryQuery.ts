@@ -11,12 +11,21 @@ export const useInventoryQuery = () => {
       throw new Error('No authenticated user');
     }
 
-    console.log('👤 User authenticated, fetching listings with simple query...');
+    console.log('👤 User authenticated, executing ultra-light query...');
 
-    // Much simpler query - just get the essential fields first
+    // Ultra-minimal query - only essential fields first
     let query = supabase
       .from('listings')
-      .select('*')  // Simple select all - let Supabase handle it
+      .select(`
+        id,
+        title,
+        price,
+        status,
+        category,
+        created_at,
+        photos,
+        description
+      `)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
@@ -33,11 +42,11 @@ export const useInventoryQuery = () => {
       query = query.eq('category', options.categoryFilter);
     }
 
-    // Limit results for better performance
-    const limit = Math.min(options.limit || 25, 50);
+    // Very small limit for fast loading
+    const limit = Math.min(options.limit || 10, 15);
     query = query.limit(limit);
 
-    console.log('📡 Executing simple database query...');
+    console.log('📡 Executing ultra-light database query...');
     const startTime = Date.now();
     
     const { data, error } = await query;
@@ -55,18 +64,39 @@ export const useInventoryQuery = () => {
       return [];
     }
 
-    console.log(`✅ Successfully fetched ${data.length} real listings from database`);
+    console.log(`✅ Successfully fetched ${data.length} listings from database`);
     
-    // Simple transformation - trust the data types from Supabase
+    // Minimal transformation - only what's absolutely necessary
     const transformedListings: Listing[] = data.map(item => ({
       ...item,
       title: item.title || 'Untitled',
       price: Number(item.price) || 0,
-      measurements: (typeof item.measurements === 'object' && item.measurements !== null) 
-        ? item.measurements as { length?: string; width?: string; height?: string; weight?: string; }
-        : {},
-      keywords: Array.isArray(item.keywords) ? item.keywords : [],
-      photos: Array.isArray(item.photos) ? item.photos.filter(p => p && typeof p === 'string') : []
+      measurements: {},
+      keywords: [],
+      photos: Array.isArray(item.photos) ? item.photos.filter(p => p && typeof p === 'string') : [],
+      // Set default values for required fields not in the query
+      user_id: user.id,
+      updated_at: item.created_at,
+      condition: null,
+      shipping_cost: null,
+      price_research: null,
+      purchase_price: null,
+      purchase_date: null,
+      is_consignment: null,
+      consignment_percentage: null,
+      consignor_name: null,
+      consignor_contact: null,
+      source_location: null,
+      source_type: null,
+      cost_basis: null,
+      fees_paid: null,
+      net_profit: null,
+      profit_margin: null,
+      listed_date: null,
+      sold_date: null,
+      sold_price: null,
+      days_to_sell: null,
+      performance_notes: null
     }));
 
     return transformedListings;
