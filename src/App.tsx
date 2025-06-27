@@ -9,6 +9,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import Index from "./pages/Index";
 import AdminDashboard from "./pages/AdminDashboard";
 import InventoryManager from "./pages/InventoryManager";
+import SimpleInventoryPage from "./pages/SimpleInventoryPage";
 import NotFound from "./pages/NotFound";
 
 const App = () => {
@@ -25,6 +26,9 @@ const App = () => {
               <Route path="/" element={<Index />} />
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/inventory" element={
+                <SimpleInventoryPage />
+              } />
+              <Route path="/inventory-old" element={
                 <InventoryManager 
                   onBack={() => window.history.back()} 
                   onCreateListing={() => window.location.href = '/'} 

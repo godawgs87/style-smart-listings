@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -27,6 +26,10 @@ const Index = () => {
       window.history.replaceState({}, '', '/');
     }
   }, []);
+
+  const handleInventoryClick = () => {
+    window.location.href = '/inventory';
+  };
 
   if (loading) {
     return (
@@ -61,12 +64,8 @@ const Index = () => {
   }
 
   if (currentView === 'inventory') {
-    return (
-      <InventoryManager 
-        onBack={() => setCurrentView('dashboard')} 
-        onCreateListing={() => setCurrentView('create')} 
-      />
-    );
+    handleInventoryClick();
+    return null;
   }
 
   return (
@@ -102,7 +101,7 @@ const Index = () => {
           </Card>
 
           <Card className="p-6 md:p-8 hover:shadow-lg transition-shadow cursor-pointer bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
-                onClick={() => setCurrentView('inventory')}>
+                onClick={handleInventoryClick}>
             <div className="text-center">
               <Package className="w-12 md:w-16 h-12 md:h-16 mx-auto text-green-600 mb-4" />
               <h3 className="text-lg md:text-xl font-semibold mb-2 text-gray-900 dark:text-gray-100">Inventory Manager</h3>
@@ -145,7 +144,13 @@ const Index = () => {
       {isMobile && (
         <MobileNavigation
           currentView={currentView}
-          onNavigate={setCurrentView}
+          onNavigate={(view) => {
+            if (view === 'inventory') {
+              handleInventoryClick();
+            } else {
+              setCurrentView(view);
+            }
+          }}
         />
       )}
     </div>
