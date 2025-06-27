@@ -1,61 +1,67 @@
 
-import type { Listing } from '@/types/Listing';
-
-// Lightweight listing interface for initial load - no photos to avoid timeouts
-interface LightweightListing {
-  id: string;
-  title: string;
-  price: number;
-  status: string | null;
-  category: string | null;
-  condition: string | null;
-  created_at: string;
-  updated_at: string;
-  user_id: string;
-  purchase_price?: number;
-  net_profit?: number;
-  profit_margin?: number;
-  days_to_sell?: number;
-  shipping_cost?: number;
-}
-
 export const useLightweightTransformer = () => {
-  const transformLightweightListings = (data: LightweightListing[]): Listing[] => {
-    return data.map(item => ({
-      id: item.id,
-      title: item.title,
-      price: item.price,
-      status: item.status,
-      category: item.category,
-      condition: item.condition,
-      created_at: item.created_at,
-      updated_at: item.updated_at,
-      user_id: item.user_id,
-      purchase_price: item.purchase_price,
-      net_profit: item.net_profit,
-      profit_margin: item.profit_margin,
-      days_to_sell: item.days_to_sell,
-      description: null, // Will be loaded on-demand
-      measurements: {},
-      keywords: [],
-      photos: [], // Empty array to avoid timeouts - will be loaded on-demand if needed
-      price_research: null,
-      shipping_cost: item.shipping_cost || null,
-      purchase_date: null,
-      is_consignment: false,
-      consignment_percentage: null,
-      cost_basis: null,
-      fees_paid: null,
-      listed_date: null,
-      sold_date: null,
-      sold_price: null,
-      consignor_contact: null,
-      source_location: null,
-      source_type: null,
-      performance_notes: null,
-      consignor_name: null
-    }));
+  const transformListing = (rawListing: any) => {
+    console.log('🔄 Transforming listing:', rawListing.id);
+    console.log('🔄 Raw measurements:', rawListing.measurements, 'Type:', typeof rawListing.measurements);
+    console.log('🔄 Raw keywords:', rawListing.keywords, 'Type:', typeof rawListing.keywords);
+    console.log('🔄 Raw description:', rawListing.description ? 'Present' : 'Missing');
+    
+    // Ensure measurements is a proper object
+    let measurements = {};
+    if (rawListing.measurements && typeof rawListing.measurements === 'object') {
+      measurements = rawListing.measurements;
+    }
+    
+    // Ensure keywords is a proper array
+    let keywords = [];
+    if (Array.isArray(rawListing.keywords)) {
+      keywords = rawListing.keywords;
+    }
+    
+    const transformed = {
+      id: rawListing.id,
+      title: rawListing.title || '',
+      description: rawListing.description || null,
+      price: rawListing.price || 0,
+      category: rawListing.category || null,
+      condition: rawListing.condition || null,
+      measurements,
+      keywords,
+      photos: Array.isArray(rawListing.photos) ? rawListing.photos : [],
+      shipping_cost: rawListing.shipping_cost,
+      price_research: rawListing.price_research,
+      status: rawListing.status || 'draft',
+      created_at: rawListing.created_at,
+      updated_at: rawListing.updated_at,
+      user_id: rawListing.user_id,
+      purchase_price: rawListing.purchase_price,
+      purchase_date: rawListing.purchase_date,
+      source_location: rawListing.source_location,
+      source_type: rawListing.source_type,
+      is_consignment: rawListing.is_consignment || false,
+      consignment_percentage: rawListing.consignment_percentage,
+      consignor_name: rawListing.consignor_name,
+      consignor_contact: rawListing.consignor_contact,
+      listed_date: rawListing.listed_date,
+      sold_date: rawListing.sold_date,
+      sold_price: rawListing.sold_price,
+      cost_basis: rawListing.cost_basis,
+      fees_paid: rawListing.fees_paid,
+      net_profit: rawListing.net_profit,
+      profit_margin: rawListing.profit_margin,
+      days_to_sell: rawListing.days_to_sell,
+      performance_notes: rawListing.performance_notes
+    };
+    
+    console.log('✅ Transformed listing:', {
+      id: transformed.id,
+      description: transformed.description ? 'Present' : 'Missing',
+      measurements: Object.keys(transformed.measurements),
+      keywords: transformed.keywords.length
+    });
+    
+    return transformed;
   };
 
-  return { transformLightweightListings };
+  return { transformListing };
 };

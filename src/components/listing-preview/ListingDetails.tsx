@@ -32,13 +32,6 @@ const ListingDetails = ({
   description,
   measurements
 }: ListingDetailsProps) => {
-  console.log('🔍 ListingDetails received props:', {
-    title,
-    description: description ? 'Present' : 'Missing',
-    measurements: measurements ? Object.keys(measurements) : 'Missing',
-    keywords: keywords ? keywords.length : 'Missing'
-  });
-
   return (
     <>
       <h2 className="text-xl font-bold text-gray-900 pr-4">{title}</h2>
@@ -76,12 +69,10 @@ const ListingDetails = ({
           <p className="text-sm text-gray-700 leading-relaxed">
             {description || 'No description available'}
           </p>
-          <div className="text-xs text-gray-400 mt-1">Debug: Description length: {description?.length || 0}</div>
         </div>
 
         <div>
           <h3 className="font-medium text-gray-900 mb-2">Measurements</h3>
-          <div className="text-xs text-gray-400 mb-2">Debug: {JSON.stringify(measurements)}</div>
           {measurements && (Object.values(measurements).some(v => v && v.trim())) ? (
             <div className="grid grid-cols-2 gap-2 text-sm">
               {measurements.length && (

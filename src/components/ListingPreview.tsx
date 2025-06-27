@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,14 +36,6 @@ interface ListingPreviewProps {
 }
 
 const ListingPreview = ({ listing, onEdit, onExport }: ListingPreviewProps) => {
-  console.log('📋 ListingPreview received listing data:', {
-    title: listing.title,
-    description: listing.description ? `${listing.description.substring(0, 50)}...` : 'MISSING',
-    measurements: listing.measurements ? Object.keys(listing.measurements) : 'MISSING',
-    keywords: listing.keywords ? `${listing.keywords.length} items` : 'MISSING',
-    photos: listing.photos ? `${listing.photos.length} items` : 'MISSING'
-  });
-
   const [isEditing, setIsEditing] = useState(false);
   const [currentListing, setCurrentListing] = useState(listing);
   const [showAdvanced, setShowAdvanced] = useState(false);
