@@ -26,30 +26,31 @@ export const useProgressiveQuery = () => {
       return { listings: [], error: 'No authenticated user', usedFallback: false };
     }
 
-    const limit = Math.min(options.limit || 25, 25);
+    // Start with extremely small limits and longer timeouts
+    const requestedLimit = options.limit || 25;
     
-    // Progressive query strategies - start simple, get more complex
+    // Much more aggressive progressive strategies
     const queryStrategies = [
-      // Strategy 1: Minimal fields, small limit
+      // Strategy 1: Absolute minimum - just IDs and titles
+      {
+        fields: 'id, title, price, status',
+        timeout: 15000, // 15 seconds
+        limit: Math.min(5, requestedLimit), // Start with just 5 items
+        description: 'ultra-minimal query'
+      },
+      // Strategy 2: Basic info only
       {
         fields: 'id, title, price, status, created_at',
-        timeout: 3000,
-        limit: Math.min(limit, 10),
-        description: 'minimal query'
+        timeout: 20000, // 20 seconds
+        limit: Math.min(10, requestedLimit),
+        description: 'basic fields only'
       },
-      // Strategy 2: Essential fields, medium limit
+      // Strategy 3: Add photos if connection allows
       {
-        fields: 'id, title, price, status, category, created_at, photos',
-        timeout: 5000,
-        limit: Math.min(limit, 15),
-        description: 'essential fields'
-      },
-      // Strategy 3: Full fields (if connection is good)
-      {
-        fields: 'id, title, price, status, category, created_at, photos, description, purchase_price, net_profit, profit_margin, shipping_cost',
-        timeout: 8000,
-        limit: limit,
-        description: 'full query'
+        fields: 'id, title, price, status, created_at, photos',
+        timeout: 30000, // 30 seconds
+        limit: Math.min(15, requestedLimit),
+        description: 'with photos'
       }
     ];
 
@@ -58,10 +59,13 @@ export const useProgressiveQuery = () => {
       const strategy = queryStrategies[i];
       
       try {
-        console.log(`🔄 Attempting ${strategy.description} (attempt ${i + 1}/${queryStrategies.length})`);
+        console.log(`🔄 Attempting ${strategy.description} (${strategy.limit} items, ${strategy.timeout}ms timeout)`);
         
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), strategy.timeout);
+        const timeoutId = setTimeout(() => {
+          console.log(`⏰ Timeout reached for ${strategy.description}`);
+          controller.abort();
+        }, strategy.timeout);
 
         let query = supabase
           .from('listings')
@@ -69,15 +73,19 @@ export const useProgressiveQuery = () => {
           .eq('user_id', user.id)
           .abortSignal(controller.signal);
 
-        // Apply filters
+        // Apply only the most selective filters first
         if (options.statusFilter && options.statusFilter !== 'all') {
           query = query.eq('status', options.statusFilter);
         }
-        if (options.categoryFilter && options.categoryFilter !== 'all') {
-          query = query.eq('category', options.categoryFilter);
-        }
-        if (options.searchTerm?.trim()) {
-          query = query.ilike('title', `%${options.searchTerm.trim()}%`);
+
+        // Skip complex filters for minimal queries
+        if (i > 0) {
+          if (options.categoryFilter && options.categoryFilter !== 'all') {
+            query = query.eq('category', options.categoryFilter);
+          }
+          if (options.searchTerm?.trim()) {
+            query = query.ilike('title', `%${options.searchTerm.trim()}%`);
+          }
         }
 
         const { data, error } = await query
@@ -88,20 +96,26 @@ export const useProgressiveQuery = () => {
 
         if (error) {
           console.error(`❌ ${strategy.description} failed:`, error);
-          continue; // Try next strategy
+          
+          // If it's a timeout/cancellation error, try next strategy
+          if (error.message?.includes('canceled') || error.code === '57014') {
+            console.log('Query was cancelled, trying next strategy...');
+            continue;
+          }
+          
+          // For other errors, continue to next strategy
+          continue;
         }
 
-        console.log(`✅ ${strategy.description} succeeded: ${data?.length || 0} items`);
+        console.log(`✅ ${strategy.description} succeeded: ${data?.length || 0} items loaded`);
         
-        // Transform data to match Listing interface with proper type checking
+        // Transform data with minimal processing to avoid delays
         const transformedListings: Listing[] = (data || []).map(item => {
-          // Ensure we have a valid data item
           if (!item || typeof item !== 'object') {
             console.warn('Invalid item received:', item);
             return createDefaultListing(user.id);
           }
 
-          // Type assertion after validation
           const validItem = item as Record<string, any>;
 
           return {
@@ -143,41 +157,43 @@ export const useProgressiveQuery = () => {
         // Reset query attempts on success
         setQueryAttempts(0);
         
+        // Show user what level of data they're getting
         if (i > 0) {
           toast({
-            title: "Limited Data Loaded",
-            description: `Using ${strategy.description} due to connection constraints.`,
+            title: `Limited Data (${strategy.description})`,
+            description: `Loaded ${transformedListings.length} items with ${strategy.description} due to connection constraints.`,
             variant: "default"
           });
         }
 
-        return { listings: transformedListings, error: null, usedFallback: false };
+        return { listings: transformedListings, error: null, usedFallback: i > 0 };
 
       } catch (error: any) {
         console.error(`💥 ${strategy.description} error:`, error);
         
         if (error.name === 'AbortError') {
-          console.log('Query was aborted due to timeout, trying next strategy...');
+          console.log(`Query was aborted due to timeout (${strategy.timeout}ms), trying next strategy...`);
           continue;
         }
         
-        // For non-timeout errors, continue to next strategy
+        // For any other error, continue to next strategy
         continue;
       }
     }
 
     // All strategies failed
-    console.error('🚫 All query strategies failed');
+    console.error('🚫 All query strategies exhausted');
     setQueryAttempts(prev => Math.min(prev + 1, queryStrategies.length - 1));
     
     return {
       listings: [],
-      error: 'Unable to load inventory. Please check your connection and try again.',
+      error: 'Unable to load inventory due to database timeout. Try refreshing or using search filters to reduce the data load.',
       usedFallback: false
     };
   }, [queryAttempts, toast]);
 
   const resetQueryAttempts = useCallback(() => {
+    console.log('🔄 Resetting query attempts');
     setQueryAttempts(0);
   }, []);
 
