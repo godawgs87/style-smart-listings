@@ -17,7 +17,7 @@ export const useInventoryData = () => {
 
     console.log('📡 Fetching inventory data with optimized query...');
 
-    // Use the optimized composite indexes created in migrations
+    // Use minimal fields for better performance
     let query = supabase
       .from('listings')
       .select(`
@@ -30,28 +30,12 @@ export const useInventoryData = () => {
         status,
         created_at,
         updated_at,
-        measurements,
-        keywords,
         photos,
         shipping_cost,
         purchase_price,
-        purchase_date,
-        cost_basis,
-        sold_price,
-        sold_date,
-        price_research,
-        is_consignment,
-        consignment_percentage,
-        consignor_name,
-        consignor_contact,
-        source_location,
-        source_type,
-        fees_paid,
         net_profit,
         profit_margin,
-        listed_date,
-        days_to_sell,
-        performance_notes
+        is_consignment
       `)
       .eq('user_id', user.id);
 
@@ -70,7 +54,7 @@ export const useInventoryData = () => {
     }
 
     // Always order and limit to use indexes efficiently
-    const limit = Math.min(options.limit || 50, 100); // Cap at 100 for performance
+    const limit = Math.min(options.limit || 25, 50); // Reduce default limit
     query = query
       .order('created_at', { ascending: false })
       .limit(limit);
@@ -88,12 +72,25 @@ export const useInventoryData = () => {
       ...item,
       title: item.title || 'Untitled',
       price: Number(item.price) || 0,
-      measurements: typeof item.measurements === 'object' && item.measurements !== null 
-        ? item.measurements as { length?: string; width?: string; height?: string; weight?: string; }
-        : {},
-      keywords: Array.isArray(item.keywords) ? item.keywords : [],
+      measurements: {}, // Default empty object for type compatibility
+      keywords: [], // Default empty array
       photos: Array.isArray(item.photos) ? item.photos.filter(p => p && typeof p === 'string') : [],
-      user_id: user.id
+      user_id: user.id,
+      // Add default values for missing fields to match Listing type
+      purchase_date: null,
+      cost_basis: null,
+      sold_price: null,
+      sold_date: null,
+      price_research: null,
+      consignment_percentage: null,
+      consignor_name: null,
+      consignor_contact: null,
+      source_location: null,
+      source_type: null,
+      fees_paid: null,
+      listed_date: null,
+      days_to_sell: null,
+      performance_notes: null
     })) || [];
   }, []);
 

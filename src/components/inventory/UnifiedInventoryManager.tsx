@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Plus, Search } from 'lucide-react';
 import ListingsTable from '@/components/ListingsTable';
+import InventoryErrorBoundary from './InventoryErrorBoundary';
 
 interface UnifiedInventoryManagerProps {
   onCreateListing: () => void;
@@ -28,25 +29,21 @@ const UnifiedInventoryManager = ({ onCreateListing, onBack }: UnifiedInventoryMa
     searchTerm: searchTerm.trim() || undefined,
     statusFilter: statusFilter === 'all' ? undefined : statusFilter,
     categoryFilter: categoryFilter === 'all' ? undefined : categoryFilter,
-    limit: 100
+    limit: 25 // Reduced limit for better performance
   });
 
-  const { deleteListing, updateListing, updateListingStatus } = useListingOperations();
+  const { deleteListing, updateListing } = useListingOperations();
 
   const categories = useMemo(() => {
     const uniqueCategories = [...new Set(listings.map(l => l.category).filter(Boolean))];
     return uniqueCategories as string[];
   }, [listings]);
 
-  const filteredListings = useMemo(() => {
-    return listings.filter(listing => {
-      const matchesSearch = !searchTerm || 
-        listing.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        listing.description?.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      return matchesSearch;
-    });
-  }, [listings, searchTerm]);
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('all');
+    setCategoryFilter('all');
+  };
 
   const handleSelectListing = (listingId: string, checked: boolean) => {
     setSelectedItems(prev => 
@@ -57,7 +54,7 @@ const UnifiedInventoryManager = ({ onCreateListing, onBack }: UnifiedInventoryMa
   };
 
   const handleSelectAll = (checked: boolean) => {
-    setSelectedItems(checked ? filteredListings.map(l => l.id) : []);
+    setSelectedItems(checked ? listings.map(l => l.id) : []);
   };
 
   const handleUpdateListing = async (listingId: string, updates: any) => {
@@ -161,21 +158,19 @@ const UnifiedInventoryManager = ({ onCreateListing, onBack }: UnifiedInventoryMa
           </Card>
         )}
 
+        {/* Error Handling */}
         {error && (
-          <Card className="p-4 border-red-200 bg-red-50">
-            <div className="text-red-800">
-              Error: {error}
-              <Button onClick={refetch} variant="link" className="ml-2 p-0 h-auto">
-                Retry
-              </Button>
-            </div>
-          </Card>
+          <InventoryErrorBoundary 
+            error={error} 
+            onRetry={refetch}
+            onClearFilters={handleClearFilters}
+          />
         )}
 
         {/* Table */}
-        {!loading && (
+        {!loading && !error && (
           <ListingsTable
-            listings={filteredListings}
+            listings={listings}
             selectedListings={selectedItems}
             onSelectListing={handleSelectListing}
             onSelectAll={handleSelectAll}
