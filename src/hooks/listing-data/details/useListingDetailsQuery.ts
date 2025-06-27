@@ -8,7 +8,7 @@ export const useListingDetailsQuery = () => {
     error: string | null;
   }> => {
     try {
-      console.log('🔍 Fetching detailed data for listing:', id);
+      console.log('🔍 useListingDetailsQuery.fetchListingDetails for:', id);
       
       const { data, error } = await supabase
         .from('listings')
@@ -37,12 +37,17 @@ export const useListingDetailsQuery = () => {
         .eq('id', id)
         .single();
 
+      console.log('📡 Supabase raw response:', { data, error });
+
       if (error) {
-        console.error('❌ Failed to fetch listing details:', error);
+        console.error('❌ Supabase error:', error);
         return { details: null, error: error.message };
       }
 
-      console.log('✅ Successfully fetched listing details:', data);
+      console.log('📊 Raw data from database:', data);
+      console.log('📏 Raw measurements:', data.measurements, 'Type:', typeof data.measurements);
+      console.log('🏷️ Raw keywords:', data.keywords, 'Type:', typeof data.keywords, 'IsArray:', Array.isArray(data.keywords));
+      console.log('📝 Raw description:', data.description, 'Type:', typeof data.description);
       
       // Transform the data to match Listing interface with proper measurements handling
       const transformedDetails: Partial<Listing> = {
@@ -69,10 +74,15 @@ export const useListingDetailsQuery = () => {
         performance_notes: data.performance_notes,
         consignor_name: data.consignor_name
       };
+
+      console.log('🔄 Transformed details:', transformedDetails);
+      console.log('📏 Transformed measurements:', transformedDetails.measurements);
+      console.log('🏷️ Transformed keywords:', transformedDetails.keywords);
+      console.log('📝 Transformed description:', transformedDetails.description);
       
       return { details: transformedDetails, error: null };
     } catch (error: any) {
-      console.error('💥 Exception fetching listing details:', error);
+      console.error('💥 Exception in fetchListingDetails:', error);
       return { details: null, error: error.message };
     }
   };

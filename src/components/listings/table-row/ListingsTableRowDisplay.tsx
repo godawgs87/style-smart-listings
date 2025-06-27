@@ -88,11 +88,22 @@ const ListingsTableRowDisplay = ({ listing, index, visibleColumns }: ListingsTab
       const needsDetails = visibleColumns.measurements || visibleColumns.keywords || visibleColumns.description;
       
       if (needsDetails) {
-        console.log('Loading details for display row:', listing.id);
+        console.log('🔍 ListingsTableRowDisplay - Loading details for:', listing.id);
+        console.log('🔍 Original listing data:', listing);
+        
         const details = await loadDetails(listing.id);
+        console.log('🔍 Loaded details response:', details);
+        
         if (details) {
-          console.log('Loaded details for display:', details);
-          setDetailedListing({ ...listing, ...details });
+          const mergedListing = { ...listing, ...details };
+          console.log('🔍 Merged listing data:', mergedListing);
+          console.log('🔍 Measurements in merged data:', mergedListing.measurements);
+          console.log('🔍 Keywords in merged data:', mergedListing.keywords);
+          console.log('🔍 Description in merged data:', mergedListing.description);
+          
+          setDetailedListing(mergedListing);
+        } else {
+          console.log('❌ No details returned for listing:', listing.id);
         }
       }
     };
@@ -101,6 +112,11 @@ const ListingsTableRowDisplay = ({ listing, index, visibleColumns }: ListingsTab
   }, [listing.id, loadDetails, visibleColumns.measurements, visibleColumns.keywords, visibleColumns.description]);
 
   const isLoading = isLoadingDetails(listing.id);
+
+  console.log('🎯 ListingsTableRowDisplay render - listing:', listing.id);
+  console.log('🎯 Current detailedListing state:', detailedListing);
+  console.log('🎯 Measurements to display:', detailedListing.measurements);
+  console.log('🎯 Keywords to display:', detailedListing.keywords);
 
   return (
     <>
@@ -150,7 +166,10 @@ const ListingsTableRowDisplay = ({ listing, index, visibleColumns }: ListingsTab
               <Loader2 className="w-4 h-4 animate-spin" />
             </div>
           ) : (
-            <MeasurementsCell measurements={detailedListing.measurements || listing.measurements} />
+            <div>
+              <div className="text-xs text-gray-400 mb-1">Debug: {JSON.stringify(detailedListing.measurements)}</div>
+              <MeasurementsCell measurements={detailedListing.measurements || listing.measurements} />
+            </div>
           )}
         </TableCell>
       )}
@@ -162,7 +181,10 @@ const ListingsTableRowDisplay = ({ listing, index, visibleColumns }: ListingsTab
               <Loader2 className="w-4 h-4 animate-spin" />
             </div>
           ) : (
-            <KeywordsCell keywords={detailedListing.keywords || listing.keywords} />
+            <div>
+              <div className="text-xs text-gray-400 mb-1">Debug: {JSON.stringify(detailedListing.keywords)}</div>
+              <KeywordsCell keywords={detailedListing.keywords || listing.keywords} />
+            </div>
           )}
         </TableCell>
       )}
@@ -175,6 +197,7 @@ const ListingsTableRowDisplay = ({ listing, index, visibleColumns }: ListingsTab
             </div>
           ) : (
             <div className="text-sm text-gray-600 line-clamp-3">
+              <div className="text-xs text-gray-400 mb-1">Debug: Has description: {!!detailedListing.description}</div>
               {detailedListing.description || listing.description || '-'}
             </div>
           )}
