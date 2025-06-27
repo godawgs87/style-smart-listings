@@ -3,16 +3,18 @@ import React, { useState, useEffect } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
 import MobileNavigation from '@/components/MobileNavigation';
-import { useInventoryPagination } from '@/hooks/inventory/useInventoryPagination';
+import { useRobustInventoryData } from '@/hooks/inventory/useRobustInventoryData';
 import { useListingDetails } from '@/hooks/inventory/useListingDetails';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Plus, Search } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { RefreshCw, Plus, Search, Wifi, WifiOff } from 'lucide-react';
 import VirtualizedInventoryTable from './VirtualizedInventoryTable';
 import { useToast } from '@/hooks/use-toast';
 import { useListingOperations } from '@/hooks/useListingOperations';
+import type { Listing } from '@/types/Listing';
 
 interface OptimizedInventoryManagerProps {
   onCreateListing: () => void;
@@ -25,44 +27,42 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [usingFallback, setUsingFallback] = useState(false);
   
-  const {
-    listings,
-    loading,
-    hasMore,
-    loadMore,
-    reset
-  } = useInventoryPagination();
-
+  const { fetchWithRetry } = useRobustInventoryData();
   const { fetchListingDetails } = useListingDetails();
   const { deleteListing } = useListingOperations();
 
-  const paginationOptions = {
-    statusFilter: statusFilter === 'all' ? undefined : statusFilter,
-    categoryFilter: categoryFilter === 'all' ? undefined : categoryFilter,
-    searchTerm: searchTerm.trim() || undefined,
-    pageSize: 20 // Reasonable page size
+  const loadData = async () => {
+    setLoading(true);
+    setError(null);
+
+    const options = {
+      statusFilter: statusFilter === 'all' ? undefined : statusFilter,
+      categoryFilter: categoryFilter === 'all' ? undefined : categoryFilter,
+      searchTerm: searchTerm.trim() || undefined,
+      limit: 50 // Reasonable limit for initial load
+    };
+
+    const result = await fetchWithRetry(options);
+    
+    setListings(result.listings);
+    setError(result.error);
+    setUsingFallback(result.usingFallback);
+    setLoading(false);
   };
 
-  // Reset and load initial data when filters change
+  // Debounced loading when filters change
   useEffect(() => {
     const timer = setTimeout(() => {
-      reset(paginationOptions);
-    }, 300); // Debounce filter changes
+      loadData();
+    }, 300);
 
     return () => clearTimeout(timer);
   }, [searchTerm, statusFilter, categoryFilter]);
-
-  const handleLoadMore = async () => {
-    const result = await loadMore(paginationOptions);
-    if (!result.success && result.error) {
-      toast({
-        title: "Failed to load more",
-        description: result.error,
-        variant: "destructive"
-      });
-    }
-  };
 
   const handleViewDetails = async (id: string) => {
     const { details, error } = await fetchListingDetails(id);
@@ -73,7 +73,6 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
         variant: "destructive"
       });
     } else if (details) {
-      // TODO: Open details modal/drawer
       console.log('Viewing details for:', details);
     }
   };
@@ -87,7 +86,6 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
         variant: "destructive"
       });
     } else if (details) {
-      // TODO: Open edit modal/form
       console.log('Editing listing:', details);
     }
   };
@@ -95,15 +93,15 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
   const handleDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this listing?')) {
       await deleteListing(id);
-      reset(paginationOptions); // Refresh the list
+      loadData(); // Refresh the list
     }
   };
 
   const handleRefresh = () => {
-    reset(paginationOptions);
+    loadData();
   };
 
-  // Calculate stats from summary data
+  // Calculate stats from loaded data
   const stats = {
     totalItems: listings.length,
     totalValue: listings.reduce((sum, item) => sum + item.price, 0),
@@ -120,6 +118,40 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
       />
       
       <div className="max-w-7xl mx-auto p-4 space-y-6">
+        {/* Connection Status */}
+        {(usingFallback || error) && (
+          <Card className="p-4">
+            <div className="flex items-center gap-2">
+              {usingFallback ? (
+                <>
+                  <WifiOff className="w-4 h-4 text-orange-500" />
+                  <Badge variant="outline" className="bg-yellow-50 text-yellow-800 border-yellow-200">
+                    Offline Mode
+                  </Badge>
+                  <span className="text-sm text-gray-600">
+                    Using cached data due to connection issues
+                  </span>
+                </>
+              ) : error ? (
+                <>
+                  <WifiOff className="w-4 h-4 text-red-500" />
+                  <Badge variant="outline" className="bg-red-50 text-red-800 border-red-200">
+                    Connection Error
+                  </Badge>
+                  <span className="text-sm text-gray-600">{error}</span>
+                </>
+              ) : (
+                <>
+                  <Wifi className="w-4 h-4 text-green-500" />
+                  <Badge variant="outline" className="bg-green-50 text-green-800 border-green-200">
+                    Connected
+                  </Badge>
+                </>
+              )}
+            </div>
+          </Card>
+        )}
+
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="p-4">
@@ -128,7 +160,7 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
           </Card>
           <Card className="p-4">
             <div className="text-2xl font-bold text-green-600">${stats.totalValue.toFixed(2)}</div>
-            <div className="text-sm text-gray-600">Loaded Value</div>
+            <div className="text-sm text-gray-600">Total Value</div>
           </Card>
           <Card className="p-4">
             <div className="text-2xl font-bold text-purple-600">{stats.activeItems}</div>
@@ -174,8 +206,8 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
               </SelectContent>
             </Select>
 
-            <Button onClick={handleRefresh} variant="outline" size="sm">
-              <RefreshCw className="w-4 h-4 mr-2" />
+            <Button onClick={handleRefresh} variant="outline" size="sm" disabled={loading}>
+              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
 
@@ -186,22 +218,27 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
           </div>
         </Card>
 
-        {/* Virtualized Table */}
-        <Card className="p-4">
-          <VirtualizedInventoryTable
-            listings={listings}
-            hasNextPage={hasMore}
-            isNextPageLoading={loading}
-            loadNextPage={handleLoadMore}
-            onViewDetails={handleViewDetails}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-          />
-        </Card>
+        {/* Inventory Table */}
+        {!loading && !error && (
+          <Card className="p-4">
+            <VirtualizedInventoryTable
+              listings={listings}
+              hasNextPage={false}
+              isNextPageLoading={loading}
+              loadNextPage={async () => {}}
+              onViewDetails={handleViewDetails}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+            />
+          </Card>
+        )}
 
-        {loading && listings.length === 0 && (
+        {loading && (
           <Card className="p-8 text-center">
-            <div className="text-gray-500">Loading inventory...</div>
+            <div className="flex items-center justify-center gap-2">
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              <span className="text-gray-500">Loading inventory...</span>
+            </div>
           </Card>
         )}
       </div>
