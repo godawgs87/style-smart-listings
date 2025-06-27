@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -128,7 +127,7 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
 
     console.log(`✅ Successfully fetched ${data.length} real listings from database`);
     
-    // Transform data to match Listing interface with all available fields
+    // Transform data to match Listing interface with proper type handling
     const transformedListings: Listing[] = data.map(item => ({
       id: item.id,
       title: item.title || 'Untitled',
@@ -136,7 +135,9 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
       price: Number(item.price) || 0,
       category: item.category,
       condition: item.condition,
-      measurements: item.measurements || {},
+      measurements: typeof item.measurements === 'object' && item.measurements !== null 
+        ? item.measurements as { length?: string; width?: string; height?: string; weight?: string; }
+        : {},
       keywords: Array.isArray(item.keywords) ? item.keywords : [],
       photos: Array.isArray(item.photos) ? item.photos.filter(p => p && typeof p === 'string') : [],
       price_research: item.price_research,
