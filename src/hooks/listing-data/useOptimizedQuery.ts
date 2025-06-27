@@ -17,12 +17,12 @@ export const useOptimizedQuery = () => {
     const { statusFilter, categoryFilter, searchTerm, limit } = options;
     
     try {
-      console.log('🚀 Starting optimized query with photos...');
+      console.log('🚀 Starting safe optimized query...');
       console.log('📋 Query options:', options);
 
       const startTime = Date.now();
       
-      // Include photos in the query so we can show actual uploaded images
+      // Include photos but handle them safely
       let query = supabase
         .from('listings')
         .select(`
@@ -51,7 +51,7 @@ export const useOptimizedQuery = () => {
         .limit(Math.min(limit, 20));
 
       const duration = Date.now() - startTime;
-      console.log(`⏱️ Query completed in ${duration}ms`);
+      console.log(`⏱️ Safe query completed in ${duration}ms`);
 
       if (error) {
         console.error('❌ Query error:', error);
@@ -63,49 +63,65 @@ export const useOptimizedQuery = () => {
         return { listings: [], error: 'CONNECTION_ERROR' };
       }
 
-      console.log(`✅ Fetched ${data?.length || 0} listings with photos`);
+      console.log(`✅ Fetched ${data?.length || 0} listings safely`);
       
-      // Transform the data to match the Listing interface
-      const transformedListings: Listing[] = (data || []).map(item => ({
-        id: item.id,
-        title: item.title,
-        description: item.description || null,
-        price: item.price,
-        purchase_price: item.purchase_price,
-        category: item.category || null,
-        condition: item.condition || null,
-        measurements: {},
-        keywords: [],
-        photos: item.photos || null, // Include actual photos from database
-        price_research: null,
-        shipping_cost: item.shipping_cost || null,
-        status: item.status || null,
-        created_at: item.created_at,
-        updated_at: item.created_at,
-        user_id: item.user_id || '',
-        is_consignment: false,
-        source_type: null,
-        net_profit: item.net_profit,
-        profit_margin: item.profit_margin,
-        // Add required fields with defaults
-        purchase_date: undefined,
-        source_location: undefined,
-        cost_basis: undefined,
-        fees_paid: undefined,
-        sold_date: undefined,
-        sold_price: undefined,
-        days_to_sell: undefined,
-        performance_notes: undefined,
-        consignment_percentage: undefined,
-        consignor_name: undefined,
-        consignor_contact: undefined,
-        listed_date: undefined
-      }));
+      // Transform the data to match the Listing interface with safe photo handling
+      const transformedListings: Listing[] = (data || []).map(item => {
+        // Safely handle photos - ensure it's an array or null
+        let safePhotos: string[] | null = null;
+        try {
+          if (item.photos && Array.isArray(item.photos) && item.photos.length > 0) {
+            safePhotos = item.photos.filter(photo => photo && typeof photo === 'string' && photo.trim() !== '');
+            if (safePhotos.length === 0) {
+              safePhotos = null;
+            }
+          }
+        } catch (photoError) {
+          console.warn('⚠️ Photo processing error for listing:', item.id, photoError);
+          safePhotos = null;
+        }
+
+        return {
+          id: item.id,
+          title: item.title,
+          description: item.description || null,
+          price: item.price,
+          purchase_price: item.purchase_price,
+          category: item.category || null,
+          condition: item.condition || null,
+          measurements: {},
+          keywords: [],
+          photos: safePhotos,
+          price_research: null,
+          shipping_cost: item.shipping_cost || null,
+          status: item.status || null,
+          created_at: item.created_at,
+          updated_at: item.created_at,
+          user_id: item.user_id || '',
+          is_consignment: false,
+          source_type: null,
+          net_profit: item.net_profit,
+          profit_margin: item.profit_margin,
+          // Add required fields with defaults
+          purchase_date: undefined,
+          source_location: undefined,
+          cost_basis: undefined,
+          fees_paid: undefined,
+          sold_date: undefined,
+          sold_price: undefined,
+          days_to_sell: undefined,
+          performance_notes: undefined,
+          consignment_percentage: undefined,
+          consignor_name: undefined,
+          consignor_contact: undefined,
+          listed_date: undefined
+        };
+      });
       
       return { listings: transformedListings, error: null };
       
     } catch (error: any) {
-      console.error('💥 Exception in query:', error);
+      console.error('💥 Exception in safe query:', error);
       
       if (error.message?.includes('JWT') || error.message?.includes('authentication')) {
         return { listings: [], error: 'AUTH_ERROR' };

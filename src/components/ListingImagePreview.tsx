@@ -14,8 +14,8 @@ const ListingImagePreview = React.memo(({ photos, title, listingId, className = 
   const [imageError, setImageError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Check if we have actual uploaded photos
-  const hasActualPhotos = photos && photos.length > 0;
+  // Safely check if we have actual uploaded photos
+  const hasActualPhotos = Array.isArray(photos) && photos.length > 0 && photos[0] && photos[0].trim() !== '';
   
   // Use actual photo if available, otherwise fallback to placeholder
   const displayImage = hasActualPhotos ? photos[0] : (listingId ? imageService.getPlaceholderForListing(listingId) : null);
@@ -26,10 +26,10 @@ const ListingImagePreview = React.memo(({ photos, title, listingId, className = 
   }, []);
 
   const handleImageError = useCallback(() => {
-    console.warn('📸 Image load error for listing:', listingId);
+    console.warn('📸 Image load error for listing:', listingId, 'Image URL:', displayImage);
     setIsLoading(false);
     setImageError(true);
-  }, [listingId]);
+  }, [listingId, displayImage]);
 
   const handleImageLoadStart = useCallback(() => {
     setIsLoading(true);
