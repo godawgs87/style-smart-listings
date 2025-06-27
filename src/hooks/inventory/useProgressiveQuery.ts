@@ -25,7 +25,7 @@ export const useProgressiveQuery = () => {
     try {
       let query = supabase
         .from('listings')
-        .select('id, title, price, status, created_at, photos, category, condition')
+        .select('id, title, price, status, created_at, photos, category, condition, shipping_cost')
         .eq('user_id', user.id);
 
       if (options.statusFilter && options.statusFilter !== 'all') {
@@ -79,7 +79,7 @@ export const useProgressiveQuery = () => {
         days_to_sell: null,
         performance_notes: null,
         is_consignment: false,
-        shipping_cost: null,
+        shipping_cost: item.shipping_cost || null,
         purchase_price: null,
         net_profit: null,
         profit_margin: null
