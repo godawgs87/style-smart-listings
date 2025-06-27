@@ -35,6 +35,18 @@ const InventoryContent = ({
   onDuplicateListing,
   onRetry
 }: InventoryContentProps) => {
+  console.log('InventoryContent render:', {
+    viewMode,
+    filteredListingsCount: filteredListings.length,
+    loading,
+    error,
+    firstListing: filteredListings[0] ? {
+      id: filteredListings[0].id,
+      title: filteredListings[0].title,
+      price: filteredListings[0].price
+    } : null
+  });
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">

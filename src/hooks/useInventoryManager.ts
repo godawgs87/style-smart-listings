@@ -43,7 +43,7 @@ export const useInventoryManager = () => {
     categoryFilter
   });
 
-  // Apply client-side filters
+  // Apply client-side filters only for fields not handled server-side
   const { filteredListings } = useInventoryFilters({
     listings,
     searchTerm: '', // Already handled server-side
@@ -61,13 +61,13 @@ export const useInventoryManager = () => {
   }, [listings]);
 
   const stats = useMemo(() => {
-    const totalItems = listings.length;
-    const totalValue = listings.reduce((sum, listing) => sum + (listing.price || 0), 0);
-    const profitableListings = listings.filter(l => l.net_profit && l.net_profit > 0);
+    const totalItems = filteredListings.length;
+    const totalValue = filteredListings.reduce((sum, listing) => sum + (listing.price || 0), 0);
+    const profitableListings = filteredListings.filter(l => l.net_profit && l.net_profit > 0);
     const averageProfit = profitableListings.length > 0 
       ? profitableListings.reduce((sum, l) => sum + (l.net_profit || 0), 0) / profitableListings.length 
       : 0;
-    const listingsWithDays = listings.filter(l => l.days_to_sell);
+    const listingsWithDays = filteredListings.filter(l => l.days_to_sell);
     const averageDaysToSell = listingsWithDays.length > 0
       ? listingsWithDays.reduce((sum, l) => sum + (l.days_to_sell || 0), 0) / listingsWithDays.length
       : 0;
@@ -78,7 +78,7 @@ export const useInventoryManager = () => {
       averageProfit,
       averageDaysToSell
     };
-  }, [listings]);
+  }, [filteredListings]);
 
   // Enable bulk mode when items are selected
   useEffect(() => {
