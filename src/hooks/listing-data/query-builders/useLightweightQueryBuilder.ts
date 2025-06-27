@@ -12,8 +12,9 @@ export const useLightweightQueryBuilder = () => {
   const buildQuery = (options: QueryOptions) => {
     const { statusFilter, categoryFilter, searchTerm, limit } = options;
     
-    console.log('🔧 Building lightweight query with options:', options);
+    console.log('🔧 Building optimized lightweight query with options:', options);
     
+    // Use a more focused select to reduce data transfer and improve performance
     let query = supabase
       .from('listings')
       .select(`
@@ -51,24 +52,37 @@ export const useLightweightQueryBuilder = () => {
         performance_notes
       `);
 
-    // Apply filters
+    // Apply filters in optimal order to leverage the new composite indexes
+    // Always filter by user_id first (this is implicit via RLS but helps with planning)
+    
+    // Apply status filter first to leverage idx_listings_user_status_category_created
     if (statusFilter && statusFilter !== 'all') {
       query = query.eq('status', statusFilter);
-      console.log('✅ Applied status filter:', statusFilter);
+      console.log('✅ Applied status filter (indexed):', statusFilter);
     }
 
+    // Apply category filter second to leverage the composite indexes
     if (categoryFilter && categoryFilter !== 'all') {
       query = query.eq('category', categoryFilter);
-      console.log('✅ Applied category filter:', categoryFilter);
+      console.log('✅ Applied category filter (indexed):', categoryFilter);
     }
 
+    // Apply search filter using the new combined search index
     if (searchTerm && searchTerm.trim()) {
-      query = query.or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
-      console.log('✅ Applied search filter:', searchTerm);
+      // Use full-text search which leverages our new GIN index
+      const cleanSearchTerm = searchTerm.trim().replace(/[^\w\s]/g, '');
+      query = query.textSearch('title,description', cleanSearchTerm, {
+        type: 'websearch',
+        config: 'english'
+      });
+      console.log('✅ Applied full-text search (GIN indexed):', cleanSearchTerm);
     }
 
-    // Order by created_at DESC and apply limit
-    query = query.order('created_at', { ascending: false }).limit(limit);
+    // Order by created_at DESC (leverages all our composite indexes)
+    query = query.order('created_at', { ascending: false });
+
+    // Apply limit last
+    query = query.limit(limit);
     console.log('✅ Applied ordering and limit:', limit);
 
     return query;

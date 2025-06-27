@@ -23,10 +23,10 @@ export const useLightweightQuery = () => {
     error: 'AUTH_ERROR' | 'CONNECTION_ERROR' | null;
   }> => {
     try {
-      console.log('🚀 Starting lightweight query...');
+      console.log('🚀 Starting optimized lightweight query...');
       console.log('📋 Query options:', options);
 
-      // Test connection first
+      // Test connection first with timeout
       console.log('🔍 Testing Supabase connection...');
       const connectionStart = Date.now();
       const isConnected = await testConnection();
@@ -41,18 +41,23 @@ export const useLightweightQuery = () => {
       console.log('✅ Connection test successful');
 
       const queryStart = Date.now();
-      console.log('⏳ Executing lightweight query...');
+      console.log('⏳ Executing optimized lightweight query...');
       
       const query = buildQuery(options);
       const { data, error } = await query;
 
       const queryTime = Date.now() - queryStart;
-      console.log(`⏱️ Lightweight query executed in ${queryTime}ms`);
+      console.log(`⏱️ Optimized query executed in ${queryTime}ms`);
 
       if (error) {
         console.log('❌ Lightweight query error:', error);
         
-        if (error.code === 'PGRST301' || error.message?.includes('JWT')) {
+        // Check for authentication errors
+        if (error.code === 'PGRST301' || 
+            error.message?.includes('JWT') || 
+            error.message?.includes('authentication') ||
+            error.message?.includes('not authenticated')) {
+          console.log('🔒 Detected authentication error');
           return { listings: [], error: 'AUTH_ERROR' };
         }
         
@@ -60,12 +65,21 @@ export const useLightweightQuery = () => {
         return { listings: [], error: 'CONNECTION_ERROR' };
       }
 
-      console.log(`✅ Successfully fetched ${data?.length || 0} lightweight listings`);
+      console.log(`✅ Successfully fetched ${data?.length || 0} optimized listings`);
       const transformedListings = (data || []).map(transformListing);
       
       return { listings: transformedListings, error: null };
     } catch (error: any) {
-      console.error('💥 Exception in lightweight query:', error);
+      console.error('💥 Exception in optimized lightweight query:', error);
+      
+      // Check if it's an authentication error
+      if (error.message?.includes('JWT') || 
+          error.message?.includes('authentication') ||
+          error.message?.includes('not authenticated')) {
+        console.log('🔒 Exception indicates auth error');
+        return { listings: [], error: 'AUTH_ERROR' };
+      }
+      
       return { listings: [], error: 'CONNECTION_ERROR' };
     }
   };
