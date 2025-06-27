@@ -51,7 +51,12 @@ export const useListingData = (options: UseListingDataOptions) => {
         
         if (hasFallbackData()) {
           console.log('📚 Using fallback data');
-          const fallbackListings = getFallbackData();
+          const fallbackListings = getFallbackData({
+            statusFilter: options.statusFilter,
+            categoryFilter: options.categoryFilter,
+            searchTerm: options.searchTerm,
+            limit: options.limit || 10
+          });
           setListings(fallbackListings);
           setUsingFallback(true);
           setError(null);

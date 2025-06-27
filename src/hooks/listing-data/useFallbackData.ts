@@ -15,7 +15,13 @@ export const useFallbackData = () => {
   const { toast } = useToast();
   const { transformFallbackListing } = useListingTransforms();
 
-  const loadFallbackData = (options: UseFallbackDataOptions): Listing[] => {
+  const getFallbackData = (options?: UseFallbackDataOptions): Listing[] => {
+    if (!options) {
+      // Return all cached data without filtering
+      const fallbackListings = fallbackDataService.loadFallbackData();
+      return fallbackListings.map(transformFallbackListing);
+    }
+
     const { statusFilter, limit, searchTerm, categoryFilter } = options;
     
     console.log('Loading fallback data due to database unavailability...');
@@ -64,7 +70,18 @@ export const useFallbackData = () => {
     return transformedListings;
   };
 
+  const hasFallbackData = (): boolean => {
+    return fallbackDataService.hasFallbackData();
+  };
+
+  // Legacy method for backward compatibility
+  const loadFallbackData = (options: UseFallbackDataOptions): Listing[] => {
+    return getFallbackData(options);
+  };
+
   return {
-    loadFallbackData
+    getFallbackData,
+    hasFallbackData,
+    loadFallbackData // Keep for backward compatibility
   };
 };

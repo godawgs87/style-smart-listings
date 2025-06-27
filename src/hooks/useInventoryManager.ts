@@ -17,14 +17,14 @@ export const useInventoryManager = () => {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [isBulkMode, setIsBulkMode] = useState(false);
 
-  // Use smaller initial limit to prevent timeout
+  // Progressive loading with timeout-friendly settings
   const progressiveLoading = useProgressiveLoading({
-    initialLimit: 10, // Start smaller
-    incrementSize: 10, // Load smaller chunks
-    maxLimit: 100 // Lower maximum
+    initialLimit: 5,
+    incrementSize: 5,
+    maxLimit: 50
   });
 
-  // Data fetching with progressive limit and timeout-friendly options
+  // Data fetching - pass server-side filters to avoid conflicts
   const { 
     listings, 
     loading, 
@@ -43,12 +43,12 @@ export const useInventoryManager = () => {
     categoryFilter: categoryFilter === 'all' ? undefined : categoryFilter
   });
 
-  // Apply client-side filters only for fields not handled server-side
+  // Apply only client-side filters that aren't handled server-side
   const { filteredListings } = useInventoryFilters({
     listings,
-    searchTerm: '', // Already handled server-side
-    statusFilter: 'all', // Already handled server-side
-    categoryFilter: 'all', // Already handled server-side
+    searchTerm: '', // Server-side handled
+    statusFilter: 'all', // Server-side handled
+    categoryFilter: 'all', // Server-side handled
     sortBy,
     sourceTypeFilter,
     consignmentFilter,
@@ -94,9 +94,9 @@ export const useInventoryManager = () => {
     setIsBulkMode(selectedItems.length > 0);
   }, [selectedItems]);
 
-  // Reset progressive loading when filters change
+  // Reset progressive loading when server-side filters change
   useEffect(() => {
-    console.log('Filters changed, resetting progressive loading');
+    console.log('Server-side filters changed, resetting progressive loading');
     progressiveLoading.reset();
   }, [statusFilter, categoryFilter, searchTerm]);
 
@@ -119,7 +119,6 @@ export const useInventoryManager = () => {
   const handleLoadMore = async () => {
     console.log('Loading more items, current limit:', progressiveLoading.currentLimit);
     if (usingFallback) {
-      // In fallback mode, just increase the limit locally
       progressiveLoading.loadMore();
       return true;
     }
