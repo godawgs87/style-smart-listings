@@ -17,14 +17,14 @@ export const useInventoryManager = () => {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [isBulkMode, setIsBulkMode] = useState(false);
 
-  // Progressive loading with reasonable defaults
+  // Use smaller initial limit to prevent timeout
   const progressiveLoading = useProgressiveLoading({
-    initialLimit: 20, // Start with 20 items
-    incrementSize: 20, // Load 20 more at a time
-    maxLimit: 200 // Cap at 200 items
+    initialLimit: 10, // Start smaller
+    incrementSize: 10, // Load smaller chunks
+    maxLimit: 100 // Lower maximum
   });
 
-  // Data fetching with progressive limit
+  // Data fetching with progressive limit and timeout-friendly options
   const { 
     listings, 
     loading, 
@@ -38,9 +38,9 @@ export const useInventoryManager = () => {
     forceOfflineMode
   } = useListings({ 
     limit: progressiveLoading.currentLimit,
-    statusFilter,
-    searchTerm: searchTerm.trim(),
-    categoryFilter
+    statusFilter: statusFilter === 'all' ? undefined : statusFilter,
+    searchTerm: searchTerm.trim() || undefined,
+    categoryFilter: categoryFilter === 'all' ? undefined : categoryFilter
   });
 
   // Apply client-side filters only for fields not handled server-side
@@ -61,6 +61,15 @@ export const useInventoryManager = () => {
   }, [listings]);
 
   const stats = useMemo(() => {
+    if (filteredListings.length === 0) {
+      return {
+        totalItems: 0,
+        totalValue: 0,
+        averageProfit: 0,
+        averageDaysToSell: 0
+      };
+    }
+
     const totalItems = filteredListings.length;
     const totalValue = filteredListings.reduce((sum, listing) => sum + (listing.price || 0), 0);
     const profitableListings = filteredListings.filter(l => l.net_profit && l.net_profit > 0);
@@ -87,6 +96,7 @@ export const useInventoryManager = () => {
 
   // Reset progressive loading when filters change
   useEffect(() => {
+    console.log('Filters changed, resetting progressive loading');
     progressiveLoading.reset();
   }, [statusFilter, categoryFilter, searchTerm]);
 
@@ -107,6 +117,7 @@ export const useInventoryManager = () => {
   };
 
   const handleLoadMore = async () => {
+    console.log('Loading more items, current limit:', progressiveLoading.currentLimit);
     if (usingFallback) {
       // In fallback mode, just increase the limit locally
       progressiveLoading.loadMore();
