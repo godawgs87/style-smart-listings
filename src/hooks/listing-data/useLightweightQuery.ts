@@ -26,7 +26,7 @@ export const useLightweightQuery = () => {
       console.log('🚀 Starting optimized lightweight query...');
       console.log('📋 Query options:', options);
 
-      // Test connection first with short timeout
+      // Test connection first with timeout
       console.log('🔍 Testing Supabase connection...');
       const connectionStart = Date.now();
       const isConnected = await testConnection();
@@ -41,17 +41,10 @@ export const useLightweightQuery = () => {
       console.log('✅ Connection test successful');
 
       const queryStart = Date.now();
-      console.log('⏳ Executing lightweight query with timeout protection...');
-      
-      // Create timeout protection for the main query
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Query timeout')), 10000); // 10 second timeout
-      });
+      console.log('⏳ Executing lightweight query...');
       
       const query = buildQuery(options);
-      const queryPromise = query;
-      
-      const result = await Promise.race([queryPromise, timeoutPromise]);
+      const result = await query;
 
       const queryTime = Date.now() - queryStart;
       console.log(`⏱️ Query executed in ${queryTime}ms`);
@@ -89,12 +82,7 @@ export const useLightweightQuery = () => {
     } catch (error: any) {
       console.error('💥 Exception in lightweight query:', error);
       
-      // Check if it's a timeout or authentication error
-      if (error.message?.includes('timeout') || error.message?.includes('Query timeout')) {
-        console.log('⏰ Query timeout detected');
-        return { listings: [], error: 'CONNECTION_ERROR' };
-      }
-      
+      // Check if it's an authentication error
       if (error.message?.includes('JWT') || 
           error.message?.includes('authentication') ||
           error.message?.includes('not authenticated')) {
