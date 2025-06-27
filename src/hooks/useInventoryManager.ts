@@ -17,14 +17,14 @@ export const useInventoryManager = () => {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [isBulkMode, setIsBulkMode] = useState(false);
 
-  // Start ultra-minimal for display only
+  // Ultra-minimal progressive loading to reduce database egress
   const progressiveLoading = useProgressiveLoading({
-    initialLimit: 5,  // Ultra-minimal start
-    incrementSize: 5, // Small increments
-    maxLimit: 25      // Reasonable max for UI performance
+    initialLimit: 3,  // Start with just 3 items
+    incrementSize: 3, // Small increments
+    maxLimit: 15      // Lower max to reduce egress
   });
 
-  // Data fetching with ultra-minimal initial load
+  // Data fetching with minimal initial load
   const { 
     listings, 
     loading, 
@@ -94,12 +94,12 @@ export const useInventoryManager = () => {
     setIsBulkMode(selectedItems.length > 0);
   }, [selectedItems]);
 
-  // Reset progressive loading when server-side filters change - with longer debounce
+  // Reset progressive loading when server-side filters change - with much longer debounce to reduce egress
   useEffect(() => {
     const timer = setTimeout(() => {
       console.log('Server-side filters changed, resetting progressive loading');
       progressiveLoading.reset();
-    }, 2000); // Longer debounce to prevent rapid resets
+    }, 3000); // Much longer debounce to reduce database calls
 
     return () => clearTimeout(timer);
   }, [statusFilter, categoryFilter, searchTerm]);
