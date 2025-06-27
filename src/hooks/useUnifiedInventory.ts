@@ -1,9 +1,9 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import type { Listing } from '@/types/Listing';
 import type { UnifiedInventoryOptions, InventoryStats } from './inventory/types';
-import { useInventoryData } from './inventory/useInventoryData';
 
 export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
   const [listings, setListings] = useState<Listing[]>([]);
@@ -13,7 +13,6 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
   const [usingFallback, setUsingFallback] = useState(false);
   const mountedRef = useRef(true);
   const { toast } = useToast();
-  const { fetchInventory } = useInventoryData();
 
   const stats: InventoryStats = useMemo(() => ({
     totalItems: listings.length,
@@ -22,6 +21,70 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
     draftItems: listings.filter(item => item.status === 'draft').length
   }), [listings]);
 
+  const fetchInventory = useCallback(async (options: UnifiedInventoryOptions = {}): Promise<Listing[]> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      throw new Error('No authenticated user');
+    }
+
+    let query = supabase
+      .from('listings')
+      .select('id, title, price, status, created_at')
+      .eq('user_id', user.id);
+
+    if (options.statusFilter) {
+      query = query.eq('status', options.statusFilter);
+    }
+
+    if (options.searchTerm?.trim()) {
+      query = query.ilike('title', `%${options.searchTerm.trim()}%`);
+    }
+
+    const { data, error } = await query
+      .order('created_at', { ascending: false })
+      .limit(options.limit || 10);
+
+    if (error) {
+      throw error;
+    }
+
+    return (data || []).map(item => ({
+      id: item.id || '',
+      title: item.title || 'Untitled',
+      price: Number(item.price) || 0,
+      status: item.status || 'draft',
+      category: null,
+      created_at: item.created_at || new Date().toISOString(),
+      updated_at: item.created_at || new Date().toISOString(),
+      measurements: {},
+      keywords: [],
+      photos: [],
+      user_id: user.id,
+      description: null,
+      purchase_date: null,
+      cost_basis: null,
+      sold_price: null,
+      sold_date: null,
+      price_research: null,
+      consignment_percentage: null,
+      consignor_name: null,
+      consignor_contact: null,
+      source_location: null,
+      source_type: null,
+      fees_paid: null,
+      listed_date: null,
+      days_to_sell: null,
+      performance_notes: null,
+      is_consignment: false,
+      condition: null,
+      shipping_cost: null,
+      purchase_price: null,
+      net_profit: null,
+      profit_margin: null
+    }));
+  }, []);
+
   const loadData = useCallback(async () => {
     if (!mountedRef.current) return;
 
@@ -29,9 +92,8 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
     setError(null);
 
     try {
-      // Set a reasonable timeout for the request
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000); // Reduced to 8 seconds
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
 
       const data = await fetchInventory(options);
       clearTimeout(timeoutId);
@@ -48,11 +110,9 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
       
       console.error('Failed to fetch inventory:', err);
       
-      // Better error handling
       if (err.code === '57014' || err.message?.includes('timeout')) {
         setError('Query timed out. Try using filters to reduce the data size.');
         
-        // Use cached data if available
         if (cachedListings.length > 0) {
           setListings(cachedListings);
           setUsingFallback(true);

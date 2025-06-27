@@ -1,31 +1,62 @@
 
 import { useState, useCallback, useMemo } from 'react';
-import { useListingDetailsQuery } from './listing-data/details/useListingDetailsQuery';
+import { supabase } from '@/integrations/supabase/client';
 import type { Listing } from '@/types/Listing';
 
 export const useListingDetails = () => {
   const [loadingDetails, setLoadingDetails] = useState<Set<string>>(new Set());
   const [detailsCache, setDetailsCache] = useState<Map<string, Partial<Listing>>>(new Map());
-  const { fetchListingDetails } = useListingDetailsQuery();
 
   // Memoize the cache keys to avoid unnecessary re-renders
   const cacheKeys = useMemo(() => Array.from(detailsCache.keys()), [detailsCache]);
   const loadingKeys = useMemo(() => Array.from(loadingDetails), [loadingDetails]);
 
+  const fetchListingDetails = useCallback(async (listingId: string): Promise<{
+    details: Listing | null;
+    error?: string;
+  }> => {
+    try {
+      console.log('🔍 Fetching full details for listing:', listingId);
+      
+      const { data, error } = await supabase
+        .from('listings')
+        .select('*')
+        .eq('id', listingId)
+        .single();
+
+      if (error) {
+        console.error('❌ Details query error:', error);
+        return { details: null, error: error.message };
+      }
+
+      // Transform to match Listing interface
+      const transformedDetails: Listing = {
+        ...data,
+        price: Number(data.price) || 0,
+        measurements: data.measurements && typeof data.measurements === 'object' 
+          ? data.measurements as { length?: string; width?: string; height?: string; weight?: string; }
+          : {},
+        keywords: Array.isArray(data.keywords) ? data.keywords : [],
+        photos: Array.isArray(data.photos) ? data.photos : [],
+        shipping_cost: data.shipping_cost || null,
+      };
+
+      console.log('✅ Successfully fetched listing details');
+      return { details: transformedDetails };
+
+    } catch (error: any) {
+      console.error('💥 Exception in fetchListingDetails:', error);
+      return { details: null, error: error.message };
+    }
+  }, []);
+
   const loadDetails = useCallback(async (listingId: string): Promise<Partial<Listing> | null> => {
     console.log('🔍 useListingDetails.loadDetails called for:', listingId);
-    console.log('🔍 Current cache keys:', cacheKeys);
-    console.log('🔍 Currently loading:', loadingKeys);
 
     // Return cached details if available
     if (detailsCache.has(listingId)) {
       console.log('📋 Returning cached details for:', listingId);
       const cached = detailsCache.get(listingId);
-      console.log('📋 Cached data summary:', {
-        description: cached?.description ? 'Present' : 'Missing',
-        measurements: cached?.measurements ? 'Present' : 'Missing',
-        keywords: cached?.keywords ? `${cached.keywords.length} items` : 'Missing'
-      });
       return cached || null;
     }
 
@@ -39,16 +70,7 @@ export const useListingDetails = () => {
     setLoadingDetails(prev => new Set(prev).add(listingId));
 
     try {
-      console.log('📡 Calling fetchListingDetails for:', listingId);
       const { details, error } = await fetchListingDetails(listingId);
-      
-      console.log('📡 fetchListingDetails response summary:', { 
-        hasDetails: !!details, 
-        hasError: !!error,
-        description: details?.description ? 'Present' : 'Missing',
-        measurements: details?.measurements ? 'Present' : 'Missing',
-        keywords: details?.keywords ? `${details.keywords.length} items` : 'Missing'
-      });
       
       if (error) {
         console.error('❌ Failed to load details for:', listingId, error);
@@ -60,30 +82,25 @@ export const useListingDetails = () => {
         
         // Cache the details
         setDetailsCache(prev => new Map(prev).set(listingId, details));
-        console.log('💾 Cached details for:', listingId);
         return details;
       }
 
-      console.log('⚠️ No details returned for:', listingId);
       return null;
     } finally {
       setLoadingDetails(prev => {
         const next = new Set(prev);
         next.delete(listingId);
-        console.log('🏁 Finished loading for:', listingId, 'Remaining loads:', Array.from(next));
         return next;
       });
     }
-  }, [detailsCache, loadingDetails, fetchListingDetails, cacheKeys, loadingKeys]);
+  }, [detailsCache, loadingDetails, fetchListingDetails]);
 
   const isLoadingDetails = useCallback((listingId: string) => {
-    const isLoading = loadingDetails.has(listingId);
-    return isLoading;
+    return loadingDetails.has(listingId);
   }, [loadingDetails]);
 
   const hasDetails = useCallback((listingId: string) => {
-    const hasIt = detailsCache.has(listingId);
-    return hasIt;
+    return detailsCache.has(listingId);
   }, [detailsCache]);
 
   const clearCache = useCallback(() => {
