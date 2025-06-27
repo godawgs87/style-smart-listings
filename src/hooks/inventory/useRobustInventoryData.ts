@@ -78,33 +78,82 @@ export const useRobustInventoryData = () => {
 
       console.log(`✅ Fetched ${data?.length || 0} listings successfully`);
       
-      // Transform minimal data
-      const transformedListings: Listing[] = (data || []).map(item => ({
-        ...item,
-        title: item.title || 'Untitled',
-        price: Number(item.price) || 0,
-        measurements: {},
-        keywords: [],
-        photos: Array.isArray(item.photos) ? item.photos.filter(p => p && typeof p === 'string') : [],
-        user_id: user.id,
-        // Set defaults for missing fields
-        purchase_date: null,
-        cost_basis: null,
-        sold_price: null,
-        sold_date: null,
-        price_research: null,
-        consignment_percentage: null,
-        consignor_name: null,
-        consignor_contact: null,
-        source_location: null,
-        source_type: null,
-        fees_paid: null,
-        listed_date: null,
-        days_to_sell: null,
-        performance_notes: null,
-        is_consignment: false,
-        updated_at: item.created_at
-      }));
+      // Transform the data safely
+      const transformedListings: Listing[] = (data || []).map(item => {
+        // Ensure item is an object before spreading
+        if (!item || typeof item !== 'object') {
+          console.warn('Invalid item received:', item);
+          return {
+            id: '',
+            title: 'Untitled',
+            price: 0,
+            status: 'draft',
+            category: null,
+            created_at: new Date().toISOString(),
+            measurements: {},
+            keywords: [],
+            photos: [],
+            user_id: user.id,
+            description: null,
+            purchase_date: null,
+            cost_basis: null,
+            sold_price: null,
+            sold_date: null,
+            price_research: null,
+            consignment_percentage: null,
+            consignor_name: null,
+            consignor_contact: null,
+            source_location: null,
+            source_type: null,
+            fees_paid: null,
+            listed_date: null,
+            days_to_sell: null,
+            performance_notes: null,
+            is_consignment: false,
+            updated_at: new Date().toISOString(),
+            condition: null,
+            shipping_cost: null,
+            purchase_price: null,
+            net_profit: null,
+            profit_margin: null
+          };
+        }
+
+        return {
+          id: item.id || '',
+          title: item.title || 'Untitled',
+          price: Number(item.price) || 0,
+          status: item.status || 'draft',
+          category: item.category || null,
+          created_at: item.created_at || new Date().toISOString(),
+          measurements: {},
+          keywords: [],
+          photos: Array.isArray(item.photos) ? item.photos.filter(p => p && typeof p === 'string') : [],
+          user_id: user.id,
+          description: item.description || null,
+          purchase_date: null,
+          cost_basis: null,
+          sold_price: null,
+          sold_date: null,
+          price_research: null,
+          consignment_percentage: null,
+          consignor_name: null,
+          consignor_contact: null,
+          source_location: null,
+          source_type: null,
+          fees_paid: null,
+          listed_date: null,
+          days_to_sell: null,
+          performance_notes: null,
+          is_consignment: false,
+          updated_at: item.created_at || new Date().toISOString(),
+          condition: null,
+          shipping_cost: item.shipping_cost || null,
+          purchase_price: item.purchase_price || null,
+          net_profit: item.net_profit || null,
+          profit_margin: item.profit_margin || null
+        };
+      });
 
       setRetryCount(0); // Reset on success
       return { listings: transformedListings, error: null, usingFallback: false };
@@ -125,7 +174,13 @@ export const useRobustInventoryData = () => {
       
       if (recovery.useOffline && hasFallbackData()) {
         console.log('📚 Using fallback data due to connection issues');
-        const fallbackListings = getFallbackData(options);
+        const fallbackOptions = {
+          statusFilter: options.statusFilter,
+          categoryFilter: options.categoryFilter,
+          searchTerm: options.searchTerm,
+          limit: options.limit || 25
+        };
+        const fallbackListings = getFallbackData(fallbackOptions);
         return { listings: fallbackListings, error: null, usingFallback: true };
       }
       
