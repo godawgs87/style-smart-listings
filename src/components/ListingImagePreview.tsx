@@ -13,25 +13,23 @@ interface ListingImagePreviewProps {
 const ListingImagePreview = ({ photos, title, listingId, className = "w-12 h-12" }: ListingImagePreviewProps) => {
   const [displayPhoto, setDisplayPhoto] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [shouldLoadPhotos, setShouldLoadPhotos] = useState(false);
   const { loadPhotos, isLoadingPhotos } = useListingPhotos();
 
   useEffect(() => {
-    console.log('📸 ListingImagePreview useEffect - photos:', photos?.length, 'listingId:', listingId);
-    
-    // If photos are already provided, use the first one
+    // If photos are already provided, use the first one immediately
     if (photos && photos.length > 0) {
-      console.log('📸 Using provided photos, first photo:', photos[0]);
       setDisplayPhoto(photos[0]);
       return;
     }
 
-    // If no photos but we have a listing ID, load photos on-demand
-    if (listingId && !isLoadingPhotos(listingId)) {
+    // Only load photos on-demand when the component is hovered or clicked
+    // This prevents mass loading of photos which causes database timeouts
+    if (shouldLoadPhotos && listingId && !isLoadingPhotos(listingId) && !displayPhoto) {
       console.log('📸 Loading photos on-demand for listing:', listingId);
       setIsLoading(true);
       
       loadPhotos(listingId).then(loadedPhotos => {
-        console.log('📸 Loaded photos for', listingId, ':', loadedPhotos?.length, 'photos');
         if (loadedPhotos && loadedPhotos.length > 0) {
           setDisplayPhoto(loadedPhotos[0]);
         }
@@ -41,7 +39,13 @@ const ListingImagePreview = ({ photos, title, listingId, className = "w-12 h-12"
         setIsLoading(false);
       });
     }
-  }, [photos, listingId, loadPhotos, isLoadingPhotos]);
+  }, [photos, listingId, shouldLoadPhotos, loadPhotos, isLoadingPhotos, displayPhoto]);
+
+  const handleMouseEnter = () => {
+    if (!photos?.length && listingId && !displayPhoto) {
+      setShouldLoadPhotos(true);
+    }
+  };
 
   if (isLoading || isLoadingPhotos(listingId || '')) {
     return (
@@ -53,7 +57,11 @@ const ListingImagePreview = ({ photos, title, listingId, className = "w-12 h-12"
 
   if (!displayPhoto) {
     return (
-      <div className={`${className} bg-gray-100 rounded-lg flex items-center justify-center`}>
+      <div 
+        className={`${className} bg-gray-100 rounded-lg flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors`}
+        onMouseEnter={handleMouseEnter}
+        title="Hover to load image"
+      >
         <Image className="w-6 h-6 text-gray-400" />
       </div>
     );

@@ -17,21 +17,20 @@ export const useOptimizedQuery = () => {
     const { statusFilter, categoryFilter, searchTerm, limit } = options;
     
     try {
-      console.log('🚀 Starting ultra-optimized query...');
+      console.log('🚀 Starting ultra-lightweight query...');
       console.log('📋 Query options:', options);
 
       const startTime = Date.now();
       
-      // Build the most efficient query possible using our new indexes
+      // Use the most lightweight query possible with minimal columns
       let query = supabase
         .from('listings')
         .select(`
-          id, title, price, status, category, condition, created_at, updated_at, user_id, photos,
-          shipping_cost, measurements, keywords, description, purchase_price,
-          is_consignment, source_type, net_profit, profit_margin, price_research
+          id, title, price, status, category, condition, created_at, user_id,
+          purchase_price, net_profit, profit_margin, shipping_cost, description
         `);
 
-      // Apply filters in the optimal order for our new composite indexes
+      // Apply filters efficiently
       if (statusFilter && statusFilter !== 'all') {
         query = query.eq('status', statusFilter);
       }
@@ -40,22 +39,22 @@ export const useOptimizedQuery = () => {
         query = query.eq('category', categoryFilter);
       }
 
-      // Use full-text search for better performance
+      // Use simple text search instead of complex text search
       if (searchTerm && searchTerm.trim()) {
         const cleanTerm = searchTerm.trim();
-        query = query.or(`title.ilike.%${cleanTerm}%,description.ilike.%${cleanTerm}%`);
+        query = query.ilike('title', `%${cleanTerm}%`);
       }
 
-      // Order and limit
+      // Order and limit - use the most optimized index
       const { data, error } = await query
         .order('created_at', { ascending: false })
-        .limit(limit);
+        .limit(Math.min(limit, 25)); // Cap at 25 to prevent timeouts
 
       const duration = Date.now() - startTime;
-      console.log(`⏱️ Ultra-optimized query completed in ${duration}ms`);
+      console.log(`⏱️ Lightweight query completed in ${duration}ms`);
 
       if (error) {
-        console.error('❌ Optimized query error:', error);
+        console.error('❌ Lightweight query error:', error);
         
         if (error.code === 'PGRST301' || error.message?.includes('JWT')) {
           return { listings: [], error: 'AUTH_ERROR' };
@@ -64,9 +63,9 @@ export const useOptimizedQuery = () => {
         return { listings: [], error: 'CONNECTION_ERROR' };
       }
 
-      console.log(`✅ Fetched ${data?.length || 0} listings with optimized query`);
+      console.log(`✅ Fetched ${data?.length || 0} listings with lightweight query`);
       
-      // Transform the data to match the Listing interface
+      // Transform the data to match the Listing interface with minimal data
       const transformedListings: Listing[] = (data || []).map(item => ({
         id: item.id,
         title: item.title,
@@ -75,20 +74,20 @@ export const useOptimizedQuery = () => {
         purchase_price: item.purchase_price,
         category: item.category || null,
         condition: item.condition || null,
-        measurements: (item.measurements as any) || {},
-        keywords: item.keywords || [],
-        photos: item.photos || [],
-        price_research: item.price_research || null,
+        measurements: {},
+        keywords: [],
+        photos: [], // Don't load photos in main query to prevent timeouts
+        price_research: null,
         shipping_cost: item.shipping_cost || null,
         status: item.status || null,
         created_at: item.created_at,
-        updated_at: item.updated_at || item.created_at,
+        updated_at: item.created_at,
         user_id: item.user_id || '',
-        is_consignment: item.is_consignment,
-        source_type: item.source_type,
+        is_consignment: false,
+        source_type: null,
         net_profit: item.net_profit,
         profit_margin: item.profit_margin,
-        // Add all other required fields with defaults
+        // Add required fields with defaults
         purchase_date: undefined,
         source_location: undefined,
         cost_basis: undefined,
@@ -106,7 +105,7 @@ export const useOptimizedQuery = () => {
       return { listings: transformedListings, error: null };
       
     } catch (error: any) {
-      console.error('💥 Exception in optimized query:', error);
+      console.error('💥 Exception in lightweight query:', error);
       
       if (error.message?.includes('JWT') || error.message?.includes('authentication')) {
         return { listings: [], error: 'AUTH_ERROR' };

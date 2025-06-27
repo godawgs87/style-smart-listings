@@ -29,17 +29,19 @@ export const useListingsCore = (options: UseListingsCoreOptions = {}) => {
     const now = Date.now();
     const currentOptionsKey = JSON.stringify(options);
     
+    // Prevent duplicate fetches
     if (isCurrentlyFetching) {
       console.log('⏸️ Skipping fetch - another fetch already in progress');
       return;
     }
     
-    if (currentOptionsKey === lastOptionsRef.current && now - lastFetchTime < 1000) {
-      console.log('⏸️ Skipping redundant fetch - same options within 1s');
+    // Debounce rapid successive calls
+    if (currentOptionsKey === lastOptionsRef.current && now - lastFetchTime < 2000) {
+      console.log('⏸️ Skipping redundant fetch - same options within 2s');
       return;
     }
     
-    console.log('🚀 Starting optimized fetchListings with options:', options);
+    console.log('🚀 Starting lightweight fetchListings with options:', options);
     
     setIsCurrentlyFetching(true);
     setLoading(true);
@@ -52,7 +54,7 @@ export const useListingsCore = (options: UseListingsCoreOptions = {}) => {
         statusFilter: options.statusFilter,
         categoryFilter: options.categoryFilter, 
         searchTerm: options.searchTerm,
-        limit: Math.min(options.limit || 12, 50)
+        limit: Math.min(options.limit || 12, 25) // Keep limit low to prevent timeouts
       };
 
       console.log('📋 Final query options:', queryOptions);
@@ -62,14 +64,14 @@ export const useListingsCore = (options: UseListingsCoreOptions = {}) => {
       
       if (fetchError === 'AUTH_ERROR') {
         console.log('🔒 Authentication error detected');
-        setError('Authentication error. Please sign in again.');
+        setError('AUTHENTICATION_ERROR: Please sign in again.');
         setUsingFallback(false);
         setListings([]);
       } else if (fetchError === 'CONNECTION_ERROR') {
-        console.log('🔌 Connection error, checking for fallback data...');
+        console.log('🔌 Connection error, switching to fallback data...');
         
         if (hasFallbackData()) {
-          console.log('📚 Using fallback data to reduce database load');
+          console.log('📚 Using fallback data due to database timeout');
           const fallbackListings = getFallbackData({
             statusFilter: options.statusFilter,
             categoryFilter: options.categoryFilter,
@@ -81,17 +83,17 @@ export const useListingsCore = (options: UseListingsCoreOptions = {}) => {
           setError(null);
           
           toast({
-            title: "Using Cached Data",
-            description: "Database overloaded. Using cached data to reduce usage.",
+            title: "Database Timeout",
+            description: "Using cached data. Database queries are taking too long.",
             variant: "default"
           });
         } else {
-          setError('Database connection failed. Please try again later.');
+          setError('DATABASE_TIMEOUT_ERROR: Query timed out. Please try with filters.');
           setUsingFallback(false);
           setListings([]);
         }
       } else {
-        console.log(`✅ Successfully fetched ${fetchedListings.length} listings with optimized query`);
+        console.log(`✅ Successfully fetched ${fetchedListings.length} listings`);
         setListings(fetchedListings);
         setUsingFallback(false);
         setError(null);
@@ -99,7 +101,7 @@ export const useListingsCore = (options: UseListingsCoreOptions = {}) => {
       
     } catch (error: any) {
       console.error('💥 Fetch exception:', error);
-      setError('Failed to load listings. Database usage may be high.');
+      setError('DATABASE_ERROR: Failed to load listings.');
       setUsingFallback(false);
       setListings([]);
     } finally {
@@ -118,7 +120,7 @@ export const useListingsCore = (options: UseListingsCoreOptions = {}) => {
   }, [fetchListings]);
 
   const forceOfflineMode = useCallback(() => {
-    console.log('🔌 Forcing offline mode to reduce database usage...');
+    console.log('🔌 Forcing offline mode to reduce database load...');
     if (hasFallbackData()) {
       const fallbackListings = getFallbackData();
       setListings(fallbackListings);
@@ -128,7 +130,7 @@ export const useListingsCore = (options: UseListingsCoreOptions = {}) => {
       
       toast({
         title: "Offline Mode Active",
-        description: "Using cached data to reduce database usage.",
+        description: "Using cached data to prevent database timeouts.",
         variant: "default"
       });
     } else {
@@ -141,11 +143,12 @@ export const useListingsCore = (options: UseListingsCoreOptions = {}) => {
   }, [getFallbackData, hasFallbackData, toast]);
 
   useEffect(() => {
+    // Debounce the initial fetch to prevent rapid successive calls
     const timer = setTimeout(() => {
       if (!isCurrentlyFetching) {
         fetchListings();
       }
-    }, 200);
+    }, 300);
 
     return () => clearTimeout(timer);
   }, [fetchListings]);
