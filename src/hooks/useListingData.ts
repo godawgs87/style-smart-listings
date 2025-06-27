@@ -39,7 +39,7 @@ export const useListingData = (options: UseListingDataOptions) => {
       
       // Add overall timeout for the entire fetch operation
       const fetchTimeout = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Fetch operation timeout')), 15000); // 15 second total timeout
+        setTimeout(() => reject(new Error('Fetch operation timeout')), 8000); // 8 second total timeout
       });
       
       const fetchPromise = fetchLightweightListings(queryOptions);

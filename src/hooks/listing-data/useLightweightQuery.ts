@@ -56,27 +56,36 @@ export const useLightweightQuery = () => {
       const queryTime = Date.now() - queryStart;
       console.log(`⏱️ Query executed in ${queryTime}ms`);
 
-      if ('error' in result && result.error) {
-        console.log('❌ Lightweight query error:', result.error);
-        
-        // Check for authentication errors
-        if (result.error.code === 'PGRST301' || 
-            result.error.message?.includes('JWT') || 
-            result.error.message?.includes('authentication') ||
-            result.error.message?.includes('not authenticated')) {
-          console.log('🔒 Detected authentication error');
-          return { listings: [], error: 'AUTH_ERROR' };
+      // Type guard for Supabase response
+      if (result && typeof result === 'object' && 'error' in result) {
+        const supabaseResult = result as { error: any; data?: any };
+        if (supabaseResult.error) {
+          console.log('❌ Lightweight query error:', supabaseResult.error);
+          
+          // Check for authentication errors
+          if (supabaseResult.error.code === 'PGRST301' || 
+              supabaseResult.error.message?.includes('JWT') || 
+              supabaseResult.error.message?.includes('authentication') ||
+              supabaseResult.error.message?.includes('not authenticated')) {
+            console.log('🔒 Detected authentication error');
+            return { listings: [], error: 'AUTH_ERROR' };
+          }
+          
+          console.log('🔌 Treating as connection error');
+          return { listings: [], error: 'CONNECTION_ERROR' };
         }
+
+        const data = supabaseResult.data || [];
+        console.log(`✅ Successfully fetched ${data.length} listings`);
+        const transformedListings = data.map(transformListing);
         
-        console.log('🔌 Treating as connection error');
-        return { listings: [], error: 'CONNECTION_ERROR' };
+        return { listings: transformedListings, error: null };
       }
 
-      const data = result.data || [];
-      console.log(`✅ Successfully fetched ${data.length} listings`);
-      const transformedListings = data.map(transformListing);
+      // If we get here, something unexpected happened
+      console.log('⚠️ Unexpected response format');
+      return { listings: [], error: 'CONNECTION_ERROR' };
       
-      return { listings: transformedListings, error: null };
     } catch (error: any) {
       console.error('💥 Exception in lightweight query:', error);
       

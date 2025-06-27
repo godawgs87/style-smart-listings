@@ -24,9 +24,13 @@ export const useConnectionTest = () => {
       const duration = Date.now() - startTime;
       console.log(`⏱️ Connection test completed in ${duration}ms`);
       
-      if ('error' in result && result.error && result.error.code !== 'PGRST116') {
-        console.error('❌ Connection test failed:', result.error);
-        return false;
+      // Type guard for Supabase response
+      if (result && typeof result === 'object' && 'error' in result) {
+        const supabaseResult = result as { error: any; data?: any };
+        if (supabaseResult.error && supabaseResult.error.code !== 'PGRST116') {
+          console.error('❌ Connection test failed:', supabaseResult.error);
+          return false;
+        }
       }
       
       console.log('✅ Connection test successful');

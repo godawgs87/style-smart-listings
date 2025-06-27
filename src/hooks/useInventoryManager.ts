@@ -19,9 +19,9 @@ export const useInventoryManager = () => {
 
   // Start with very small limits to prevent timeouts
   const progressiveLoading = useProgressiveLoading({
-    initialLimit: 3, // Start with just 3 items
-    incrementSize: 3, // Load 3 more at a time
-    maxLimit: 30     // Lower max to prevent timeouts
+    initialLimit: 2, // Start with just 2 items
+    incrementSize: 2, // Load 2 more at a time
+    maxLimit: 20     // Lower max to prevent timeouts
   });
 
   // Data fetching with minimal initial load
