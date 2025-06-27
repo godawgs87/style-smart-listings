@@ -9,10 +9,10 @@ interface InventoryStatsProps {
 
 const InventoryStats = ({ listings }: InventoryStatsProps) => {
   const stats = {
-    totalItems: listings.length,
-    totalValue: listings.reduce((sum, item) => sum + item.price, 0),
-    activeItems: listings.filter(item => item.status === 'active').length,
-    draftItems: listings.filter(item => item.status === 'draft').length
+    totalItems: listings?.length || 0,
+    totalValue: listings?.reduce((sum, item) => sum + (item?.price || 0), 0) || 0,
+    activeItems: listings?.filter(item => item?.status === 'active')?.length || 0,
+    draftItems: listings?.filter(item => item?.status === 'draft')?.length || 0
   };
 
   return (

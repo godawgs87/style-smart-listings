@@ -4,7 +4,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
 import MobileNavigation from '@/components/MobileNavigation';
 import { useProgressiveQuery } from '@/hooks/inventory/useProgressiveQuery';
-import { useListingDetails } from '@/hooks/inventory/useListingDetails';
+import { useListingDetails } from '@/hooks/useListingDetails';
 import { useListingOperations } from '@/hooks/useListingOperations';
 import { useToast } from '@/hooks/use-toast';
 import { Card } from '@/components/ui/card';
@@ -29,7 +29,7 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
   const [error, setError] = useState<string | null>(null);
   
   const { fetchWithProgressiveDegradation } = useProgressiveQuery();
-  const { fetchListingDetails } = useListingDetails();
+  const { loadDetails } = useListingDetails();
   const { deleteListing } = useListingOperations();
 
   const loadData = async () => {
@@ -65,27 +65,27 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
   }, [searchTerm, statusFilter]);
 
   const handleViewDetails = async (id: string) => {
-    const { details, error } = await fetchListingDetails(id);
-    if (error) {
+    const details = await loadDetails(id);
+    if (!details) {
       toast({
         title: "Failed to load details",
-        description: error,
+        description: "Could not load listing details",
         variant: "destructive"
       });
-    } else if (details) {
+    } else {
       console.log('Viewing details for:', details);
     }
   };
 
   const handleEdit = async (id: string) => {
-    const { details, error } = await fetchListingDetails(id);
-    if (error) {
+    const details = await loadDetails(id);
+    if (!details) {
       toast({
         title: "Failed to load listing",
-        description: error,
+        description: "Could not load listing for editing",
         variant: "destructive"
       });
-    } else if (details) {
+    } else {
       console.log('Editing listing:', details);
     }
   };
