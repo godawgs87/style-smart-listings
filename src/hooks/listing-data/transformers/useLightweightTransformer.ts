@@ -1,23 +1,9 @@
 
 export const useLightweightTransformer = () => {
   const transformListing = (rawListing: any) => {
-    console.log('🔄 Transforming listing:', rawListing.id);
-    console.log('🔄 Raw measurements:', rawListing.measurements, 'Type:', typeof rawListing.measurements);
-    console.log('🔄 Raw keywords:', rawListing.keywords, 'Type:', typeof rawListing.keywords);
-    console.log('🔄 Raw description:', rawListing.description ? 'Present' : 'Missing');
+    console.log('🔄 Transforming lightweight listing:', rawListing.id);
     
-    // Ensure measurements is a proper object
-    let measurements = {};
-    if (rawListing.measurements && typeof rawListing.measurements === 'object') {
-      measurements = rawListing.measurements;
-    }
-    
-    // Ensure keywords is a proper array
-    let keywords = [];
-    if (Array.isArray(rawListing.keywords)) {
-      keywords = rawListing.keywords;
-    }
-    
+    // For lightweight display, we only need essential fields
     const transformed = {
       id: rawListing.id,
       title: rawListing.title || '',
@@ -25,40 +11,37 @@ export const useLightweightTransformer = () => {
       price: rawListing.price || 0,
       category: rawListing.category || null,
       condition: rawListing.condition || null,
-      measurements,
-      keywords,
+      measurements: {}, // Empty for lightweight - will load on demand
+      keywords: [], // Empty for lightweight - will load on demand
       photos: Array.isArray(rawListing.photos) ? rawListing.photos : [],
-      shipping_cost: rawListing.shipping_cost,
-      price_research: rawListing.price_research,
+      shipping_cost: null, // Not needed for display
+      price_research: null, // Not needed for display
       status: rawListing.status || 'draft',
       created_at: rawListing.created_at,
-      updated_at: rawListing.updated_at,
-      user_id: rawListing.user_id,
-      purchase_price: rawListing.purchase_price,
-      purchase_date: rawListing.purchase_date,
-      source_location: rawListing.source_location,
-      source_type: rawListing.source_type,
-      is_consignment: rawListing.is_consignment || false,
-      consignment_percentage: rawListing.consignment_percentage,
-      consignor_name: rawListing.consignor_name,
-      consignor_contact: rawListing.consignor_contact,
-      listed_date: rawListing.listed_date,
-      sold_date: rawListing.sold_date,
-      sold_price: rawListing.sold_price,
-      cost_basis: rawListing.cost_basis,
-      fees_paid: rawListing.fees_paid,
-      net_profit: rawListing.net_profit,
-      profit_margin: rawListing.profit_margin,
-      days_to_sell: rawListing.days_to_sell,
-      performance_notes: rawListing.performance_notes
+      updated_at: rawListing.updated_at || rawListing.created_at,
+      user_id: rawListing.user_id || '',
+      
+      // Set minimal defaults for fields not in lightweight query
+      purchase_price: undefined,
+      purchase_date: undefined,
+      source_location: undefined,
+      source_type: undefined,
+      is_consignment: undefined,
+      consignment_percentage: undefined,
+      consignor_name: undefined,
+      consignor_contact: undefined,
+      listed_date: undefined,
+      sold_date: undefined,
+      sold_price: undefined,
+      cost_basis: undefined,
+      fees_paid: undefined,
+      net_profit: undefined,
+      profit_margin: undefined,
+      days_to_sell: undefined,
+      performance_notes: undefined
     };
     
-    console.log('✅ Transformed listing:', {
-      id: transformed.id,
-      description: transformed.description ? 'Present' : 'Missing',
-      measurements: Object.keys(transformed.measurements),
-      keywords: transformed.keywords.length
-    });
+    console.log('✅ Transformed lightweight listing for display');
     
     return transformed;
   };

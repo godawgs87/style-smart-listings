@@ -23,31 +23,26 @@ export const useLightweightQuery = () => {
     error: 'AUTH_ERROR' | 'CONNECTION_ERROR' | null;
   }> => {
     try {
-      console.log('🚀 Starting optimized lightweight query...');
+      console.log('🚀 Starting ultra-lightweight query (display fields only)...');
       console.log('📋 Query options:', options);
 
-      // Test connection first with timeout
-      console.log('🔍 Testing Supabase connection...');
-      const connectionStart = Date.now();
-      const isConnected = await testConnection();
-      const connectionTime = Date.now() - connectionStart;
-      console.log(`⏱️ Connection test took ${connectionTime}ms`);
-
-      if (!isConnected) {
-        console.log('❌ Connection test failed - switching to fallback');
-        return { listings: [], error: 'CONNECTION_ERROR' };
-      }
-
-      console.log('✅ Connection test successful');
+      // Skip connection test for now - it's adding unnecessary delay
+      console.log('⚡ Skipping connection test for speed - going direct to query');
 
       const queryStart = Date.now();
-      console.log('⏳ Executing lightweight query...');
+      console.log('⏳ Executing lightweight display query...');
       
       const query = buildQuery(options);
-      const result = await query;
+      
+      // Set a shorter timeout for the lightweight query
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Query timeout')), 5000); // 5 second timeout
+      });
+      
+      const result = await Promise.race([query, timeoutPromise]);
 
       const queryTime = Date.now() - queryStart;
-      console.log(`⏱️ Query executed in ${queryTime}ms`);
+      console.log(`⏱️ Lightweight query executed in ${queryTime}ms`);
 
       // Type guard for Supabase response
       if (result && typeof result === 'object' && 'error' in result) {
@@ -69,7 +64,7 @@ export const useLightweightQuery = () => {
         }
 
         const data = supabaseResult.data || [];
-        console.log(`✅ Successfully fetched ${data.length} listings`);
+        console.log(`✅ Successfully fetched ${data.length} lightweight listings`);
         const transformedListings = data.map(transformListing);
         
         return { listings: transformedListings, error: null };
@@ -81,6 +76,11 @@ export const useLightweightQuery = () => {
       
     } catch (error: any) {
       console.error('💥 Exception in lightweight query:', error);
+      
+      if (error.message === 'Query timeout') {
+        console.log('⏰ Query timed out after 5 seconds');
+        return { listings: [], error: 'CONNECTION_ERROR' };
+      }
       
       // Check if it's an authentication error
       if (error.message?.includes('JWT') || 

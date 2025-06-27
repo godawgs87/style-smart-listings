@@ -17,31 +17,33 @@ export const useListingData = (options: UseListingDataOptions) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [usingFallback, setUsingFallback] = useState(false);
-  const [isRetrying, setIsRetrying] = useState(false);
+  const [lastFetchTime, setLastFetchTime] = useState<number>(0);
   
   const { fetchLightweightListings } = useLightweightQuery();
   const { getFallbackData, hasFallbackData } = useFallbackData();
   const { toast } = useToast();
 
   const fetchListings = useCallback(async () => {
-    console.log('🚀 Starting fetchListings with options:', options);
+    const now = Date.now();
     
-    // Prevent rapid state changes that cause flashing
-    if (isRetrying) {
-      console.log('⏸️ Already retrying, skipping fetch');
+    // Prevent rapid successive calls (debounce)
+    if (now - lastFetchTime < 1000) {
+      console.log('⏸️ Debouncing rapid fetch calls');
       return;
     }
     
+    console.log('🚀 Starting fetchListings with options:', options);
+    
     setLoading(true);
     setError(null);
-    setIsRetrying(true);
+    setLastFetchTime(now);
     
     try {
       const queryOptions = {
         statusFilter: options.statusFilter,
         categoryFilter: options.categoryFilter, 
         searchTerm: options.searchTerm,
-        limit: options.limit || 10
+        limit: options.limit || 5 // Start very small
       };
 
       console.log('📋 Query options:', queryOptions);
@@ -63,7 +65,7 @@ export const useListingData = (options: UseListingDataOptions) => {
             statusFilter: options.statusFilter,
             categoryFilter: options.categoryFilter,
             searchTerm: options.searchTerm,
-            limit: options.limit || 10
+            limit: options.limit || 5
           });
           setListings(fallbackListings);
           setUsingFallback(true);
@@ -71,12 +73,12 @@ export const useListingData = (options: UseListingDataOptions) => {
           
           toast({
             title: "Using Offline Data",
-            description: "Database connection failed. Showing cached data.",
+            description: "Database connection slow. Showing cached data.",
             variant: "default"
           });
         } else {
           console.log('❌ No fallback data available');
-          setError('Database connection failed and no cached data available');
+          setError('Database connection failed. Please try again.');
           setUsingFallback(false);
           setListings([]);
         }
@@ -90,14 +92,14 @@ export const useListingData = (options: UseListingDataOptions) => {
     } catch (error: any) {
       console.error('💥 Fetch exception:', error);
       
-      // Handle timeout or other errors
+      // Handle timeout or other errors with fallback
       if (hasFallbackData()) {
         console.log('🔄 Using fallback due to exception');
         const fallbackListings = getFallbackData({
           statusFilter: options.statusFilter,
           categoryFilter: options.categoryFilter,
           searchTerm: options.searchTerm,
-          limit: options.limit || 10
+          limit: options.limit || 5
         });
         setListings(fallbackListings);
         setUsingFallback(true);
@@ -105,27 +107,23 @@ export const useListingData = (options: UseListingDataOptions) => {
         
         toast({
           title: "Database Timeout",
-          description: "Using cached data due to connection issues.",
+          description: "Using cached data due to slow connection.",
           variant: "default"
         });
       } else {
-        setError(error.message || 'Connection failed');
+        setError('Connection failed. Please check your internet connection.');
         setUsingFallback(false);
         setListings([]);
       }
     } finally {
       setLoading(false);
-      // Add delay before allowing retry to prevent rapid state changes
-      setTimeout(() => {
-        setIsRetrying(false);
-      }, 2000);
     }
-  }, [options.statusFilter, options.limit, options.searchTerm, options.categoryFilter, fetchLightweightListings, getFallbackData, hasFallbackData, toast, isRetrying]);
+  }, [options.statusFilter, options.limit, options.searchTerm, options.categoryFilter, fetchLightweightListings, getFallbackData, hasFallbackData, toast, lastFetchTime]);
 
   const refetch = useCallback(() => {
     console.log('🔄 Manual refetch triggered');
     setUsingFallback(false);
-    setIsRetrying(false);
+    setLastFetchTime(0); // Reset debounce
     fetchListings();
   }, [fetchListings]);
 
@@ -153,10 +151,7 @@ export const useListingData = (options: UseListingDataOptions) => {
   }, [getFallbackData, hasFallbackData, toast]);
 
   useEffect(() => {
-    // Only fetch if not already retrying
-    if (!isRetrying) {
-      fetchListings();
-    }
+    fetchListings();
   }, [fetchListings]);
 
   return {
