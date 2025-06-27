@@ -7,6 +7,8 @@ interface ShippingCellProps {
 }
 
 const ShippingCell = ({ shippingCost }: ShippingCellProps) => {
+  console.log('💰 ShippingCell received:', shippingCost, typeof shippingCost);
+  
   return (
     <TableCell className="text-right">
       ${shippingCost?.toFixed(2) || '0.00'}
