@@ -13,8 +13,8 @@ interface QueryOptions {
 }
 
 export const useLightweightQuery = () => {
-  const { buildLightweightQuery } = useLightweightQueryBuilder();
-  const { transformLightweightListings } = useLightweightTransformer();
+  const { buildQuery } = useLightweightQueryBuilder();
+  const { transformListing } = useLightweightTransformer();
   const { testConnection } = useConnectionTest();
   const { fetchListingDetails } = useListingDetailsQuery();
 
@@ -43,7 +43,7 @@ export const useLightweightQuery = () => {
       const queryStart = Date.now();
       console.log('⏳ Executing lightweight query...');
       
-      const query = buildLightweightQuery(options);
+      const query = buildQuery(options);
       const { data, error } = await query;
 
       const queryTime = Date.now() - queryStart;
@@ -61,7 +61,7 @@ export const useLightweightQuery = () => {
       }
 
       console.log(`✅ Successfully fetched ${data?.length || 0} lightweight listings`);
-      const transformedListings = transformLightweightListings(data || []);
+      const transformedListings = (data || []).map(transformListing);
       
       return { listings: transformedListings, error: null };
     } catch (error: any) {
