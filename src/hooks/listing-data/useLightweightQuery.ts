@@ -26,7 +26,7 @@ export const useLightweightQuery = () => {
       console.log('🚀 Starting optimized lightweight query...');
       console.log('📋 Query options:', options);
 
-      // Test connection first with timeout
+      // Test connection first with short timeout
       console.log('🔍 Testing Supabase connection...');
       const connectionStart = Date.now();
       const isConnected = await testConnection();
@@ -34,29 +34,36 @@ export const useLightweightQuery = () => {
       console.log(`⏱️ Connection test took ${connectionTime}ms`);
 
       if (!isConnected) {
-        console.log('❌ Connection test failed');
+        console.log('❌ Connection test failed - switching to fallback');
         return { listings: [], error: 'CONNECTION_ERROR' };
       }
 
       console.log('✅ Connection test successful');
 
       const queryStart = Date.now();
-      console.log('⏳ Executing optimized lightweight query...');
+      console.log('⏳ Executing lightweight query with timeout protection...');
+      
+      // Create timeout protection for the main query
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Query timeout')), 10000); // 10 second timeout
+      });
       
       const query = buildQuery(options);
-      const { data, error } = await query;
+      const queryPromise = query;
+      
+      const result = await Promise.race([queryPromise, timeoutPromise]);
 
       const queryTime = Date.now() - queryStart;
-      console.log(`⏱️ Optimized query executed in ${queryTime}ms`);
+      console.log(`⏱️ Query executed in ${queryTime}ms`);
 
-      if (error) {
-        console.log('❌ Lightweight query error:', error);
+      if ('error' in result && result.error) {
+        console.log('❌ Lightweight query error:', result.error);
         
         // Check for authentication errors
-        if (error.code === 'PGRST301' || 
-            error.message?.includes('JWT') || 
-            error.message?.includes('authentication') ||
-            error.message?.includes('not authenticated')) {
+        if (result.error.code === 'PGRST301' || 
+            result.error.message?.includes('JWT') || 
+            result.error.message?.includes('authentication') ||
+            result.error.message?.includes('not authenticated')) {
           console.log('🔒 Detected authentication error');
           return { listings: [], error: 'AUTH_ERROR' };
         }
@@ -65,14 +72,20 @@ export const useLightweightQuery = () => {
         return { listings: [], error: 'CONNECTION_ERROR' };
       }
 
-      console.log(`✅ Successfully fetched ${data?.length || 0} optimized listings`);
-      const transformedListings = (data || []).map(transformListing);
+      const data = result.data || [];
+      console.log(`✅ Successfully fetched ${data.length} listings`);
+      const transformedListings = data.map(transformListing);
       
       return { listings: transformedListings, error: null };
     } catch (error: any) {
-      console.error('💥 Exception in optimized lightweight query:', error);
+      console.error('💥 Exception in lightweight query:', error);
       
-      // Check if it's an authentication error
+      // Check if it's a timeout or authentication error
+      if (error.message?.includes('timeout') || error.message?.includes('Query timeout')) {
+        console.log('⏰ Query timeout detected');
+        return { listings: [], error: 'CONNECTION_ERROR' };
+      }
+      
       if (error.message?.includes('JWT') || 
           error.message?.includes('authentication') ||
           error.message?.includes('not authenticated')) {

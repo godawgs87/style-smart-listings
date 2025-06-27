@@ -17,14 +17,14 @@ export const useInventoryManager = () => {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [isBulkMode, setIsBulkMode] = useState(false);
 
-  // Progressive loading with timeout-friendly settings
+  // Start with very small limits to prevent timeouts
   const progressiveLoading = useProgressiveLoading({
-    initialLimit: 5,
-    incrementSize: 5,
-    maxLimit: 50
+    initialLimit: 3, // Start with just 3 items
+    incrementSize: 3, // Load 3 more at a time
+    maxLimit: 30     // Lower max to prevent timeouts
   });
 
-  // Data fetching - pass server-side filters to avoid conflicts
+  // Data fetching with minimal initial load
   const { 
     listings, 
     loading, 

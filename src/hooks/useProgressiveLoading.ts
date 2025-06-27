@@ -16,8 +16,9 @@ export const useProgressiveLoading = (options: ProgressiveLoadingOptions) => {
   const loadMore = useCallback(async () => {
     if (currentLimit >= options.maxLimit) {
       toast({
-        title: "All items loaded",
-        description: "You've reached the maximum number of items."
+        title: "Maximum items loaded",
+        description: "Use filters to find specific items or try the database connection again.",
+        variant: "default"
       });
       return false;
     }
@@ -26,11 +27,8 @@ export const useProgressiveLoading = (options: ProgressiveLoadingOptions) => {
     const newLimit = Math.min(currentLimit + options.incrementSize, options.maxLimit);
     
     try {
+      console.log(`Loading more: ${currentLimit} -> ${newLimit}`);
       setCurrentLimit(newLimit);
-      toast({
-        title: "Loading more items...",
-        description: `Loading ${options.incrementSize} additional items.`
-      });
       return true;
     } catch (error) {
       console.error('Error loading more items:', error);
@@ -46,6 +44,7 @@ export const useProgressiveLoading = (options: ProgressiveLoadingOptions) => {
   }, [currentLimit, options, toast]);
 
   const reset = useCallback(() => {
+    console.log('Resetting progressive loading to initial limit:', options.initialLimit);
     setCurrentLimit(options.initialLimit);
     setIsLoadingMore(false);
   }, [options.initialLimit]);

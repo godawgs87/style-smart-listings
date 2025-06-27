@@ -37,7 +37,15 @@ export const useListingData = (options: UseListingDataOptions) => {
 
       console.log('📋 Query options:', queryOptions);
       
-      const { listings: fetchedListings, error: fetchError } = await fetchLightweightListings(queryOptions);
+      // Add overall timeout for the entire fetch operation
+      const fetchTimeout = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Fetch operation timeout')), 15000); // 15 second total timeout
+      });
+      
+      const fetchPromise = fetchLightweightListings(queryOptions);
+      const result = await Promise.race([fetchPromise, fetchTimeout]);
+      
+      const { listings: fetchedListings, error: fetchError } = result;
       
       if (fetchError === 'AUTH_ERROR') {
         console.log('🔒 Authentication error detected');
@@ -63,12 +71,12 @@ export const useListingData = (options: UseListingDataOptions) => {
           
           toast({
             title: "Using Offline Data",
-            description: "Showing cached inventory data. Some features may be limited.",
+            description: "Database connection failed. Showing cached data.",
             variant: "default"
           });
         } else {
           console.log('❌ No fallback data available');
-          setError('Unable to connect to database and no cached data available');
+          setError('Database connection failed and no cached data available');
           setListings([]);
         }
         setLoading(false);
@@ -82,8 +90,34 @@ export const useListingData = (options: UseListingDataOptions) => {
       
     } catch (error: any) {
       console.error('💥 Fetch exception:', error);
-      setError(error.message || 'An unexpected error occurred');
-      setListings([]);
+      
+      // Handle timeout specifically
+      if (error.message?.includes('timeout')) {
+        console.log('⏰ Timeout detected, trying fallback...');
+        if (hasFallbackData()) {
+          const fallbackListings = getFallbackData({
+            statusFilter: options.statusFilter,
+            categoryFilter: options.categoryFilter,
+            searchTerm: options.searchTerm,
+            limit: options.limit || 10
+          });
+          setListings(fallbackListings);
+          setUsingFallback(true);
+          setError(null);
+          
+          toast({
+            title: "Database Timeout",
+            description: "Using cached data due to slow connection.",
+            variant: "default"
+          });
+        } else {
+          setError('Database connection timeout');
+          setListings([]);
+        }
+      } else {
+        setError(error.message || 'An unexpected error occurred');
+        setListings([]);
+      }
     } finally {
       setLoading(false);
     }
