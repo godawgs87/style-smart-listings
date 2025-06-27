@@ -28,9 +28,10 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
       throw new Error('No authenticated user');
     }
 
+    // Use optimized query with only essential columns
     let query = supabase
       .from('listings')
-      .select('id, title, price, status, created_at')
+      .select('id, title, price, status, created_at, category, condition, shipping_cost')
       .eq('user_id', user.id);
 
     if (options.statusFilter) {
@@ -43,7 +44,7 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
 
     const { data, error } = await query
       .order('created_at', { ascending: false })
-      .limit(options.limit || 10);
+      .limit(options.limit || 25);
 
     if (error) {
       throw error;
@@ -54,7 +55,8 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
       title: item.title || 'Untitled',
       price: Number(item.price) || 0,
       status: item.status || 'draft',
-      category: null,
+      category: item.category || null,
+      condition: item.condition || null,
       created_at: item.created_at || new Date().toISOString(),
       updated_at: item.created_at || new Date().toISOString(),
       measurements: {},
@@ -77,8 +79,7 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
       days_to_sell: null,
       performance_notes: null,
       is_consignment: false,
-      condition: null,
-      shipping_cost: null,
+      shipping_cost: item.shipping_cost ? Number(item.shipping_cost) : null,
       purchase_price: null,
       net_profit: null,
       profit_margin: null
