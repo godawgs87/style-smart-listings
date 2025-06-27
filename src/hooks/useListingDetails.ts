@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useListingDetailsQuery } from './listing-data/details/useListingDetailsQuery';
 import type { Listing } from '@/types/Listing';
 
@@ -8,16 +8,24 @@ export const useListingDetails = () => {
   const [detailsCache, setDetailsCache] = useState<Map<string, Partial<Listing>>>(new Map());
   const { fetchListingDetails } = useListingDetailsQuery();
 
+  // Memoize the cache keys to avoid unnecessary re-renders
+  const cacheKeys = useMemo(() => Array.from(detailsCache.keys()), [detailsCache]);
+  const loadingKeys = useMemo(() => Array.from(loadingDetails), [loadingDetails]);
+
   const loadDetails = useCallback(async (listingId: string): Promise<Partial<Listing> | null> => {
     console.log('🔍 useListingDetails.loadDetails called for:', listingId);
-    console.log('🔍 Current cache keys:', Array.from(detailsCache.keys()));
-    console.log('🔍 Currently loading:', Array.from(loadingDetails));
+    console.log('🔍 Current cache keys:', cacheKeys);
+    console.log('🔍 Currently loading:', loadingKeys);
 
     // Return cached details if available
     if (detailsCache.has(listingId)) {
       console.log('📋 Returning cached details for:', listingId);
       const cached = detailsCache.get(listingId);
-      console.log('📋 Cached data:', cached);
+      console.log('📋 Cached data summary:', {
+        description: cached?.description ? 'Present' : 'Missing',
+        measurements: cached?.measurements ? 'Present' : 'Missing',
+        keywords: cached?.keywords ? `${cached.keywords.length} items` : 'Missing'
+      });
       return cached || null;
     }
 
@@ -34,7 +42,13 @@ export const useListingDetails = () => {
       console.log('📡 Calling fetchListingDetails for:', listingId);
       const { details, error } = await fetchListingDetails(listingId);
       
-      console.log('📡 fetchListingDetails response:', { details, error });
+      console.log('📡 fetchListingDetails response summary:', { 
+        hasDetails: !!details, 
+        hasError: !!error,
+        description: details?.description ? 'Present' : 'Missing',
+        measurements: details?.measurements ? 'Present' : 'Missing',
+        keywords: details?.keywords ? `${details.keywords.length} items` : 'Missing'
+      });
       
       if (error) {
         console.error('❌ Failed to load details for:', listingId, error);
@@ -43,11 +57,8 @@ export const useListingDetails = () => {
 
       if (details) {
         console.log('✅ Successfully loaded details for:', listingId);
-        console.log('✅ Details content:', details);
-        console.log('✅ Measurements:', details.measurements);
-        console.log('✅ Keywords:', details.keywords);
-        console.log('✅ Description:', details.description);
         
+        // Cache the details
         setDetailsCache(prev => new Map(prev).set(listingId, details));
         console.log('💾 Cached details for:', listingId);
         return details;
@@ -63,17 +74,15 @@ export const useListingDetails = () => {
         return next;
       });
     }
-  }, [detailsCache, loadingDetails, fetchListingDetails]);
+  }, [detailsCache, loadingDetails, fetchListingDetails, cacheKeys, loadingKeys]);
 
   const isLoadingDetails = useCallback((listingId: string) => {
     const isLoading = loadingDetails.has(listingId);
-    console.log('🤔 isLoadingDetails check for:', listingId, 'Result:', isLoading);
     return isLoading;
   }, [loadingDetails]);
 
   const hasDetails = useCallback((listingId: string) => {
     const hasIt = detailsCache.has(listingId);
-    console.log('🤔 hasDetails check for:', listingId, 'Result:', hasIt);
     return hasIt;
   }, [detailsCache]);
 

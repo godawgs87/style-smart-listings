@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
@@ -80,7 +79,21 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
   };
 
   const transformListingForPreview = (listing: any, details: any = {}) => {
-    return {
+    console.log('🔄 transformListingForPreview input:', {
+      listing: { 
+        id: listing.id, 
+        title: listing.title,
+        description: listing.description ? 'Has description' : 'No description',
+        measurements: listing.measurements ? 'Has measurements' : 'No measurements'
+      },
+      details: details ? {
+        description: details.description ? 'Has description' : 'No description',
+        measurements: details.measurements ? 'Has measurements' : 'No measurements',
+        keywords: details.keywords ? `${details.keywords.length} keywords` : 'No keywords'
+      } : 'No details'
+    });
+
+    const transformed = {
       title: listing.title || '',
       description: details.description || listing.description || '',
       price: listing.price || 0,
@@ -97,6 +110,14 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
       defects: details.defects || listing.defects || [],
       includes: details.includes || listing.includes || []
     };
+
+    console.log('🔄 transformListingForPreview output:', {
+      description: transformed.description ? 'Present' : 'Missing',
+      measurements: transformed.measurements ? Object.keys(transformed.measurements) : 'Missing',
+      keywords: transformed.keywords ? transformed.keywords.length : 'Missing'
+    });
+
+    return transformed;
   };
 
   const transformListingForEdit = (listing: any, details: any = {}) => {
@@ -122,14 +143,23 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
   };
 
   const handlePreviewListing = async (listing: any) => {
-    console.log('Preview listing:', listing);
+    console.log('🎯 handlePreviewListing called for:', listing.id);
+    console.log('🎯 Original listing data:', {
+      title: listing.title,
+      description: listing.description ? 'Has description' : 'No description',
+      measurements: listing.measurements ? 'Has measurements' : 'No measurements'
+    });
     
     // Load full details for preview
     const details = await loadDetails(listing.id);
-    console.log('Loaded details for preview:', details);
+    console.log('🎯 Loaded details:', details ? {
+      description: details.description ? 'Has description' : 'No description',
+      measurements: details.measurements ? 'Has measurements' : 'No measurements',
+      keywords: details.keywords ? `${details.keywords.length} keywords` : 'No keywords'
+    } : 'No details loaded');
     
     const transformedListing = transformListingForPreview(listing, details);
-    console.log('Transformed listing for preview:', transformedListing);
+    console.log('🎯 Final transformed listing for preview:', transformedListing);
     
     setSelectedListingForDialog(transformedListing);
     setShowPreviewDialog(true);
