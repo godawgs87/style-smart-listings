@@ -2,7 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 
 export const useConnectionTest = () => {
-  const testConnection = async (): Promise<{ success: boolean; error?: string }> => {
+  const testConnection = async (): Promise<boolean> => {
     try {
       console.log('🔍 Testing Supabase connection...');
       
@@ -17,14 +17,14 @@ export const useConnectionTest = () => {
         
       if (error) {
         console.error('❌ Connection test failed:', error);
-        return { success: false, error: error.message };
+        return false;
       }
       
       console.log('✅ Connection test successful');
-      return { success: true };
+      return true;
     } catch (error: any) {
       console.error('💥 Connection test exception:', error);
-      return { success: false, error: error.message };
+      return false;
     }
   };
 

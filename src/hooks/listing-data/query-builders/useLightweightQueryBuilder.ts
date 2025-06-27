@@ -1,9 +1,20 @@
 
+import { supabase } from '@/integrations/supabase/client';
+
+interface QueryOptions {
+  statusFilter?: string;
+  categoryFilter?: string;
+  searchTerm?: string;
+  limit: number;
+}
+
 export const useLightweightQueryBuilder = () => {
-  const buildQuery = (supabase: any) => {
-    console.log('🔧 Building lightweight query with full field set');
+  const buildQuery = (options: QueryOptions) => {
+    const { statusFilter, categoryFilter, searchTerm, limit } = options;
     
-    return supabase
+    console.log('🔧 Building lightweight query with options:', options);
+    
+    let query = supabase
       .from('listings')
       .select(`
         id,
@@ -39,6 +50,28 @@ export const useLightweightQueryBuilder = () => {
         days_to_sell,
         performance_notes
       `);
+
+    // Apply filters
+    if (statusFilter && statusFilter !== 'all') {
+      query = query.eq('status', statusFilter);
+      console.log('✅ Applied status filter:', statusFilter);
+    }
+
+    if (categoryFilter && categoryFilter !== 'all') {
+      query = query.eq('category', categoryFilter);
+      console.log('✅ Applied category filter:', categoryFilter);
+    }
+
+    if (searchTerm && searchTerm.trim()) {
+      query = query.or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
+      console.log('✅ Applied search filter:', searchTerm);
+    }
+
+    // Order by created_at DESC and apply limit
+    query = query.order('created_at', { ascending: false }).limit(limit);
+    console.log('✅ Applied ordering and limit:', limit);
+
+    return query;
   };
 
   return { buildQuery };
