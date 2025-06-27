@@ -3,14 +3,14 @@ import React, { useState, useEffect } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
 import MobileNavigation from '@/components/MobileNavigation';
-import { useRobustInventoryData } from '@/hooks/inventory/useRobustInventoryData';
+import { useProgressiveQuery } from '@/hooks/inventory/useProgressiveQuery';
 import { useListingDetails } from '@/hooks/inventory/useListingDetails';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { RefreshCw, Plus, Search, Wifi, WifiOff } from 'lucide-react';
+import { RefreshCw, Plus, Search, Wifi, WifiOff, AlertTriangle } from 'lucide-react';
 import VirtualizedInventoryTable from './VirtualizedInventoryTable';
 import { useToast } from '@/hooks/use-toast';
 import { useListingOperations } from '@/hooks/useListingOperations';
@@ -30,9 +30,8 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [usingFallback, setUsingFallback] = useState(false);
   
-  const { fetchWithRetry } = useRobustInventoryData();
+  const { fetchWithProgressiveDegradation, resetQueryAttempts, currentQueryLevel } = useProgressiveQuery();
   const { fetchListingDetails } = useListingDetails();
   const { deleteListing } = useListingOperations();
 
@@ -44,15 +43,23 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
       statusFilter: statusFilter === 'all' ? undefined : statusFilter,
       categoryFilter: categoryFilter === 'all' ? undefined : categoryFilter,
       searchTerm: searchTerm.trim() || undefined,
-      limit: 50 // Reasonable limit for initial load
+      limit: 25
     };
 
-    const result = await fetchWithRetry(options);
+    console.log('🔄 Loading inventory with progressive query...');
+    const result = await fetchWithProgressiveDegradation(options);
     
     setListings(result.listings);
     setError(result.error);
-    setUsingFallback(result.usingFallback);
     setLoading(false);
+
+    if (result.error) {
+      toast({
+        title: "Connection Issues",
+        description: result.error,
+        variant: "destructive"
+      });
+    }
   };
 
   // Debounced loading when filters change
@@ -98,6 +105,7 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
   };
 
   const handleRefresh = () => {
+    resetQueryAttempts();
     loadData();
   };
 
@@ -109,6 +117,21 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
     draftItems: listings.filter(item => item.status === 'draft').length
   };
 
+  const getConnectionStatus = () => {
+    if (error) {
+      return { icon: WifiOff, color: 'text-red-500', status: 'Connection Error', message: error };
+    }
+    if (currentQueryLevel === 0) {
+      return { icon: Wifi, color: 'text-green-500', status: 'Good Connection', message: 'Full data loaded' };
+    }
+    if (currentQueryLevel === 1) {
+      return { icon: AlertTriangle, color: 'text-yellow-500', status: 'Slow Connection', message: 'Limited data loaded' };
+    }
+    return { icon: WifiOff, color: 'text-orange-500', status: 'Poor Connection', message: 'Minimal data only' };
+  };
+
+  const connectionStatus = getConnectionStatus();
+
   return (
     <div className={`min-h-screen bg-gray-50 ${isMobile ? 'pb-20' : ''}`}>
       <StreamlinedHeader
@@ -119,44 +142,26 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
       
       <div className="max-w-7xl mx-auto p-4 space-y-6">
         {/* Connection Status */}
-        {(usingFallback || error) && (
-          <Card className="p-4">
-            <div className="flex items-center gap-2">
-              {usingFallback ? (
-                <>
-                  <WifiOff className="w-4 h-4 text-orange-500" />
-                  <Badge variant="outline" className="bg-yellow-50 text-yellow-800 border-yellow-200">
-                    Offline Mode
-                  </Badge>
-                  <span className="text-sm text-gray-600">
-                    Using cached data due to connection issues
-                  </span>
-                </>
-              ) : error ? (
-                <>
-                  <WifiOff className="w-4 h-4 text-red-500" />
-                  <Badge variant="outline" className="bg-red-50 text-red-800 border-red-200">
-                    Connection Error
-                  </Badge>
-                  <span className="text-sm text-gray-600">{error}</span>
-                </>
-              ) : (
-                <>
-                  <Wifi className="w-4 h-4 text-green-500" />
-                  <Badge variant="outline" className="bg-green-50 text-green-800 border-green-200">
-                    Connected
-                  </Badge>
-                </>
-              )}
-            </div>
-          </Card>
-        )}
+        <Card className="p-4">
+          <div className="flex items-center gap-2">
+            <connectionStatus.icon className={`w-4 h-4 ${connectionStatus.color}`} />
+            <Badge variant="outline" className={`${
+              connectionStatus.color === 'text-green-500' ? 'bg-green-50 text-green-800 border-green-200' :
+              connectionStatus.color === 'text-yellow-500' ? 'bg-yellow-50 text-yellow-800 border-yellow-200' :
+              connectionStatus.color === 'text-orange-500' ? 'bg-orange-50 text-orange-800 border-orange-200' :
+              'bg-red-50 text-red-800 border-red-200'
+            }`}>
+              {connectionStatus.status}
+            </Badge>
+            <span className="text-sm text-gray-600">{connectionStatus.message}</span>
+          </div>
+        </Card>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="p-4">
             <div className="text-2xl font-bold text-blue-600">{stats.totalItems}</div>
-            <div className="text-sm text-gray-600">Loaded Items</div>
+            <div className="text-sm text-gray-600">Items Loaded</div>
           </Card>
           <Card className="p-4">
             <div className="text-2xl font-bold text-green-600">${stats.totalValue.toFixed(2)}</div>
@@ -239,6 +244,16 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
               <RefreshCw className="w-4 h-4 animate-spin" />
               <span className="text-gray-500">Loading inventory...</span>
             </div>
+          </Card>
+        )}
+
+        {!loading && listings.length === 0 && !error && (
+          <Card className="p-8 text-center">
+            <div className="text-gray-500">No inventory items found</div>
+            <Button onClick={onCreateListing} className="mt-4">
+              <Plus className="w-4 h-4 mr-2" />
+              Create Your First Item
+            </Button>
           </Card>
         )}
       </div>
