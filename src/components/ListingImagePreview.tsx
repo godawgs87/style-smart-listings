@@ -52,7 +52,7 @@ const ListingImagePreview = React.memo(({ photos, title, listingId, className = 
   }
 
   return (
-    <div className={`${className} rounded-lg overflow-hidden bg-gray-100 flex-shrink-0`}>
+    <div className={`${className} rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 relative`}>
       <img
         src={displayImage}
         alt={title}
@@ -62,9 +62,12 @@ const ListingImagePreview = React.memo(({ photos, title, listingId, className = 
         onLoadStart={handleImageLoadStart}
         loading="lazy"
       />
+      {/* Only show sample overlay if we explicitly want to indicate it's not a real photo */}
       {!hasActualPhotos && (
-        <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center">
-          <span className="text-white text-xs font-medium">SAMPLE</span>
+        <div className="absolute top-1 right-1">
+          <div className="bg-blue-500 text-white px-1 py-0.5 rounded text-xs font-medium opacity-75">
+            DEMO
+          </div>
         </div>
       )}
     </div>
