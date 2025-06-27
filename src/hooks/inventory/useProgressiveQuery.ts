@@ -93,41 +93,52 @@ export const useProgressiveQuery = () => {
 
         console.log(`✅ ${strategy.description} succeeded: ${data?.length || 0} items`);
         
-        // Transform data to match Listing interface
-        const transformedListings: Listing[] = (data || []).map(item => ({
-          id: item.id || '',
-          title: item.title || 'Untitled',
-          price: Number(item.price) || 0,
-          status: item.status || 'draft',
-          category: item.category || null,
-          created_at: item.created_at || new Date().toISOString(),
-          updated_at: item.created_at || new Date().toISOString(),
-          measurements: {},
-          keywords: [],
-          photos: Array.isArray(item.photos) ? item.photos.filter(p => p && typeof p === 'string') : [],
-          user_id: user.id,
-          description: item.description || null,
-          purchase_date: null,
-          cost_basis: null,
-          sold_price: null,
-          sold_date: null,
-          price_research: null,
-          consignment_percentage: null,
-          consignor_name: null,
-          consignor_contact: null,
-          source_location: null,
-          source_type: null,
-          fees_paid: null,
-          listed_date: null,
-          days_to_sell: null,
-          performance_notes: null,
-          is_consignment: false,
-          condition: null,
-          shipping_cost: item.shipping_cost || null,
-          purchase_price: item.purchase_price || null,
-          net_profit: item.net_profit || null,
-          profit_margin: item.profit_margin || null
-        }));
+        // Transform data to match Listing interface with proper type checking
+        const transformedListings: Listing[] = (data || []).map(item => {
+          // Ensure we have a valid data item
+          if (!item || typeof item !== 'object') {
+            console.warn('Invalid item received:', item);
+            return createDefaultListing(user.id);
+          }
+
+          // Type assertion after validation
+          const validItem = item as Record<string, any>;
+
+          return {
+            id: validItem.id || '',
+            title: validItem.title || 'Untitled',
+            price: Number(validItem.price) || 0,
+            status: validItem.status || 'draft',
+            category: validItem.category || null,
+            created_at: validItem.created_at || new Date().toISOString(),
+            updated_at: validItem.created_at || new Date().toISOString(),
+            measurements: {},
+            keywords: [],
+            photos: Array.isArray(validItem.photos) ? validItem.photos.filter(p => p && typeof p === 'string') : [],
+            user_id: user.id,
+            description: validItem.description || null,
+            purchase_date: null,
+            cost_basis: null,
+            sold_price: null,
+            sold_date: null,
+            price_research: null,
+            consignment_percentage: null,
+            consignor_name: null,
+            consignor_contact: null,
+            source_location: null,
+            source_type: null,
+            fees_paid: null,
+            listed_date: null,
+            days_to_sell: null,
+            performance_notes: null,
+            is_consignment: false,
+            condition: null,
+            shipping_cost: validItem.shipping_cost || null,
+            purchase_price: validItem.purchase_price || null,
+            net_profit: validItem.net_profit || null,
+            profit_margin: validItem.profit_margin || null
+          };
+        });
 
         // Reset query attempts on success
         setQueryAttempts(0);
@@ -176,3 +187,39 @@ export const useProgressiveQuery = () => {
     currentQueryLevel: queryAttempts
   };
 };
+
+// Helper function to create a default listing
+const createDefaultListing = (userId: string): Listing => ({
+  id: '',
+  title: 'Untitled',
+  price: 0,
+  status: 'draft',
+  category: null,
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+  measurements: {},
+  keywords: [],
+  photos: [],
+  user_id: userId,
+  description: null,
+  purchase_date: null,
+  cost_basis: null,
+  sold_price: null,
+  sold_date: null,
+  price_research: null,
+  consignment_percentage: null,
+  consignor_name: null,
+  consignor_contact: null,
+  source_location: null,
+  source_type: null,
+  fees_paid: null,
+  listed_date: null,
+  days_to_sell: null,
+  performance_notes: null,
+  is_consignment: false,
+  condition: null,
+  shipping_cost: null,
+  purchase_price: null,
+  net_profit: null,
+  profit_margin: null
+});
