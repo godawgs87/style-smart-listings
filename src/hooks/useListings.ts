@@ -144,9 +144,21 @@ export const useListings = (options: UseListingsOptions = {}) => {
     try {
       console.log('📋 Duplicating listing:', item.id);
       
+      // Check if user is authenticated
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        console.error('Authentication error during duplicate:', authError);
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to duplicate listings",
+          variant: "destructive"
+        });
+        return null;
+      }
+
       const { data, error } = await supabase
         .from('listings')
-        .insert([{
+        .insert({
           title: `${item.title} (Copy)`,
           description: item.description,
           price: item.price,
@@ -156,8 +168,9 @@ export const useListings = (options: UseListingsOptions = {}) => {
           keywords: item.keywords,
           photos: item.photos,
           shipping_cost: item.shipping_cost,
-          status: 'draft'
-        }])
+          status: 'draft',
+          user_id: user.id
+        })
         .select()
         .single();
 
