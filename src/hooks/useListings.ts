@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useOptimizedQuery } from './listing-data/useOptimizedQuery';
 import { useFallbackData } from './listing-data/useFallbackData';
@@ -20,6 +19,7 @@ export const useListings = (options: UseListingsOptions = {}) => {
   const [error, setError] = useState<string | null>(null);
   const [usingFallback, setUsingFallback] = useState(false);
   const [lastFetchTime, setLastFetchTime] = useState<number>(0);
+  const [isCurrentlyFetching, setIsCurrentlyFetching] = useState(false);
   const lastOptionsRef = useRef<string>('');
   
   const { fetchOptimizedListings } = useOptimizedQuery();
@@ -31,20 +31,21 @@ export const useListings = (options: UseListingsOptions = {}) => {
     const now = Date.now();
     const currentOptionsKey = JSON.stringify(options);
     
-    // OPTIMIZED: Prevent redundant calls with same options
-    if (currentOptionsKey === lastOptionsRef.current && now - lastFetchTime < 3000) {
-      console.log('⏸️ Skipping redundant fetch - same options within 3s');
+    // IMPROVED: Prevent overlapping fetches
+    if (isCurrentlyFetching) {
+      console.log('⏸️ Skipping fetch - another fetch already in progress');
       return;
     }
     
-    // OPTIMIZED: Much longer debounce to reduce egress significantly
-    if (now - lastFetchTime < 3000 && lastOptionsRef.current !== '') {
-      console.log('⏸️ Debouncing rapid fetch calls to minimize database egress');
+    // OPTIMIZED: Prevent redundant calls with same options
+    if (currentOptionsKey === lastOptionsRef.current && now - lastFetchTime < 2000) {
+      console.log('⏸️ Skipping redundant fetch - same options within 2s');
       return;
     }
     
     console.log('🚀 Starting optimized fetchListings with options:', options);
     
+    setIsCurrentlyFetching(true);
     setLoading(true);
     setError(null);
     setLastFetchTime(now);
@@ -107,14 +108,16 @@ export const useListings = (options: UseListingsOptions = {}) => {
       setListings([]);
     } finally {
       setLoading(false);
+      setIsCurrentlyFetching(false);
     }
-  }, [options.statusFilter, options.limit, options.searchTerm, options.categoryFilter, fetchOptimizedListings, getFallbackData, hasFallbackData, toast, lastFetchTime]);
+  }, [options.statusFilter, options.limit, options.searchTerm, options.categoryFilter, fetchOptimizedListings, getFallbackData, hasFallbackData, toast, isCurrentlyFetching]);
 
   const refetch = useCallback(() => {
     console.log('🔄 Manual refetch triggered');
     setUsingFallback(false);
     setLastFetchTime(0); // Reset debounce
     lastOptionsRef.current = ''; // Reset options cache
+    setIsCurrentlyFetching(false); // Reset fetch lock
     fetchListings();
   }, [fetchListings]);
 
@@ -141,11 +144,13 @@ export const useListings = (options: UseListingsOptions = {}) => {
     }
   }, [getFallbackData, hasFallbackData, toast]);
 
-  // OPTIMIZED: Longer delay to batch requests and reduce frequency
+  // IMPROVED: Prevent rapid successive useEffect triggers
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchListings();
-    }, 1000); // Longer delay to batch requests
+      if (!isCurrentlyFetching) {
+        fetchListings();
+      }
+    }, 500); // Shorter delay but with fetch lock protection
 
     return () => clearTimeout(timer);
   }, [fetchListings]);

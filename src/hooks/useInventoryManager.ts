@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { useListings } from '@/hooks/useListings';
 import { useInventoryFilters } from '@/components/inventory/InventoryFilters';
@@ -94,21 +93,34 @@ export const useInventoryManager = () => {
     setIsBulkMode(selectedItems.length > 0);
   }, [selectedItems]);
 
-  // OPTIMIZED: Much longer debounce and smarter reset logic to minimize database calls
+  // FIXED: Much smarter reset logic to prevent flickering
   useEffect(() => {
+    // Only reset if we have meaningful filter changes and are not already at minimum
+    const hasServerSideFilters = statusFilter !== 'all' || categoryFilter !== 'all' || searchTerm.trim();
+    const isAtMinimum = progressiveLoading.currentLimit <= 3;
+    
+    // Debounce the reset to prevent rapid successive resets
     const timer = setTimeout(() => {
-      console.log('🎯 Server-side filters changed, checking if reset needed');
-      // Only reset if we actually need to - prevents unnecessary resets
-      if (progressiveLoading.currentLimit > 3) {
-        console.log('🔄 Resetting progressive loading due to filter change');
+      console.log('🎯 Checking if progressive loading reset needed');
+      
+      // Only reset if:
+      // 1. We have server-side filters that would change the query
+      // 2. We're not already at the minimum limit
+      // 3. We're not currently loading (to prevent interrupting ongoing queries)
+      if (hasServerSideFilters && !isAtMinimum && !loading) {
+        console.log('🔄 Smart reset: Server-side filters active, reducing to minimum');
         progressiveLoading.reset();
       } else {
-        console.log('⏭️ Skipping reset - already at minimum limit');
+        console.log('⏭️ Smart reset: Skipping unnecessary reset', {
+          hasServerSideFilters,
+          isAtMinimum,
+          loading
+        });
       }
-    }, 5000); // Even longer debounce to significantly reduce database calls
+    }, 2000); // Shorter debounce but smarter logic
 
     return () => clearTimeout(timer);
-  }, [statusFilter, categoryFilter, searchTerm]);
+  }, [statusFilter, categoryFilter, searchTerm, loading]); // Added loading dependency
 
   const handleSelectItem = (itemId: string, checked: boolean) => {
     setSelectedItems(prev => 
