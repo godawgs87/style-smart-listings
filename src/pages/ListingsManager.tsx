@@ -280,7 +280,7 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
           conditionFilter={conditionFilter}
           onConditionChange={setConditionFilter}
           priceRange={priceRangeFilter}
-          onPriceRangeChange={setPriceRangeChange}
+          onPriceRangeChange={setPriceRangeFilter}
           activeFiltersCount={activeFiltersCount}
           onClearFilters={handleClearFilters}
         />
