@@ -38,7 +38,20 @@ export const useInventoryData = () => {
         purchase_date,
         cost_basis,
         sold_price,
-        sold_date
+        sold_date,
+        price_research,
+        is_consignment,
+        consignment_percentage,
+        consignor_name,
+        consignor_contact,
+        source_location,
+        source_type,
+        fees_paid,
+        net_profit,
+        profit_margin,
+        listed_date,
+        days_to_sell,
+        performance_notes
       `)
       .eq('user_id', user.id);
 
