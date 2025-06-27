@@ -40,7 +40,7 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
     options
   });
 
-  const fetchWithTimeout = async (query: any, timeoutMs: number = 2000) => {
+  const fetchWithTimeout = async (query: any, timeoutMs: number = 3000) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -69,6 +69,7 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
     console.log('🚀 Starting unified inventory fetch...');
     setIsCurrentlyFetching(true);
     setLastFetchTime(now);
+    setError(null); // Clear previous errors
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -83,13 +84,13 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
 
       console.log('👤 User authenticated, fetching data...');
 
-      // Simple query with minimal fields and aggressive timeout
+      // Simple query with minimal fields and reasonable timeout
       let query = supabase
         .from('listings')
         .select('id, title, price, status, category, photos, created_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(Math.min(options.limit || 20, 10)); // Very conservative limit
+        .limit(Math.min(options.limit || 50, 50));
 
       // Apply filters
       if (options.statusFilter && options.statusFilter !== 'all') {
@@ -105,7 +106,7 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
       }
 
       console.log('📡 Executing database query...');
-      const { data, error: fetchError } = await fetchWithTimeout(query, 2000);
+      const { data, error: fetchError } = await fetchWithTimeout(query, 3000);
 
       if (!mountedRef.current) return;
 
@@ -117,7 +118,7 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
           console.log('📚 Using cached data due to database failure');
           setListings(cachedListings);
           setUsingFallback(true);
-          setError('Database connection issues. Please try again.');
+          setError(null); // Don't show error when we have fallback data
         } else {
           console.log('💥 No cached data available');
           setListings([]);
@@ -184,7 +185,7 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
         console.log('📚 Using cached data due to exception');
         setListings(cachedListings);
         setUsingFallback(true);
-        setError('Database connection timeout - showing cached data');
+        setError(null); // Don't show error when we have fallback data
       } else {
         console.log('💥 No cached data available for fallback');
         setListings([]);
