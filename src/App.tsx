@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import AdminDashboard from "./pages/AdminDashboard";
 import InventoryManager from "./pages/InventoryManager";
 import SimpleInventoryPage from "./pages/SimpleInventoryPage";
+import QATestPage from "./pages/QATestPage";
 import NotFound from "./pages/NotFound";
 
 const App = () => {
@@ -34,6 +35,7 @@ const App = () => {
                   onCreateListing={() => window.location.href = '/'} 
                 />
               } />
+              <Route path="/qa-tests" element={<QATestPage />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
