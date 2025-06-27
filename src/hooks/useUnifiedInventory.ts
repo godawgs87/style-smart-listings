@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -48,45 +49,12 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
       throw new Error('No authenticated user');
     }
 
-    console.log('👤 User authenticated, fetching all listing fields...');
+    console.log('👤 User authenticated, fetching listings with simple query...');
 
-    // Build query to fetch all available fields from your listings table
+    // Much simpler query - just get the essential fields first
     let query = supabase
       .from('listings')
-      .select(`
-        id,
-        user_id,
-        title,
-        description,
-        price,
-        category,
-        condition,
-        measurements,
-        keywords,
-        photos,
-        price_research,
-        shipping_cost,
-        status,
-        created_at,
-        updated_at,
-        purchase_price,
-        purchase_date,
-        is_consignment,
-        consignment_percentage,
-        consignor_name,
-        consignor_contact,
-        source_location,
-        source_type,
-        cost_basis,
-        fees_paid,
-        net_profit,
-        profit_margin,
-        listed_date,
-        sold_date,
-        sold_price,
-        days_to_sell,
-        performance_notes
-      `)
+      .select('*')  // Simple select all - let Supabase handle it
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
@@ -107,7 +75,7 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
     const limit = Math.min(options.limit || 25, 50);
     query = query.limit(limit);
 
-    console.log('📡 Executing optimized database query with all fields...');
+    console.log('📡 Executing simple database query...');
     const startTime = Date.now();
     
     const { data, error } = await query;
@@ -127,42 +95,16 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
 
     console.log(`✅ Successfully fetched ${data.length} real listings from database`);
     
-    // Transform data to match Listing interface with proper type handling
+    // Simple transformation - trust the data types from Supabase
     const transformedListings: Listing[] = data.map(item => ({
-      id: item.id,
+      ...item,
       title: item.title || 'Untitled',
-      description: item.description,
       price: Number(item.price) || 0,
-      category: item.category,
-      condition: item.condition,
-      measurements: typeof item.measurements === 'object' && item.measurements !== null 
+      measurements: (typeof item.measurements === 'object' && item.measurements !== null) 
         ? item.measurements as { length?: string; width?: string; height?: string; weight?: string; }
         : {},
       keywords: Array.isArray(item.keywords) ? item.keywords : [],
-      photos: Array.isArray(item.photos) ? item.photos.filter(p => p && typeof p === 'string') : [],
-      price_research: item.price_research,
-      shipping_cost: item.shipping_cost,
-      status: item.status,
-      created_at: item.created_at,
-      updated_at: item.updated_at,
-      user_id: item.user_id,
-      purchase_price: item.purchase_price,
-      purchase_date: item.purchase_date,
-      is_consignment: item.is_consignment,
-      consignment_percentage: item.consignment_percentage,
-      consignor_name: item.consignor_name,
-      consignor_contact: item.consignor_contact,
-      source_location: item.source_location,
-      source_type: item.source_type,
-      cost_basis: item.cost_basis,
-      fees_paid: item.fees_paid,
-      net_profit: item.net_profit,
-      profit_margin: item.profit_margin,
-      listed_date: item.listed_date,
-      sold_date: item.sold_date,
-      sold_price: item.sold_price,
-      days_to_sell: item.days_to_sell,
-      performance_notes: item.performance_notes
+      photos: Array.isArray(item.photos) ? item.photos.filter(p => p && typeof p === 'string') : []
     }));
 
     return transformedListings;
@@ -177,15 +119,15 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
       return;
     }
 
-    console.log('🚀 Starting real inventory data fetch...');
+    console.log('🚀 Starting inventory data fetch...');
     setIsCurrentlyFetching(true);
     setLastFetchTime(now);
     setError(null);
 
     try {
-      // Create timeout promise that rejects after 8 seconds
+      // Reduced timeout to 5 seconds for faster feedback
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Database query timeout')), 8000)
+        setTimeout(() => reject(new Error('Database query timeout')), 5000)
       );
 
       const realListings = await Promise.race([
