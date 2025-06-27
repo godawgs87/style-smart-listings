@@ -9,8 +9,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { RefreshCw, Plus, Search, Wifi, WifiOff, AlertTriangle } from 'lucide-react';
+import { RefreshCw, Plus, Search } from 'lucide-react';
 import VirtualizedInventoryTable from './VirtualizedInventoryTable';
 import { useToast } from '@/hooks/use-toast';
 import { useListingOperations } from '@/hooks/useListingOperations';
@@ -26,12 +25,11 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [categoryFilter, setCategoryFilter] = useState('all');
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  const { fetchWithProgressiveDegradation, resetQueryAttempts, currentQueryLevel } = useProgressiveQuery();
+  const { fetchWithProgressiveDegradation } = useProgressiveQuery();
   const { fetchListingDetails } = useListingDetails();
   const { deleteListing } = useListingOperations();
 
@@ -39,15 +37,12 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
     setLoading(true);
     setError(null);
 
-    const options = {
+    console.log('🔄 Loading inventory...');
+    const result = await fetchWithProgressiveDegradation({
       statusFilter: statusFilter === 'all' ? undefined : statusFilter,
-      categoryFilter: categoryFilter === 'all' ? undefined : categoryFilter,
       searchTerm: searchTerm.trim() || undefined,
-      limit: 25
-    };
-
-    console.log('🔄 Loading inventory with progressive query...');
-    const result = await fetchWithProgressiveDegradation(options);
+      limit: 10
+    });
     
     setListings(result.listings);
     setError(result.error);
@@ -55,21 +50,21 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
 
     if (result.error) {
       toast({
-        title: "Connection Issues",
+        title: "Error Loading Inventory",
         description: result.error,
         variant: "destructive"
       });
     }
   };
 
-  // Debounced loading when filters change
+  // Load data when filters change
   useEffect(() => {
     const timer = setTimeout(() => {
       loadData();
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchTerm, statusFilter, categoryFilter]);
+  }, [searchTerm, statusFilter]);
 
   const handleViewDetails = async (id: string) => {
     const { details, error } = await fetchListingDetails(id);
@@ -100,13 +95,8 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
   const handleDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this listing?')) {
       await deleteListing(id);
-      loadData(); // Refresh the list
+      loadData();
     }
-  };
-
-  const handleRefresh = () => {
-    resetQueryAttempts();
-    loadData();
   };
 
   // Calculate stats from loaded data
@@ -117,46 +107,15 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
     draftItems: listings.filter(item => item.status === 'draft').length
   };
 
-  const getConnectionStatus = () => {
-    if (error) {
-      return { icon: WifiOff, color: 'text-red-500', status: 'Connection Error', message: error };
-    }
-    if (currentQueryLevel === 0) {
-      return { icon: Wifi, color: 'text-green-500', status: 'Good Connection', message: 'Full data loaded' };
-    }
-    if (currentQueryLevel === 1) {
-      return { icon: AlertTriangle, color: 'text-yellow-500', status: 'Slow Connection', message: 'Limited data loaded' };
-    }
-    return { icon: WifiOff, color: 'text-orange-500', status: 'Poor Connection', message: 'Minimal data only' };
-  };
-
-  const connectionStatus = getConnectionStatus();
-
   return (
     <div className={`min-h-screen bg-gray-50 ${isMobile ? 'pb-20' : ''}`}>
       <StreamlinedHeader
-        title="Optimized Inventory"
+        title="Simple Inventory"
         showBack
         onBack={onBack}
       />
       
       <div className="max-w-7xl mx-auto p-4 space-y-6">
-        {/* Connection Status */}
-        <Card className="p-4">
-          <div className="flex items-center gap-2">
-            <connectionStatus.icon className={`w-4 h-4 ${connectionStatus.color}`} />
-            <Badge variant="outline" className={`${
-              connectionStatus.color === 'text-green-500' ? 'bg-green-50 text-green-800 border-green-200' :
-              connectionStatus.color === 'text-yellow-500' ? 'bg-yellow-50 text-yellow-800 border-yellow-200' :
-              connectionStatus.color === 'text-orange-500' ? 'bg-orange-50 text-orange-800 border-orange-200' :
-              'bg-red-50 text-red-800 border-red-200'
-            }`}>
-              {connectionStatus.status}
-            </Badge>
-            <span className="text-sm text-gray-600">{connectionStatus.message}</span>
-          </div>
-        </Card>
-
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="p-4">
@@ -177,7 +136,7 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
           </Card>
         </div>
 
-        {/* Controls */}
+        {/* Simple Controls */}
         <Card className="p-4">
           <div className="flex flex-col md:flex-row gap-4 items-center">
             <div className="relative flex-1">
@@ -202,16 +161,7 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
               </SelectContent>
             </Select>
 
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Button onClick={handleRefresh} variant="outline" size="sm" disabled={loading}>
+            <Button onClick={loadData} variant="outline" size="sm" disabled={loading}>
               <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
@@ -223,21 +173,7 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
           </div>
         </Card>
 
-        {/* Inventory Table */}
-        {!loading && !error && (
-          <Card className="p-4">
-            <VirtualizedInventoryTable
-              listings={listings}
-              hasNextPage={false}
-              isNextPageLoading={loading}
-              loadNextPage={async () => {}}
-              onViewDetails={handleViewDetails}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-            />
-          </Card>
-        )}
-
+        {/* Content */}
         {loading && (
           <Card className="p-8 text-center">
             <div className="flex items-center justify-center gap-2">
@@ -247,10 +183,33 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
           </Card>
         )}
 
-        {!loading && listings.length === 0 && !error && (
+        {error && !loading && (
+          <Card className="p-8 text-center border-red-200 bg-red-50">
+            <div className="text-red-800 mb-4">{error}</div>
+            <Button onClick={loadData} variant="outline">
+              Try Again
+            </Button>
+          </Card>
+        )}
+
+        {!loading && !error && listings.length > 0 && (
+          <Card className="p-4">
+            <VirtualizedInventoryTable
+              listings={listings}
+              hasNextPage={false}
+              isNextPageLoading={false}
+              loadNextPage={async () => {}}
+              onViewDetails={handleViewDetails}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+            />
+          </Card>
+        )}
+
+        {!loading && !error && listings.length === 0 && (
           <Card className="p-8 text-center">
-            <div className="text-gray-500">No inventory items found</div>
-            <Button onClick={onCreateListing} className="mt-4">
+            <div className="text-gray-500 mb-4">No inventory items found</div>
+            <Button onClick={onCreateListing}>
               <Plus className="w-4 h-4 mr-2" />
               Create Your First Item
             </Button>
