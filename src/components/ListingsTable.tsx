@@ -1,6 +1,10 @@
 
-import React from 'react';
-import ListingsTableView from './listings/ListingsTableView';
+import React, { useState } from 'react';
+import { Table, TableBody } from '@/components/ui/table';
+import ListingsTableHeader from './listings/table/ListingsTableHeader';
+import ListingsTableColumnManager from './listings/table/ListingsTableColumnManager';
+import ListingsTableEmpty from './listings/table/ListingsTableEmpty';
+import ListingsTableRow from './listings/ListingsTableRow';
 
 interface Listing {
   id: string;
@@ -21,6 +25,12 @@ interface Listing {
   photos: string[] | null;
   price_research: string | null;
   created_at: string;
+  purchase_price?: number | null;
+  purchase_date?: string | null;
+  is_consignment?: boolean;
+  net_profit?: number | null;
+  profit_margin?: number | null;
+  days_to_sell?: number | null;
 }
 
 interface ListingsTableProps {
@@ -35,8 +45,87 @@ interface ListingsTableProps {
   onDuplicateListing?: (listing: Listing) => Promise<Listing | null>;
 }
 
-const ListingsTable = (props: ListingsTableProps) => {
-  return <ListingsTableView {...props} />;
+const ListingsTable = ({
+  listings,
+  selectedListings,
+  onSelectListing,
+  onSelectAll,
+  onUpdateListing,
+  onDeleteListing,
+  onPreviewListing,
+  onEditListing,
+  onDuplicateListing
+}: ListingsTableProps) => {
+  const [visibleColumns, setVisibleColumns] = useState({
+    image: true,
+    title: true,
+    price: true,
+    status: true,
+    category: true,
+    condition: true,
+    shipping: true,
+    measurements: false,
+    keywords: false,
+    description: false,
+    purchasePrice: false,
+    purchaseDate: false,
+    consignmentStatus: false,
+    sourceType: false,
+    sourceLocation: false,
+    costBasis: false,
+    netProfit: false,
+    profitMargin: false,
+    daysToSell: false,
+    performanceNotes: false,
+  });
+
+  const handleColumnToggle = (column: keyof typeof visibleColumns) => {
+    setVisibleColumns(prev => ({
+      ...prev,
+      [column]: !prev[column]
+    }));
+  };
+
+  return (
+    <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
+      <ListingsTableColumnManager
+        visibleColumns={visibleColumns}
+        onColumnToggle={handleColumnToggle}
+      />
+
+      <div className="overflow-x-auto">
+        <div className="min-w-[1000px]">
+          <Table>
+            <ListingsTableHeader
+              visibleColumns={visibleColumns}
+              selectedCount={selectedListings.length}
+              totalCount={listings.length}
+              onSelectAll={onSelectAll}
+            />
+            <TableBody>
+              {listings.map((listing, index) => (
+                <ListingsTableRow
+                  key={listing.id}
+                  listing={listing}
+                  index={index}
+                  isSelected={selectedListings.includes(listing.id)}
+                  visibleColumns={visibleColumns}
+                  onSelectListing={onSelectListing}
+                  onUpdateListing={onUpdateListing}
+                  onDeleteListing={onDeleteListing}
+                  onPreviewListing={onPreviewListing}
+                  onEditListing={onEditListing}
+                  onDuplicateListing={onDuplicateListing}
+                />
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+      
+      {listings.length === 0 && <ListingsTableEmpty />}
+    </div>
+  );
 };
 
 export default ListingsTable;

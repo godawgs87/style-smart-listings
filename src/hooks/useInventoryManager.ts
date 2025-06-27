@@ -17,14 +17,13 @@ export const useInventoryManager = () => {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [isBulkMode, setIsBulkMode] = useState(false);
 
-  // Better progressive loading settings - start with more items
   const progressiveLoading = useProgressiveLoading({
-    initialLimit: 12,   // Start with 12 items instead of 3
-    incrementSize: 6,   // Load 6 more at a time
-    maxLimit: 50        // Reasonable max to avoid excessive data
+    initialLimit: 12,
+    incrementSize: 6,
+    maxLimit: 50
   });
 
-  // Data fetching with better initial load
+  // Simplified data fetching
   const { 
     listings, 
     loading, 
@@ -43,12 +42,12 @@ export const useInventoryManager = () => {
     categoryFilter: categoryFilter === 'all' ? undefined : categoryFilter
   });
 
-  // Apply only client-side filters that aren't handled server-side
+  // Apply client-side filters
   const { filteredListings } = useInventoryFilters({
     listings,
-    searchTerm: '', // Server-side handled
-    statusFilter: 'all', // Server-side handled
-    categoryFilter: 'all', // Server-side handled
+    searchTerm: '',
+    statusFilter: 'all',
+    categoryFilter: 'all',
     sortBy,
     sourceTypeFilter,
     consignmentFilter,
@@ -89,26 +88,9 @@ export const useInventoryManager = () => {
     };
   }, [filteredListings]);
 
-  // Enable bulk mode when items are selected
   useEffect(() => {
     setIsBulkMode(selectedItems.length > 0);
   }, [selectedItems]);
-
-  // Much simpler reset logic - only reset on meaningful filter changes
-  useEffect(() => {
-    const hasServerSideFilters = statusFilter !== 'all' || categoryFilter !== 'all' || searchTerm.trim();
-    
-    // Only reset if we have meaningful server-side filter changes
-    // Don't reset if we're loading or if we don't have server-side filters
-    if (hasServerSideFilters && !loading) {
-      const timer = setTimeout(() => {
-        console.log('🔄 Filter change detected, resetting to show fresh results');
-        progressiveLoading.reset();
-      }, 1000); // Short delay to batch rapid filter changes
-
-      return () => clearTimeout(timer);
-    }
-  }, [statusFilter, categoryFilter, searchTerm]); // Removed loading dependency to avoid loops
 
   const handleSelectItem = (itemId: string, checked: boolean) => {
     setSelectedItems(prev => 
@@ -127,7 +109,7 @@ export const useInventoryManager = () => {
   };
 
   const handleLoadMore = async () => {
-    console.log('🔽 Loading more items, current limit:', progressiveLoading.currentLimit);
+    console.log('🔽 Loading more items');
     if (usingFallback) {
       progressiveLoading.loadMore();
       return true;
@@ -136,7 +118,6 @@ export const useInventoryManager = () => {
   };
 
   return {
-    // Data
     listings,
     filteredListings,
     categories,
@@ -145,13 +126,11 @@ export const useInventoryManager = () => {
     error,
     usingFallback,
     
-    // Progressive loading
     canLoadMore: progressiveLoading.canLoadMore,
     isLoadingMore: progressiveLoading.isLoadingMore,
     currentLimit: progressiveLoading.currentLimit,
     handleLoadMore,
     
-    // State
     searchTerm,
     statusFilter,
     categoryFilter,
@@ -163,7 +142,6 @@ export const useInventoryManager = () => {
     selectedItems,
     isBulkMode,
     
-    // State setters
     setSearchTerm,
     setStatusFilter,
     setCategoryFilter,
@@ -173,12 +151,10 @@ export const useInventoryManager = () => {
     setSortBy,
     setViewMode,
     
-    // Handlers
     handleSelectItem,
     handleSelectAll,
     clearSelection,
     
-    // Operations
     deleteListing,
     duplicateListing,
     updateListing,
