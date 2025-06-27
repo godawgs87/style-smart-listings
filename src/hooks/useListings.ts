@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useOptimizedQuery } from './listing-data/useOptimizedQuery';
 import { useFallbackData } from './listing-data/useFallbackData';
 import { useListingOperations } from './useListingOperations';
@@ -20,6 +20,7 @@ export const useListings = (options: UseListingsOptions = {}) => {
   const [error, setError] = useState<string | null>(null);
   const [usingFallback, setUsingFallback] = useState(false);
   const [lastFetchTime, setLastFetchTime] = useState<number>(0);
+  const lastOptionsRef = useRef<string>('');
   
   const { fetchOptimizedListings } = useOptimizedQuery();
   const { getFallbackData, hasFallbackData } = useFallbackData();
@@ -28,10 +29,17 @@ export const useListings = (options: UseListingsOptions = {}) => {
 
   const fetchListings = useCallback(async () => {
     const now = Date.now();
+    const currentOptionsKey = JSON.stringify(options);
     
-    // Prevent rapid successive calls - longer debounce to reduce egress
-    if (now - lastFetchTime < 2000) {
-      console.log('⏸️ Debouncing rapid fetch calls to reduce database egress');
+    // OPTIMIZED: Prevent redundant calls with same options
+    if (currentOptionsKey === lastOptionsRef.current && now - lastFetchTime < 3000) {
+      console.log('⏸️ Skipping redundant fetch - same options within 3s');
+      return;
+    }
+    
+    // OPTIMIZED: Much longer debounce to reduce egress significantly
+    if (now - lastFetchTime < 3000 && lastOptionsRef.current !== '') {
+      console.log('⏸️ Debouncing rapid fetch calls to minimize database egress');
       return;
     }
     
@@ -40,13 +48,14 @@ export const useListings = (options: UseListingsOptions = {}) => {
     setLoading(true);
     setError(null);
     setLastFetchTime(now);
+    lastOptionsRef.current = currentOptionsKey;
     
     try {
       const queryOptions = {
         statusFilter: options.statusFilter,
         categoryFilter: options.categoryFilter, 
         searchTerm: options.searchTerm,
-        limit: Math.min(options.limit || 10, 20) // Cap at 20 to reduce egress
+        limit: Math.min(options.limit || 3, 15) // Cap at 15 to reduce egress
       };
 
       console.log('📋 Final query options:', queryOptions);
@@ -105,6 +114,7 @@ export const useListings = (options: UseListingsOptions = {}) => {
     console.log('🔄 Manual refetch triggered');
     setUsingFallback(false);
     setLastFetchTime(0); // Reset debounce
+    lastOptionsRef.current = ''; // Reset options cache
     fetchListings();
   }, [fetchListings]);
 
@@ -131,11 +141,11 @@ export const useListings = (options: UseListingsOptions = {}) => {
     }
   }, [getFallbackData, hasFallbackData, toast]);
 
-  // Reduced frequency of automatic fetching
+  // OPTIMIZED: Longer delay to batch requests and reduce frequency
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchListings();
-    }, 500); // Slight delay to batch requests
+    }, 1000); // Longer delay to batch requests
 
     return () => clearTimeout(timer);
   }, [fetchListings]);

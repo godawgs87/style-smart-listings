@@ -21,7 +21,7 @@ export const useInventoryManager = () => {
   const progressiveLoading = useProgressiveLoading({
     initialLimit: 3,  // Start with just 3 items
     incrementSize: 3, // Small increments
-    maxLimit: 15      // Lower max to reduce egress
+    maxLimit: 12      // Even lower max to reduce egress
   });
 
   // Data fetching with minimal initial load
@@ -94,12 +94,18 @@ export const useInventoryManager = () => {
     setIsBulkMode(selectedItems.length > 0);
   }, [selectedItems]);
 
-  // Reset progressive loading when server-side filters change - with much longer debounce to reduce egress
+  // OPTIMIZED: Much longer debounce and smarter reset logic to minimize database calls
   useEffect(() => {
     const timer = setTimeout(() => {
-      console.log('Server-side filters changed, resetting progressive loading');
-      progressiveLoading.reset();
-    }, 3000); // Much longer debounce to reduce database calls
+      console.log('🎯 Server-side filters changed, checking if reset needed');
+      // Only reset if we actually need to - prevents unnecessary resets
+      if (progressiveLoading.currentLimit > 3) {
+        console.log('🔄 Resetting progressive loading due to filter change');
+        progressiveLoading.reset();
+      } else {
+        console.log('⏭️ Skipping reset - already at minimum limit');
+      }
+    }, 5000); // Even longer debounce to significantly reduce database calls
 
     return () => clearTimeout(timer);
   }, [statusFilter, categoryFilter, searchTerm]);
@@ -121,7 +127,7 @@ export const useInventoryManager = () => {
   };
 
   const handleLoadMore = async () => {
-    console.log('Loading more items, current limit:', progressiveLoading.currentLimit);
+    console.log('🔽 Loading more items, current limit:', progressiveLoading.currentLimit);
     if (usingFallback) {
       progressiveLoading.loadMore();
       return true;

@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 interface ProgressiveLoadingOptions {
@@ -11,9 +11,18 @@ interface ProgressiveLoadingOptions {
 export const useProgressiveLoading = (options: ProgressiveLoadingOptions) => {
   const [currentLimit, setCurrentLimit] = useState(options.initialLimit);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const lastLoadTimeRef = useRef<number>(0);
   const { toast } = useToast();
 
   const loadMore = useCallback(async () => {
+    const now = Date.now();
+    
+    // OPTIMIZED: Prevent rapid load more requests
+    if (now - lastLoadTimeRef.current < 2000) {
+      console.log('⏸️ Debouncing rapid load more requests');
+      return false;
+    }
+    
     if (currentLimit >= options.maxLimit) {
       toast({
         title: "Maximum items loaded",
@@ -24,10 +33,11 @@ export const useProgressiveLoading = (options: ProgressiveLoadingOptions) => {
     }
 
     setIsLoadingMore(true);
+    lastLoadTimeRef.current = now;
     const newLimit = Math.min(currentLimit + options.incrementSize, options.maxLimit);
     
     try {
-      console.log(`Loading more: ${currentLimit} -> ${newLimit}`);
+      console.log(`🔽 Loading more: ${currentLimit} -> ${newLimit}`);
       setCurrentLimit(newLimit);
       return true;
     } catch (error) {
@@ -44,9 +54,10 @@ export const useProgressiveLoading = (options: ProgressiveLoadingOptions) => {
   }, [currentLimit, options, toast]);
 
   const reset = useCallback(() => {
-    console.log('Resetting progressive loading to initial limit:', options.initialLimit);
+    console.log('🔄 Resetting progressive loading to initial limit:', options.initialLimit);
     setCurrentLimit(options.initialLimit);
     setIsLoadingMore(false);
+    lastLoadTimeRef.current = 0;
   }, [options.initialLimit]);
 
   const canLoadMore = currentLimit < options.maxLimit;
