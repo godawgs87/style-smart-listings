@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -84,12 +85,11 @@ const ListingsTableRowDisplay = ({ listing, index, visibleColumns }: ListingsTab
 
   useEffect(() => {
     const loadListingDetails = async () => {
-      // Only load details if we need measurements, keywords, or other detailed fields
-      const needsDetails = visibleColumns.measurements || visibleColumns.keywords || visibleColumns.description;
+      // Load details if we need photos, measurements, keywords, or other detailed fields
+      const needsDetails = visibleColumns.image || visibleColumns.measurements || visibleColumns.keywords || visibleColumns.description;
       
       if (needsDetails) {
         console.log('🔍 ListingsTableRowDisplay - Loading details for:', listing.id);
-        console.log('🔍 Original listing data:', listing);
         
         const details = await loadDetails(listing.id);
         console.log('🔍 Loaded details response:', details);
@@ -97,9 +97,7 @@ const ListingsTableRowDisplay = ({ listing, index, visibleColumns }: ListingsTab
         if (details) {
           const mergedListing = { ...listing, ...details };
           console.log('🔍 Merged listing data:', mergedListing);
-          console.log('🔍 Measurements in merged data:', mergedListing.measurements);
-          console.log('🔍 Keywords in merged data:', mergedListing.keywords);
-          console.log('🔍 Description in merged data:', mergedListing.description);
+          console.log('🔍 Photos in merged data:', mergedListing.photos);
           
           setDetailedListing(mergedListing);
         } else {
@@ -109,14 +107,12 @@ const ListingsTableRowDisplay = ({ listing, index, visibleColumns }: ListingsTab
     };
 
     loadListingDetails();
-  }, [listing.id, loadDetails, visibleColumns.measurements, visibleColumns.keywords, visibleColumns.description]);
+  }, [listing.id, loadDetails, visibleColumns.image, visibleColumns.measurements, visibleColumns.keywords, visibleColumns.description]);
 
   const isLoading = isLoadingDetails(listing.id);
 
   console.log('🎯 ListingsTableRowDisplay render - listing:', listing.id);
-  console.log('🎯 Current detailedListing state:', detailedListing);
-  console.log('🎯 Measurements to display:', detailedListing.measurements);
-  console.log('🎯 Keywords to display:', detailedListing.keywords);
+  console.log('🎯 Current detailedListing photos:', detailedListing.photos);
 
   return (
     <>
@@ -166,10 +162,7 @@ const ListingsTableRowDisplay = ({ listing, index, visibleColumns }: ListingsTab
               <Loader2 className="w-4 h-4 animate-spin" />
             </div>
           ) : (
-            <div>
-              <div className="text-xs text-gray-400 mb-1">Debug: {JSON.stringify(detailedListing.measurements)}</div>
-              <MeasurementsCell measurements={detailedListing.measurements || listing.measurements} />
-            </div>
+            <MeasurementsCell measurements={detailedListing.measurements || listing.measurements} />
           )}
         </TableCell>
       )}
@@ -181,10 +174,7 @@ const ListingsTableRowDisplay = ({ listing, index, visibleColumns }: ListingsTab
               <Loader2 className="w-4 h-4 animate-spin" />
             </div>
           ) : (
-            <div>
-              <div className="text-xs text-gray-400 mb-1">Debug: {JSON.stringify(detailedListing.keywords)}</div>
-              <KeywordsCell keywords={detailedListing.keywords || listing.keywords} />
-            </div>
+            <KeywordsCell keywords={detailedListing.keywords || listing.keywords} />
           )}
         </TableCell>
       )}
@@ -197,7 +187,6 @@ const ListingsTableRowDisplay = ({ listing, index, visibleColumns }: ListingsTab
             </div>
           ) : (
             <div className="text-sm text-gray-600 line-clamp-3">
-              <div className="text-xs text-gray-400 mb-1">Debug: Has description: {!!detailedListing.description}</div>
               {detailedListing.description || listing.description || '-'}
             </div>
           )}
