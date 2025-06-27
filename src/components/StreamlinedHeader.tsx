@@ -66,9 +66,7 @@ const StreamlinedHeader = ({
           {userEmail && (
             <span className="text-sm text-gray-600">Welcome, {userEmail}</span>
           )}
-          {currentView && onNavigate && (
-            <Navigation currentView={currentView} onNavigate={onNavigate} />
-          )}
+          <Navigation />
         </div>
       </div>
     </div>
