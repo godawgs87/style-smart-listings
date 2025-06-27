@@ -1,16 +1,23 @@
 
-import React, { useEffect, useState } from 'react';
-import { TableCell } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Loader2 } from 'lucide-react';
+import React from 'react';
 import ImageCell from './cells/ImageCell';
 import TitleCell from './cells/TitleCell';
+import PriceCell from './cells/PriceCell';
 import BadgeCell from './cells/BadgeCell';
+import CategoryCell from './cells/CategoryCell';
+import ShippingCell from './cells/ShippingCell';
 import MeasurementsCell from './cells/MeasurementsCell';
 import KeywordsCell from './cells/KeywordsCell';
+import DescriptionCell from './cells/DescriptionCell';
+import DateCell from './cells/DateCell';
 import ConsignmentStatusCell from './cells/ConsignmentStatusCell';
+import SourceTypeCell from './cells/SourceTypeCell';
+import SourceLocationCell from './cells/SourceLocationCell';
 import ProfitCell from './cells/ProfitCell';
-import { useListingDetails } from '@/hooks/useListingDetails';
+import DaysToSellCell from './cells/DaysToSellCell';
+import PerformanceNotesCell from './cells/PerformanceNotesCell';
+import LoadingCell from './cells/LoadingCell';
+import { useListingDetailsLoader } from '@/hooks/useListingDetailsLoader';
 
 interface Listing {
   id: string;
@@ -80,39 +87,7 @@ interface ListingsTableRowDisplayProps {
 }
 
 const ListingsTableRowDisplay = ({ listing, index, visibleColumns }: ListingsTableRowDisplayProps) => {
-  const { loadDetails, isLoadingDetails } = useListingDetails();
-  const [detailedListing, setDetailedListing] = useState<any>(listing);
-
-  useEffect(() => {
-    const loadListingDetails = async () => {
-      // Load details if we need photos, measurements, keywords, or other detailed fields
-      const needsDetails = visibleColumns.image || visibleColumns.measurements || visibleColumns.keywords || visibleColumns.description;
-      
-      if (needsDetails) {
-        console.log('🔍 ListingsTableRowDisplay - Loading details for:', listing.id);
-        
-        const details = await loadDetails(listing.id);
-        console.log('🔍 Loaded details response:', details);
-        
-        if (details) {
-          const mergedListing = { ...listing, ...details };
-          console.log('🔍 Merged listing data:', mergedListing);
-          console.log('🔍 Photos in merged data:', mergedListing.photos);
-          
-          setDetailedListing(mergedListing);
-        } else {
-          console.log('❌ No details returned for listing:', listing.id);
-        }
-      }
-    };
-
-    loadListingDetails();
-  }, [listing.id, loadDetails, visibleColumns.image, visibleColumns.measurements, visibleColumns.keywords, visibleColumns.description]);
-
-  const isLoading = isLoadingDetails(listing.id);
-
-  console.log('🎯 ListingsTableRowDisplay render - listing:', listing.id);
-  console.log('🎯 Current detailedListing photos:', detailedListing.photos);
+  const { detailedListing, isLoading } = useListingDetailsLoader(listing, visibleColumns);
 
   return (
     <>
@@ -132,9 +107,7 @@ const ListingsTableRowDisplay = ({ listing, index, visibleColumns }: ListingsTab
       )}
 
       {visibleColumns.price && (
-        <TableCell className="text-right font-medium">
-          ${listing.price?.toFixed(2) || '0.00'}
-        </TableCell>
+        <PriceCell price={listing.price} />
       )}
 
       {visibleColumns.status && (
@@ -142,7 +115,7 @@ const ListingsTableRowDisplay = ({ listing, index, visibleColumns }: ListingsTab
       )}
 
       {visibleColumns.category && (
-        <TableCell className="text-sm">{listing.category || '-'}</TableCell>
+        <CategoryCell category={listing.category} />
       )}
 
       {visibleColumns.condition && (
@@ -150,59 +123,39 @@ const ListingsTableRowDisplay = ({ listing, index, visibleColumns }: ListingsTab
       )}
 
       {visibleColumns.shipping && (
-        <TableCell className="text-right">
-          ${listing.shipping_cost?.toFixed(2) || '0.00'}
-        </TableCell>
+        <ShippingCell shippingCost={listing.shipping_cost} />
       )}
 
       {visibleColumns.measurements && (
-        <TableCell className="text-sm">
-          {isLoading ? (
-            <div className="flex items-center justify-center">
-              <Loader2 className="w-4 h-4 animate-spin" />
-            </div>
-          ) : (
-            <MeasurementsCell measurements={detailedListing.measurements || listing.measurements} />
-          )}
-        </TableCell>
+        isLoading ? (
+          <LoadingCell />
+        ) : (
+          <MeasurementsCell measurements={detailedListing.measurements || listing.measurements} />
+        )
       )}
 
       {visibleColumns.keywords && (
-        <TableCell className="text-sm">
-          {isLoading ? (
-            <div className="flex items-center justify-center">
-              <Loader2 className="w-4 h-4 animate-spin" />
-            </div>
-          ) : (
-            <KeywordsCell keywords={detailedListing.keywords || listing.keywords} />
-          )}
-        </TableCell>
+        isLoading ? (
+          <LoadingCell />
+        ) : (
+          <KeywordsCell keywords={detailedListing.keywords || listing.keywords} />
+        )
       )}
 
       {visibleColumns.description && (
-        <TableCell className="max-w-[200px]">
-          {isLoading ? (
-            <div className="flex items-center justify-center">
-              <Loader2 className="w-4 h-4 animate-spin" />
-            </div>
-          ) : (
-            <div className="text-sm text-gray-600 line-clamp-3">
-              {detailedListing.description || listing.description || '-'}
-            </div>
-          )}
-        </TableCell>
+        isLoading ? (
+          <LoadingCell />
+        ) : (
+          <DescriptionCell description={detailedListing.description || listing.description} />
+        )
       )}
 
       {visibleColumns.purchasePrice && (
-        <TableCell className="text-right font-medium">
-          {listing.purchase_price ? `$${listing.purchase_price.toFixed(2)}` : '-'}
-        </TableCell>
+        <ProfitCell value={listing.purchase_price} />
       )}
 
       {visibleColumns.purchaseDate && (
-        <TableCell className="text-sm">
-          {listing.purchase_date || '-'}
-        </TableCell>
+        <DateCell date={listing.purchase_date} />
       )}
 
       {visibleColumns.consignmentStatus && (
@@ -213,23 +166,15 @@ const ListingsTableRowDisplay = ({ listing, index, visibleColumns }: ListingsTab
       )}
 
       {visibleColumns.sourceType && (
-        <TableCell className="text-sm">
-          {listing.source_type ? (
-            <Badge variant="outline">{listing.source_type.replace('_', ' ')}</Badge>
-          ) : '-'}
-        </TableCell>
+        <SourceTypeCell sourceType={listing.source_type} />
       )}
 
       {visibleColumns.sourceLocation && (
-        <TableCell className="text-sm max-w-[150px] truncate">
-          {listing.source_location || '-'}
-        </TableCell>
+        <SourceLocationCell sourceLocation={listing.source_location} />
       )}
 
       {visibleColumns.costBasis && (
-        <TableCell className="text-right font-medium">
-          {listing.cost_basis ? `$${listing.cost_basis.toFixed(2)}` : '-'}
-        </TableCell>
+        <ProfitCell value={listing.cost_basis} />
       )}
 
       {visibleColumns.netProfit && (
@@ -241,17 +186,11 @@ const ListingsTableRowDisplay = ({ listing, index, visibleColumns }: ListingsTab
       )}
 
       {visibleColumns.daysToSell && (
-        <TableCell className="text-center">
-          {listing.days_to_sell || '-'}
-        </TableCell>
+        <DaysToSellCell daysToSell={listing.days_to_sell} />
       )}
 
       {visibleColumns.performanceNotes && (
-        <TableCell className="max-w-[200px]">
-          <div className="text-sm text-gray-600 line-clamp-2">
-            {listing.performance_notes || '-'}
-          </div>
-        </TableCell>
+        <PerformanceNotesCell performanceNotes={listing.performance_notes} />
       )}
     </>
   );
