@@ -17,17 +17,17 @@ export const useOptimizedQuery = () => {
     const { statusFilter, categoryFilter, searchTerm, limit } = options;
     
     try {
-      console.log('🚀 Starting ultra-lightweight query without photos...');
+      console.log('🚀 Starting optimized query with photos...');
       console.log('📋 Query options:', options);
 
       const startTime = Date.now();
       
-      // Exclude photos completely from the main query for better performance
+      // Include photos in the query so we can show actual uploaded images
       let query = supabase
         .from('listings')
         .select(`
           id, title, price, status, category, condition, created_at, user_id,
-          purchase_price, net_profit, profit_margin, shipping_cost, description
+          purchase_price, net_profit, profit_margin, shipping_cost, description, photos
         `);
 
       // Apply filters efficiently
@@ -48,10 +48,10 @@ export const useOptimizedQuery = () => {
       // Order and limit - use the most optimized index
       const { data, error } = await query
         .order('created_at', { ascending: false })
-        .limit(Math.min(limit, 20)); // Reduced limit for better performance
+        .limit(Math.min(limit, 20));
 
       const duration = Date.now() - startTime;
-      console.log(`⏱️ Photo-free query completed in ${duration}ms`);
+      console.log(`⏱️ Query completed in ${duration}ms`);
 
       if (error) {
         console.error('❌ Query error:', error);
@@ -63,7 +63,7 @@ export const useOptimizedQuery = () => {
         return { listings: [], error: 'CONNECTION_ERROR' };
       }
 
-      console.log(`✅ Fetched ${data?.length || 0} listings without photos`);
+      console.log(`✅ Fetched ${data?.length || 0} listings with photos`);
       
       // Transform the data to match the Listing interface
       const transformedListings: Listing[] = (data || []).map(item => ({
@@ -76,7 +76,7 @@ export const useOptimizedQuery = () => {
         condition: item.condition || null,
         measurements: {},
         keywords: [],
-        photos: null, // Always null - images handled by imageService
+        photos: item.photos || null, // Include actual photos from database
         price_research: null,
         shipping_cost: item.shipping_cost || null,
         status: item.status || null,
@@ -105,7 +105,7 @@ export const useOptimizedQuery = () => {
       return { listings: transformedListings, error: null };
       
     } catch (error: any) {
-      console.error('💥 Exception in photo-free query:', error);
+      console.error('💥 Exception in query:', error);
       
       if (error.message?.includes('JWT') || error.message?.includes('authentication')) {
         return { listings: [], error: 'AUTH_ERROR' };

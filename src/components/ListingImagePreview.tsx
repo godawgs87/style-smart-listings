@@ -14,9 +14,11 @@ const ListingImagePreview = React.memo(({ photos, title, listingId, className = 
   const [imageError, setImageError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Get display image immediately without database calls
-  const displayImage = listingId ? imageService.getDisplayImage(listingId, photos) : null;
-  const hasActualPhotos = imageService.hasPhotos(photos);
+  // Check if we have actual uploaded photos
+  const hasActualPhotos = photos && photos.length > 0;
+  
+  // Use actual photo if available, otherwise fallback to placeholder
+  const displayImage = hasActualPhotos ? photos[0] : (listingId ? imageService.getPlaceholderForListing(listingId) : null);
 
   const handleImageLoad = useCallback(() => {
     setIsLoading(false);
@@ -62,7 +64,7 @@ const ListingImagePreview = React.memo(({ photos, title, listingId, className = 
         onLoadStart={handleImageLoadStart}
         loading="lazy"
       />
-      {/* Only show sample overlay if we explicitly want to indicate it's not a real photo */}
+      {/* Only show demo badge for placeholder images, not actual photos */}
       {!hasActualPhotos && (
         <div className="absolute top-1 right-1">
           <div className="bg-blue-500 text-white px-1 py-0.5 rounded text-xs font-medium opacity-75">
