@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,7 +8,6 @@ import { useState } from "react";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import Index from "./pages/Index";
 import AdminDashboard from "./pages/AdminDashboard";
-import InventoryManager from "./pages/InventoryManager";
 import ListingsManager from "./pages/ListingsManager";
 import SimpleInventoryPage from "./pages/SimpleInventoryPage";
 import QATestPage from "./pages/QATestPage";

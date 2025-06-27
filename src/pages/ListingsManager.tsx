@@ -1,8 +1,9 @@
+
 import React, { useState, useMemo } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
-import { useListings } from '@/hooks/useListings';
-import { useListingDetails } from '@/hooks/useListingDetails';
+import { useUnifiedInventory } from '@/hooks/useUnifiedInventory';
+import { useListingOperations } from '@/hooks/useListingOperations';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
 import MobileNavigation from '@/components/MobileNavigation';
 import ListingsManagerControls from '@/components/ListingsManagerControls';
@@ -10,9 +11,8 @@ import ListingsLoadingState from '@/components/ListingsLoadingState';
 import ListingsErrorState from '@/components/ListingsErrorState';
 import QuickFilters from '@/components/listings/QuickFilters';
 import PageInfoDialog from '@/components/PageInfoDialog';
-import InventoryTimeoutError from '@/components/inventory/InventoryTimeoutError';
-import ListingsManagerContent from '@/components/listings-manager/ListingsManagerContent';
-import ListingsManagerDialogs from '@/components/listings-manager/ListingsManagerDialogs';
+import ListingsTable from '@/components/ListingsTable';
+import { Card } from '@/components/ui/card';
 
 interface ListingsManagerProps {
   onBack: () => void;
@@ -21,30 +21,28 @@ interface ListingsManagerProps {
 const ListingsManager = ({ onBack }: ListingsManagerProps) => {
   const [selectedListings, setSelectedListings] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [conditionFilter, setConditionFilter] = useState('all');
   const [priceRangeFilter, setPriceRangeFilter] = useState('all');
-  const [showPreviewDialog, setShowPreviewDialog] = useState(false);
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const [selectedListingForDialog, setSelectedListingForDialog] = useState<any>(null);
   
   const isMobile = useIsMobile();
   const { user } = useAuth();
-  const { loadDetails } = useListingDetails();
   
   const { 
     listings, 
     loading, 
     error, 
     usingFallback,
-    deleteListing, 
-    updateListing, 
-    refetch,
-    forceOfflineMode
-  } = useListings({
+    refetch
+  } = useUnifiedInventory({
+    searchTerm: searchTerm.trim() || undefined,
+    statusFilter: 'all',
+    categoryFilter: categoryFilter === 'all' ? undefined : categoryFilter,
     limit: 25
   });
+
+  const { deleteListing, updateListing } = useListingOperations();
 
   const categories = useMemo(() => {
     const uniqueCategories = [...new Set(listings.map(l => l.category).filter(Boolean))];
@@ -92,96 +90,14 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
 
   const handleUpdateListing = async (listingId: string, updates: any) => {
     await updateListing(listingId, updates);
+    refetch();
   };
 
   const handleDeleteListing = async (listingId: string) => {
     console.log('Deleting listing:', listingId);
     await deleteListing(listingId);
     setSelectedListings(prev => prev.filter(id => id !== listingId));
-  };
-
-  const transformListingForPreview = (listing: any, details: any = {}) => {
-    console.log('🔄 transformListingForPreview input:', {
-      listing: { 
-        id: listing.id, 
-        title: listing.title,
-        description: listing.description ? 'Has description' : 'No description',
-        measurements: listing.measurements ? 'Has measurements' : 'No measurements'
-      },
-      details: details ? {
-        description: details.description ? 'Has description' : 'No description',
-        measurements: details.measurements ? 'Has measurements' : 'No measurements',
-        keywords: details.keywords ? `${details.keywords.length} keywords` : 'No keywords'
-      } : 'No details'
-    });
-
-    const transformed = {
-      title: listing.title || '',
-      description: details.description || listing.description || '',
-      price: listing.price || 0,
-      category: listing.category || '',
-      condition: listing.condition || '',
-      measurements: details.measurements || listing.measurements || {},
-      keywords: details.keywords || listing.keywords || [],
-      photos: details.photos || listing.photos || [],
-      priceResearch: details.price_research || listing.price_research || '',
-      shippingCost: details.shipping_cost || listing.shipping_cost || 0,
-      brand: details.brand || listing.brand || '',
-      model: details.model || listing.model || '',
-      features: details.features || listing.features || [],
-      defects: details.defects || listing.defects || [],
-      includes: details.includes || listing.includes || []
-    };
-
-    console.log('🔄 transformListingForPreview output:', {
-      description: transformed.description ? 'Present' : 'Missing',
-      measurements: transformed.measurements ? Object.keys(transformed.measurements) : 'Missing',
-      keywords: transformed.keywords ? transformed.keywords.length : 'Missing'
-    });
-
-    return transformed;
-  };
-
-  const transformListingForEdit = (listing: any, details: any = {}) => {
-    return {
-      title: listing.title || '',
-      description: details.description || listing.description || '',
-      price: listing.price || 0,
-      category: listing.category || '',
-      condition: listing.condition || '',
-      measurements: details.measurements || listing.measurements || {},
-      keywords: details.keywords || listing.keywords || [],
-      photos: details.photos || listing.photos || [],
-      priceResearch: details.price_research || listing.price_research || '',
-      purchase_price: details.purchase_price || listing.purchase_price,
-      purchase_date: details.purchase_date || listing.purchase_date,
-      source_location: details.source_location || listing.source_location,
-      source_type: details.source_type || listing.source_type,
-      is_consignment: details.is_consignment || listing.is_consignment,
-      consignment_percentage: details.consignment_percentage || listing.consignment_percentage,
-      consignor_name: details.consignor_name || listing.consignor_name,
-      consignor_contact: details.consignor_contact || listing.consignor_contact
-    };
-  };
-
-  const handlePreviewListing = async (listing: any) => {
-    console.log('🎯 handlePreviewListing called for:', listing.id);
-    
-    const details = await loadDetails(listing.id);
-    const transformedListing = transformListingForPreview(listing, details);
-    
-    setSelectedListingForDialog(transformedListing);
-    setShowPreviewDialog(true);
-  };
-
-  const handleEditListing = async (listing: any) => {
-    console.log('Edit listing:', listing);
-    
-    const details = await loadDetails(listing.id);
-    const transformedListing = transformListingForEdit(listing, details);
-    
-    setSelectedListingForDialog({ ...transformedListing, id: listing.id });
-    setShowEditDialog(true);
+    refetch();
   };
 
   const handleBulkDelete = async () => {
@@ -192,14 +108,7 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
         await deleteListing(id);
       }
       setSelectedListings([]);
-    }
-  };
-
-  const handleSaveEdit = async (updatedListing: any) => {
-    if (selectedListingForDialog && selectedListingForDialog.id) {
-      await updateListing(selectedListingForDialog.id, updatedListing);
-      setShowEditDialog(false);
-      setSelectedListingForDialog(null);
+      refetch();
     }
   };
 
@@ -220,17 +129,6 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
         userEmail={user?.email}
         onBack={onBack}
         isMobile={isMobile}
-      />
-    );
-  }
-
-  if (error && (error.includes('AUTHENTICATION_ERROR') || error.includes('RLS_POLICY_ERROR') || error.includes('JWT_ERROR'))) {
-    return (
-      <InventoryTimeoutError
-        onBack={onBack}
-        onRetry={refetch}
-        onForceOffline={forceOfflineMode}
-        error={error}
       />
     );
   }
@@ -285,36 +183,26 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
           onClearFilters={handleClearFilters}
         />
 
-        {error && !error.includes('AUTHENTICATION_ERROR') && !error.includes('RLS_POLICY_ERROR') && !error.includes('JWT_ERROR') && (
+        {error && (
           <ListingsErrorState error={error} />
         )}
 
-        <ListingsManagerContent
-          viewMode={viewMode}
-          filteredListings={filteredListings}
-          selectedListings={selectedListings}
-          loading={loading}
-          error={error}
-          onSelectListing={handleSelectListing}
-          onSelectAll={handleSelectAll}
-          onUpdateListing={handleUpdateListing}
-          onDeleteListing={handleDeleteListing}
-          onPreviewListing={handlePreviewListing}
-          onEditListing={handleEditListing}
-        />
+        {!loading && (
+          <ListingsTable
+            listings={filteredListings}
+            selectedListings={selectedListings}
+            onSelectListing={handleSelectListing}
+            onSelectAll={handleSelectAll}
+            onUpdateListing={handleUpdateListing}
+            onDeleteListing={handleDeleteListing}
+          />
+        )}
 
-        <ListingsManagerDialogs
-          showPreviewDialog={showPreviewDialog}
-          showEditDialog={showEditDialog}
-          selectedListingForDialog={selectedListingForDialog}
-          onPreviewClose={() => setShowPreviewDialog(false)}
-          onEditClose={() => setShowEditDialog(false)}
-          onSaveEdit={handleSaveEdit}
-          onEditFromPreview={() => {
-            setShowPreviewDialog(false);
-            setShowEditDialog(true);
-          }}
-        />
+        {loading && (
+          <Card className="p-8 text-center">
+            <div className="text-gray-500">Loading listings...</div>
+          </Card>
+        )}
       </div>
 
       {isMobile && (

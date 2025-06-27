@@ -52,8 +52,10 @@ export const useInventoryData = () => {
       ...item,
       title: item.title || 'Untitled',
       price: Number(item.price) || 0,
-      measurements: item.measurements || {},
-      keywords: item.keywords || [],
+      measurements: typeof item.measurements === 'object' && item.measurements !== null 
+        ? item.measurements as { length?: string; width?: string; height?: string; weight?: string; }
+        : {},
+      keywords: Array.isArray(item.keywords) ? item.keywords : [],
       photos: Array.isArray(item.photos) ? item.photos.filter(p => p && typeof p === 'string') : []
     })) || [];
   }, []);

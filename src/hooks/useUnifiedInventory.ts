@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import type { Listing } from '@/types/Listing';
 import type { UnifiedInventoryOptions, InventoryStats } from './inventory/types';

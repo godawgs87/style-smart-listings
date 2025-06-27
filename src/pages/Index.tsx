@@ -1,10 +1,10 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Camera, List, Package, Settings } from "lucide-react";
 import CreateListing from "./CreateListing";
 import ListingsManager from "./ListingsManager";
-import InventoryManager from "./InventoryManager";
 import AuthForm from "@/components/AuthForm";
 import StreamlinedHeader from "@/components/StreamlinedHeader";
 import MobileNavigation from "@/components/MobileNavigation";
