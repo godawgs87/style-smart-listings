@@ -26,9 +26,9 @@ export const useOptimizedQuery = () => {
       let query = supabase
         .from('listings')
         .select(`
-          id, title, price, status, category, condition, created_at, photos,
+          id, title, price, status, category, condition, created_at, updated_at, user_id, photos,
           shipping_cost, measurements, keywords, description, purchase_price,
-          is_consignment, source_type, net_profit, profit_margin
+          is_consignment, source_type, net_profit, profit_margin, price_research
         `);
 
       // Apply filters in the optimal order for our new composite indexes
@@ -68,17 +68,39 @@ export const useOptimizedQuery = () => {
       
       // Transform the data to match the Listing interface
       const transformedListings: Listing[] = (data || []).map(item => ({
-        ...item,
-        measurements: item.measurements || {},
-        keywords: item.keywords || [],
-        photos: item.photos || [],
+        id: item.id,
+        title: item.title,
         description: item.description || null,
+        price: item.price,
+        purchase_price: item.purchase_price,
         category: item.category || null,
         condition: item.condition || null,
+        measurements: (item.measurements as any) || {},
+        keywords: item.keywords || [],
+        photos: item.photos || [],
+        price_research: item.price_research || null,
         shipping_cost: item.shipping_cost || null,
-        price_research: null,
+        status: item.status || null,
+        created_at: item.created_at,
+        updated_at: item.updated_at || item.created_at,
         user_id: item.user_id || '',
-        updated_at: item.updated_at || item.created_at
+        is_consignment: item.is_consignment,
+        source_type: item.source_type,
+        net_profit: item.net_profit,
+        profit_margin: item.profit_margin,
+        // Add all other required fields with defaults
+        purchase_date: undefined,
+        source_location: undefined,
+        cost_basis: undefined,
+        fees_paid: undefined,
+        sold_date: undefined,
+        sold_price: undefined,
+        days_to_sell: undefined,
+        performance_notes: undefined,
+        consignment_percentage: undefined,
+        consignor_name: undefined,
+        consignor_contact: undefined,
+        listed_date: undefined
       }));
       
       return { listings: transformedListings, error: null };
