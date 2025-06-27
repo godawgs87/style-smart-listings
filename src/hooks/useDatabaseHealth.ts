@@ -21,18 +21,26 @@ export const useDatabaseHealth = () => {
     const startTime = Date.now();
     
     try {
-      // Simple health check query
+      console.log('🏥 Starting database health check...');
+      
+      // Ultra-simple health check with aggressive timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1500);
+      
       const { data, error } = await supabase
         .from('listings')
         .select('id')
         .limit(1)
-        .single();
+        .abortSignal(controller.signal);
       
+      clearTimeout(timeoutId);
       const responseTime = Date.now() - startTime;
       
       if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows found" which is OK
         throw error;
       }
+      
+      console.log(`✅ Database health check passed in ${responseTime}ms`);
       
       setHealth(prev => ({
         isHealthy: true,
@@ -42,12 +50,13 @@ export const useDatabaseHealth = () => {
       }));
       
       return true;
-    } catch (error) {
-      console.error('Database health check failed:', error);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      console.error(`❌ Database health check failed after ${responseTime}ms:`, error);
       
       setHealth(prev => ({
         isHealthy: false,
-        responseTime: Date.now() - startTime,
+        responseTime,
         lastChecked: new Date(),
         errorCount: prev.errorCount + 1
       }));
@@ -60,8 +69,8 @@ export const useDatabaseHealth = () => {
     // Initial health check
     checkHealth();
     
-    // Periodic health checks every 30 seconds
-    const interval = setInterval(checkHealth, 30000);
+    // Periodic health checks every 45 seconds (less frequent to reduce load)
+    const interval = setInterval(checkHealth, 45000);
     
     return () => clearInterval(interval);
   }, []);

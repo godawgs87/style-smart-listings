@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Database, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { Database, AlertCircle, CheckCircle, Clock, Wifi, WifiOff } from 'lucide-react';
 import { useDatabaseHealth } from '@/hooks/useDatabaseHealth';
 
 const DatabaseHealthIndicator = () => {
@@ -9,23 +9,26 @@ const DatabaseHealthIndicator = () => {
 
   const getStatusColor = () => {
     if (!health.lastChecked) return 'bg-gray-100 text-gray-800';
-    if (health.errorCount > 3) return 'bg-red-100 text-red-800';
-    if (health.errorCount > 0) return 'bg-yellow-100 text-yellow-800';
+    if (health.errorCount > 5) return 'bg-red-100 text-red-800';
+    if (health.errorCount > 2) return 'bg-yellow-100 text-yellow-800';
+    if (health.responseTime && health.responseTime > 3000) return 'bg-orange-100 text-orange-800';
     return 'bg-green-100 text-green-800';
   };
 
   const getStatusIcon = () => {
     if (!health.lastChecked) return <Clock className="w-3 h-3" />;
-    if (health.errorCount > 3) return <AlertCircle className="w-3 h-3" />;
-    if (health.errorCount > 0) return <Database className="w-3 h-3" />;
-    return <CheckCircle className="w-3 h-3" />;
+    if (health.errorCount > 5) return <WifiOff className="w-3 h-3" />;
+    if (health.errorCount > 2) return <AlertCircle className="w-3 h-3" />;
+    if (health.responseTime && health.responseTime > 3000) return <Database className="w-3 h-3" />;
+    return <Wifi className="w-3 h-3" />;
   };
 
   const getStatusText = () => {
     if (!health.lastChecked) return 'Checking...';
-    if (health.errorCount > 3) return 'DB Issues';
-    if (health.errorCount > 0) return 'Slow DB';
-    return 'DB Healthy';
+    if (health.errorCount > 5) return 'DB Down';
+    if (health.errorCount > 2) return 'DB Issues';
+    if (health.responseTime && health.responseTime > 3000) return 'DB Slow';
+    return 'DB OK';
   };
 
   return (

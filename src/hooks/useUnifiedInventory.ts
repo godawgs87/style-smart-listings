@@ -31,7 +31,16 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
   // Cached data for offline mode
   const [cachedListings, setCachedListings] = useState<Listing[]>([]);
 
-  const fetchWithTimeout = async (query: any, timeoutMs: number = 3000) => {
+  console.log('🔄 useUnifiedInventory render:', {
+    loading,
+    error,
+    usingFallback,
+    listingsCount: listings.length,
+    cachedCount: cachedListings.length,
+    options
+  });
+
+  const fetchWithTimeout = async (query: any, timeoutMs: number = 2000) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -42,7 +51,7 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
     } catch (error: any) {
       clearTimeout(timeoutId);
       if (error.name === 'AbortError') {
-        throw new Error('Query timeout');
+        throw new Error('Database query timeout');
       }
       throw error;
     }
@@ -52,7 +61,7 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
     if (!mountedRef.current || isCurrentlyFetching) return;
 
     const now = Date.now();
-    if (now - lastFetchTime < 2000) {
+    if (now - lastFetchTime < 1000) {
       console.log('⏸️ Skipping fetch - too frequent');
       return;
     }
@@ -61,30 +70,28 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
     setIsCurrentlyFetching(true);
     setLastFetchTime(now);
 
-    // Only show loading if we don't have cached data
-    if (listings.length === 0 && cachedListings.length === 0) {
-      setLoading(true);
-    }
-
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
+        console.log('❌ No authenticated user');
         setError('Please log in to view your inventory');
         setLoading(false);
         setIsCurrentlyFetching(false);
         return;
       }
 
-      // Ultra-minimal query to avoid timeouts
+      console.log('👤 User authenticated, fetching data...');
+
+      // Simple query with minimal fields and aggressive timeout
       let query = supabase
         .from('listings')
         .select('id, title, price, status, category, photos, created_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(Math.min(options.limit || 20, 15)); // Very conservative limit
+        .limit(Math.min(options.limit || 20, 10)); // Very conservative limit
 
-      // Apply filters only if needed
+      // Apply filters
       if (options.statusFilter && options.statusFilter !== 'all') {
         query = query.eq('status', options.statusFilter);
       }
@@ -97,7 +104,8 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
         query = query.eq('category', options.categoryFilter);
       }
 
-      const { data, error: fetchError } = await fetchWithTimeout(query, 3000);
+      console.log('📡 Executing database query...');
+      const { data, error: fetchError } = await fetchWithTimeout(query, 2000);
 
       if (!mountedRef.current) return;
 
@@ -106,13 +114,15 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
         
         // Use cached data if available
         if (cachedListings.length > 0) {
-          console.log('📚 Using cached data due to database issues');
+          console.log('📚 Using cached data due to database failure');
           setListings(cachedListings);
           setUsingFallback(true);
-          setError('Connection issues - showing cached data');
-        } else {
           setError('Database connection issues. Please try again.');
+        } else {
+          console.log('💥 No cached data available');
+          setListings([]);
           setUsingFallback(false);
+          setError('Database connection issues. Please try again.');
         }
         setLoading(false);
         setIsCurrentlyFetching(false);
@@ -158,9 +168,11 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
       }));
 
       setListings(transformedListings);
-      setCachedListings(transformedListings); // Update cache
+      setCachedListings(transformedListings); // Update cache with fresh data
       setUsingFallback(false);
       setError(null);
+
+      console.log('✅ Data successfully loaded and cached');
 
     } catch (error: any) {
       if (!mountedRef.current) return;
@@ -172,10 +184,12 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
         console.log('📚 Using cached data due to exception');
         setListings(cachedListings);
         setUsingFallback(true);
-        setError('Connection timeout - showing cached data');
+        setError('Database connection timeout - showing cached data');
       } else {
-        setError('Unable to load inventory. Please try again.');
+        console.log('💥 No cached data available for fallback');
+        setListings([]);
         setUsingFallback(false);
+        setError('Unable to load inventory. Please try again.');
       }
     } finally {
       if (mountedRef.current) {
@@ -227,17 +241,20 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
   useEffect(() => {
     mountedRef.current = true;
     
+    // Immediate fetch with small delay
     const timer = setTimeout(() => {
       if (mountedRef.current && !isCurrentlyFetching) {
         fetchInventory();
       }
-    }, 300);
+    }, 100);
 
     return () => {
       clearTimeout(timer);
       mountedRef.current = false;
     };
   }, [fetchInventory]);
+
+  console.log('📊 Final stats:', stats);
 
   return {
     listings,
