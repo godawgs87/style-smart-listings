@@ -38,7 +38,7 @@ export const useListingData = (options: UseListingDataOptions) => {
       console.log('📋 Query options:', queryOptions);
       
       // Add overall timeout for the entire fetch operation
-      const fetchTimeout = new Promise((_, reject) => {
+      const fetchTimeout = new Promise<{ listings: Listing[]; error: 'AUTH_ERROR' | 'CONNECTION_ERROR' | null }>((_, reject) => {
         setTimeout(() => reject(new Error('Fetch operation timeout')), 8000); // 8 second total timeout
       });
       
