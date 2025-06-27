@@ -123,6 +123,7 @@ const VirtualizedInventoryTable = ({
           <List
             ref={ref}
             height={400}
+            width="100%"
             itemCount={itemCount}
             itemSize={ITEM_HEIGHT}
             onItemsRendered={onItemsRendered}
