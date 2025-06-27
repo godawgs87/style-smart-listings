@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
@@ -6,18 +5,14 @@ import { useListings } from '@/hooks/useListings';
 import { useListingDetails } from '@/hooks/useListingDetails';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
 import MobileNavigation from '@/components/MobileNavigation';
-import ListingsTable from '@/components/ListingsTable';
-import UnifiedListingCard from '@/components/UnifiedListingCard';
 import ListingsManagerControls from '@/components/ListingsManagerControls';
 import ListingsLoadingState from '@/components/ListingsLoadingState';
 import ListingsErrorState from '@/components/ListingsErrorState';
-import ListingsEmptyState from '@/components/ListingsEmptyState';
 import QuickFilters from '@/components/listings/QuickFilters';
 import PageInfoDialog from '@/components/PageInfoDialog';
 import InventoryTimeoutError from '@/components/inventory/InventoryTimeoutError';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import ListingPreview from '@/components/ListingPreview';
-import ListingEditor from '@/components/ListingEditor';
+import ListingsManagerContent from '@/components/listings-manager/ListingsManagerContent';
+import ListingsManagerDialogs from '@/components/listings-manager/ListingsManagerDialogs';
 
 interface ListingsManagerProps {
   onBack: () => void;
@@ -51,11 +46,37 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
     limit: 25
   });
 
-  // Get unique categories for filters
   const categories = useMemo(() => {
     const uniqueCategories = [...new Set(listings.map(l => l.category).filter(Boolean))];
     return uniqueCategories as string[];
   }, [listings]);
+
+  const filteredListings = useMemo(() => {
+    return listings.filter(listing => {
+      const matchesSearch = searchTerm === '' || 
+        listing.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        listing.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        listing.category?.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesCategory = categoryFilter === 'all' || listing.category === categoryFilter;
+      const matchesCondition = conditionFilter === 'all' || 
+        listing.condition?.toLowerCase() === conditionFilter;
+
+      const matchesPriceRange = () => {
+        if (priceRangeFilter === 'all') return true;
+        const price = listing.price;
+        switch (priceRangeFilter) {
+          case 'under-25': return price < 25;
+          case '25-100': return price >= 25 && price <= 100;
+          case '100-500': return price > 100 && price <= 500;
+          case 'over-500': return price > 500;
+          default: return true;
+        }
+      };
+
+      return matchesSearch && matchesCategory && matchesCondition && matchesPriceRange();
+    });
+  }, [listings, searchTerm, categoryFilter, conditionFilter, priceRangeFilter]);
 
   const handleSelectListing = (listingId: string, checked: boolean) => {
     setSelectedListings(prev => 
@@ -145,22 +166,9 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
 
   const handlePreviewListing = async (listing: any) => {
     console.log('🎯 handlePreviewListing called for:', listing.id);
-    console.log('🎯 Original listing data:', {
-      title: listing.title,
-      description: listing.description ? 'Has description' : 'No description',
-      measurements: listing.measurements ? 'Has measurements' : 'No measurements'
-    });
     
-    // Load full details for preview
     const details = await loadDetails(listing.id);
-    console.log('🎯 Loaded details:', details ? {
-      description: details.description ? 'Has description' : 'No description',
-      measurements: details.measurements ? 'Has measurements' : 'No measurements',
-      keywords: details.keywords ? `${details.keywords.length} keywords` : 'No keywords'
-    } : 'No details loaded');
-    
     const transformedListing = transformListingForPreview(listing, details);
-    console.log('🎯 Final transformed listing for preview:', transformedListing);
     
     setSelectedListingForDialog(transformedListing);
     setShowPreviewDialog(true);
@@ -169,12 +177,8 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
   const handleEditListing = async (listing: any) => {
     console.log('Edit listing:', listing);
     
-    // Load full details for editing
     const details = await loadDetails(listing.id);
-    console.log('Loaded details for edit:', details);
-    
     const transformedListing = transformListingForEdit(listing, details);
-    console.log('Transformed listing for edit:', transformedListing);
     
     setSelectedListingForDialog({ ...transformedListing, id: listing.id });
     setShowEditDialog(true);
@@ -199,39 +203,6 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
     }
   };
 
-  // Apply filters
-  const filteredListings = useMemo(() => {
-    return listings.filter(listing => {
-      // Search filter
-      const matchesSearch = searchTerm === '' || 
-        listing.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        listing.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        listing.category?.toLowerCase().includes(searchTerm.toLowerCase());
-
-      // Category filter
-      const matchesCategory = categoryFilter === 'all' || listing.category === categoryFilter;
-
-      // Condition filter
-      const matchesCondition = conditionFilter === 'all' || 
-        listing.condition?.toLowerCase() === conditionFilter;
-
-      // Price range filter
-      const matchesPriceRange = () => {
-        if (priceRangeFilter === 'all') return true;
-        const price = listing.price;
-        switch (priceRangeFilter) {
-          case 'under-25': return price < 25;
-          case '25-100': return price >= 25 && price <= 100;
-          case '100-500': return price > 100 && price <= 500;
-          case 'over-500': return price > 500;
-          default: return true;
-        }
-      };
-
-      return matchesSearch && matchesCategory && matchesCondition && matchesPriceRange();
-    });
-  }, [listings, searchTerm, categoryFilter, conditionFilter, priceRangeFilter]);
-
   const activeFiltersCount = [categoryFilter, conditionFilter, priceRangeFilter]
     .filter(filter => filter !== 'all').length;
 
@@ -253,7 +224,6 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
     );
   }
 
-  // Show specific error page for critical errors
   if (error && (error.includes('AUTHENTICATION_ERROR') || error.includes('RLS_POLICY_ERROR') || error.includes('JWT_ERROR'))) {
     return (
       <InventoryTimeoutError
@@ -310,7 +280,7 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
           conditionFilter={conditionFilter}
           onConditionChange={setConditionFilter}
           priceRange={priceRangeFilter}
-          onPriceRangeChange={setPriceRangeFilter}
+          onPriceRangeChange={setPriceRangeChange}
           activeFiltersCount={activeFiltersCount}
           onClearFilters={handleClearFilters}
         />
@@ -319,78 +289,33 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
           <ListingsErrorState error={error} />
         )}
 
-        {viewMode === 'grid' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredListings.map((listing) => (
-              <UnifiedListingCard
-                key={listing.id}
-                listing={listing}
-                isBulkMode={selectedListings.length > 0}
-                isSelected={selectedListings.includes(listing.id)}
-                onSelect={(checked) => handleSelectListing(listing.id, checked)}
-                onEdit={() => handleEditListing(listing)}
-                onPreview={() => handlePreviewListing(listing)}
-                onDelete={() => handleDeleteListing(listing.id)}
-              />
-            ))}
-          </div>
-        )}
+        <ListingsManagerContent
+          viewMode={viewMode}
+          filteredListings={filteredListings}
+          selectedListings={selectedListings}
+          loading={loading}
+          error={error}
+          onSelectListing={handleSelectListing}
+          onSelectAll={handleSelectAll}
+          onUpdateListing={handleUpdateListing}
+          onDeleteListing={handleDeleteListing}
+          onPreviewListing={handlePreviewListing}
+          onEditListing={handleEditListing}
+        />
 
-        {viewMode === 'table' && (
-          <ListingsTable
-            listings={filteredListings}
-            selectedListings={selectedListings}
-            onSelectListing={handleSelectListing}
-            onSelectAll={handleSelectAll}
-            onUpdateListing={handleUpdateListing}
-            onDeleteListing={handleDeleteListing}
-            onPreviewListing={handlePreviewListing}
-            onEditListing={handleEditListing}
-          />
-        )}
-
-        {filteredListings.length === 0 && !loading && !error && (
-          <ListingsEmptyState />
-        )}
+        <ListingsManagerDialogs
+          showPreviewDialog={showPreviewDialog}
+          showEditDialog={showEditDialog}
+          selectedListingForDialog={selectedListingForDialog}
+          onPreviewClose={() => setShowPreviewDialog(false)}
+          onEditClose={() => setShowEditDialog(false)}
+          onSaveEdit={handleSaveEdit}
+          onEditFromPreview={() => {
+            setShowPreviewDialog(false);
+            setShowEditDialog(true);
+          }}
+        />
       </div>
-
-      {/* Preview Dialog */}
-      <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Item Preview</DialogTitle>
-          </DialogHeader>
-          {selectedListingForDialog && (
-            <ListingPreview
-              listing={selectedListingForDialog}
-              onEdit={() => {
-                setShowPreviewDialog(false);
-                setShowEditDialog(true);
-              }}
-              onExport={() => {
-                setShowPreviewDialog(false);
-                // TODO: Handle export/publish action
-              }}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Dialog */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Item</DialogTitle>
-          </DialogHeader>
-          {selectedListingForDialog && (
-            <ListingEditor
-              listing={selectedListingForDialog}
-              onSave={handleSaveEdit}
-              onCancel={() => setShowEditDialog(false)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
 
       {isMobile && (
         <MobileNavigation

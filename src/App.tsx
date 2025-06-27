@@ -23,7 +23,7 @@ const App = () => {
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
-              <Route path="/admin" element={<AdminDashboard onBack={() => window.history.back()} />} />
+              <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/inventory" element={
                 <InventoryManager 
                   onBack={() => window.history.back()} 
