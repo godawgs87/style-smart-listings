@@ -20,31 +20,39 @@ export const useListingsCore = (options: UseListingsCoreOptions = {}) => {
   const [lastFetchTime, setLastFetchTime] = useState<number>(0);
   const [isCurrentlyFetching, setIsCurrentlyFetching] = useState(false);
   const lastOptionsRef = useRef<string>('');
+  const mountedRef = useRef(true);
   
   const { fetchOptimizedListings } = useOptimizedQuery();
   const { getFallbackData, hasFallbackData } = useFallbackData();
   const { toast } = useToast();
 
   const fetchListings = useCallback(async () => {
+    if (!mountedRef.current) return;
+    
     const now = Date.now();
     const currentOptionsKey = JSON.stringify(options);
     
-    // Prevent duplicate fetches
+    // Prevent duplicate fetches with stricter conditions
     if (isCurrentlyFetching) {
       console.log('⏸️ Skipping fetch - another fetch already in progress');
       return;
     }
     
-    // Debounce rapid successive calls
-    if (currentOptionsKey === lastOptionsRef.current && now - lastFetchTime < 2000) {
-      console.log('⏸️ Skipping redundant fetch - same options within 2s');
+    // Increased debounce time and stricter comparison
+    if (currentOptionsKey === lastOptionsRef.current && now - lastFetchTime < 3000) {
+      console.log('⏸️ Skipping redundant fetch - same options within 3s');
       return;
     }
     
-    console.log('🚀 Starting lightweight fetchListings with options:', options);
+    console.log('🚀 Starting fetchListings with options:', options);
     
     setIsCurrentlyFetching(true);
-    setLoading(true);
+    
+    // Only set loading to true if we don't already have data
+    if (listings.length === 0) {
+      setLoading(true);
+    }
+    
     setError(null);
     setLastFetchTime(now);
     lastOptionsRef.current = currentOptionsKey;
@@ -54,12 +62,15 @@ export const useListingsCore = (options: UseListingsCoreOptions = {}) => {
         statusFilter: options.statusFilter,
         categoryFilter: options.categoryFilter, 
         searchTerm: options.searchTerm,
-        limit: Math.min(options.limit || 12, 25) // Keep limit low to prevent timeouts
+        limit: Math.min(options.limit || 12, 25)
       };
 
       console.log('📋 Final query options:', queryOptions);
       
       const result = await fetchOptimizedListings(queryOptions);
+      
+      if (!mountedRef.current) return;
+      
       const { listings: fetchedListings, error: fetchError } = result;
       
       if (fetchError === 'AUTH_ERROR') {
@@ -100,15 +111,19 @@ export const useListingsCore = (options: UseListingsCoreOptions = {}) => {
       }
       
     } catch (error: any) {
+      if (!mountedRef.current) return;
+      
       console.error('💥 Fetch exception:', error);
       setError('DATABASE_ERROR: Failed to load listings.');
       setUsingFallback(false);
       setListings([]);
     } finally {
-      setLoading(false);
-      setIsCurrentlyFetching(false);
+      if (mountedRef.current) {
+        setLoading(false);
+        setIsCurrentlyFetching(false);
+      }
     }
-  }, [options.statusFilter, options.limit, options.searchTerm, options.categoryFilter, fetchOptimizedListings, getFallbackData, hasFallbackData, toast, isCurrentlyFetching]);
+  }, [options.statusFilter, options.limit, options.searchTerm, options.categoryFilter, fetchOptimizedListings, getFallbackData, hasFallbackData, toast, isCurrentlyFetching, listings.length]);
 
   const refetch = useCallback(() => {
     console.log('🔄 Manual refetch triggered');
@@ -143,14 +158,19 @@ export const useListingsCore = (options: UseListingsCoreOptions = {}) => {
   }, [getFallbackData, hasFallbackData, toast]);
 
   useEffect(() => {
-    // Debounce the initial fetch to prevent rapid successive calls
+    mountedRef.current = true;
+    
+    // Single debounced fetch on mount or option changes
     const timer = setTimeout(() => {
-      if (!isCurrentlyFetching) {
+      if (mountedRef.current && !isCurrentlyFetching) {
         fetchListings();
       }
-    }, 300);
+    }, 500); // Increased debounce time
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      mountedRef.current = false;
+    };
   }, [fetchListings]);
 
   return {
