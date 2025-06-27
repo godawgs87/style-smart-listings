@@ -49,20 +49,44 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
       throw new Error('No authenticated user');
     }
 
-    console.log('👤 User authenticated, building optimized query...');
+    console.log('👤 User authenticated, fetching all listing fields...');
 
-    // Build optimized query - fetch only essential fields first
+    // Build query to fetch all available fields from your listings table
     let query = supabase
       .from('listings')
       .select(`
         id,
+        user_id,
         title,
+        description,
         price,
-        status,
         category,
+        condition,
+        measurements,
+        keywords,
         photos,
+        price_research,
+        shipping_cost,
+        status,
         created_at,
-        user_id
+        updated_at,
+        purchase_price,
+        purchase_date,
+        is_consignment,
+        consignment_percentage,
+        consignor_name,
+        consignor_contact,
+        source_location,
+        source_type,
+        cost_basis,
+        fees_paid,
+        net_profit,
+        profit_margin,
+        listed_date,
+        sold_date,
+        sold_price,
+        days_to_sell,
+        performance_notes
       `)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
@@ -84,7 +108,7 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
     const limit = Math.min(options.limit || 25, 50);
     query = query.limit(limit);
 
-    console.log('📡 Executing optimized database query...');
+    console.log('📡 Executing optimized database query with all fields...');
     const startTime = Date.now();
     
     const { data, error } = await query;
@@ -104,40 +128,40 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
 
     console.log(`✅ Successfully fetched ${data.length} real listings from database`);
     
-    // Transform data to match Listing interface
+    // Transform data to match Listing interface with all available fields
     const transformedListings: Listing[] = data.map(item => ({
       id: item.id,
       title: item.title || 'Untitled',
-      description: null,
+      description: item.description,
       price: Number(item.price) || 0,
       category: item.category,
-      condition: null,
-      measurements: {},
-      keywords: null,
-      photos: Array.isArray(item.photos) ? item.photos.filter(p => p && typeof p === 'string') : null,
-      price_research: null,
-      shipping_cost: null,
+      condition: item.condition,
+      measurements: item.measurements || {},
+      keywords: Array.isArray(item.keywords) ? item.keywords : [],
+      photos: Array.isArray(item.photos) ? item.photos.filter(p => p && typeof p === 'string') : [],
+      price_research: item.price_research,
+      shipping_cost: item.shipping_cost,
       status: item.status,
       created_at: item.created_at,
-      updated_at: item.created_at,
-      user_id: user.id,
-      is_consignment: false,
-      source_type: null,
-      net_profit: null,
-      profit_margin: null,
-      purchase_date: undefined,
-      source_location: undefined,
-      cost_basis: undefined,
-      fees_paid: undefined,
-      sold_date: undefined,
-      sold_price: undefined,
-      days_to_sell: undefined,
-      performance_notes: undefined,
-      consignment_percentage: undefined,
-      consignor_name: undefined,
-      consignor_contact: undefined,
-      listed_date: undefined,
-      purchase_price: undefined
+      updated_at: item.updated_at,
+      user_id: item.user_id,
+      purchase_price: item.purchase_price,
+      purchase_date: item.purchase_date,
+      is_consignment: item.is_consignment,
+      consignment_percentage: item.consignment_percentage,
+      consignor_name: item.consignor_name,
+      consignor_contact: item.consignor_contact,
+      source_location: item.source_location,
+      source_type: item.source_type,
+      cost_basis: item.cost_basis,
+      fees_paid: item.fees_paid,
+      net_profit: item.net_profit,
+      profit_margin: item.profit_margin,
+      listed_date: item.listed_date,
+      sold_date: item.sold_date,
+      sold_price: item.sold_price,
+      days_to_sell: item.days_to_sell,
+      performance_notes: item.performance_notes
     }));
 
     return transformedListings;
@@ -158,7 +182,15 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
     setError(null);
 
     try {
-      const realListings = await executeOptimizedQuery();
+      // Create timeout promise that rejects after 8 seconds
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Database query timeout')), 8000)
+      );
+
+      const realListings = await Promise.race([
+        executeOptimizedQuery(),
+        timeoutPromise
+      ]) as Listing[];
       
       if (!mountedRef.current) return;
 
@@ -170,14 +202,21 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
 
       console.log('✅ Real inventory data loaded and cached successfully');
 
+      if (realListings.length > 0) {
+        toast({
+          title: "Inventory Loaded",
+          description: `Successfully loaded ${realListings.length} listings from database.`,
+          variant: "default"
+        });
+      }
+
     } catch (error: any) {
       if (!mountedRef.current) return;
       
       console.error('💥 Failed to fetch real inventory data:', error);
       
-      const isConnectionError = error.message?.includes('timeout') || 
-                              error.message?.includes('AbortError') ||
-                              error.message?.includes('fetch');
+      const isTimeoutError = error.message?.includes('timeout') || 
+                            error.message?.includes('AbortError');
       
       // Try to use cached real data if available
       if (cachedListings.length > 0) {
@@ -185,11 +224,17 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
         setListings(cachedListings);
         setUsingFallback(true);
         setError(null);
+        
+        toast({
+          title: "Using Cached Data",
+          description: `Showing ${cachedListings.length} cached listings due to connection issues.`,
+          variant: "default"
+        });
       } else if (error.message === 'No authenticated user') {
         setError('Please log in to view your inventory');
         setListings([]);
         setUsingFallback(false);
-      } else if (isConnectionError && retryCount < 2) {
+      } else if (isTimeoutError && retryCount < 2) {
         console.log(`🔄 Connection failed, will retry (attempt ${retryCount + 1}/3)`);
         setRetryCount(prev => prev + 1);
         setError('Loading your inventory data...');
@@ -204,9 +249,10 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
         }, 1000 * (retryCount + 1)); // Progressive delay
         return;
       } else {
+        console.log('💥 No cached data available - showing empty state');
         setListings([]);
         setUsingFallback(false);
-        setError('Unable to load inventory data. Please try again.');
+        setError('Database connection issues. Please try again.');
       }
     } finally {
       if (mountedRef.current) {
@@ -214,7 +260,7 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
         setIsCurrentlyFetching(false);
       }
     }
-  }, [options.searchTerm, options.statusFilter, options.categoryFilter, options.limit, cachedListings.length, retryCount]);
+  }, [options.searchTerm, options.statusFilter, options.categoryFilter, options.limit, cachedListings.length, retryCount, toast]);
 
   const refetch = useCallback(() => {
     console.log('🔄 Manual refetch of real data triggered');
@@ -272,7 +318,7 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
     };
   }, [fetchInventory]);
 
-  console.log('📊 Real inventory stats:', stats);
+  console.log('📊 Final stats:', stats);
 
   return {
     listings,

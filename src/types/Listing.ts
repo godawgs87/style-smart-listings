@@ -1,20 +1,10 @@
 
 export interface Listing {
   id: string;
+  user_id: string;
   title: string;
   description: string | null;
   price: number;
-  purchase_price?: number;
-  purchase_date?: string;
-  source_location?: string;
-  source_type?: string;
-  cost_basis?: number;
-  fees_paid?: number;
-  net_profit?: number;
-  sold_date?: string;
-  sold_price?: number;
-  days_to_sell?: number;
-  performance_notes?: string;
   category: string | null;
   condition: string | null;
   measurements: {
@@ -30,11 +20,21 @@ export interface Listing {
   status: string | null;
   created_at: string;
   updated_at: string;
-  user_id: string;
-  is_consignment?: boolean;
-  consignment_percentage?: number;
-  consignor_name?: string;
-  consignor_contact?: string;
-  listed_date?: string;
-  profit_margin?: number;
+  purchase_price?: number | null;
+  purchase_date?: string | null;
+  is_consignment?: boolean | null;
+  consignment_percentage?: number | null;
+  consignor_name?: string | null;
+  consignor_contact?: string | null;
+  source_location?: string | null;
+  source_type?: string | null;
+  cost_basis?: number | null;
+  fees_paid?: number | null;
+  net_profit?: number | null;
+  profit_margin?: number | null;
+  listed_date?: string | null;
+  sold_date?: string | null;
+  sold_price?: number | null;
+  days_to_sell?: number | null;
+  performance_notes?: string | null;
 }
