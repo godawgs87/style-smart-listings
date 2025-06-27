@@ -1,10 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TableCell } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Check, X } from 'lucide-react';
+import { Check, X, Loader2 } from 'lucide-react';
+import { useListingDetails } from '@/hooks/useListingDetails';
 
 interface Listing {
   id: string;
@@ -75,6 +76,8 @@ interface ListingsTableRowEditProps {
 }
 
 const ListingsTableRowEdit = ({ listing, visibleColumns, onSave, onCancel }: ListingsTableRowEditProps) => {
+  const { loadDetails, isLoadingDetails } = useListingDetails();
+  const [detailedListing, setDetailedListing] = useState<any>(listing);
   const [editData, setEditData] = useState({
     title: listing.title,
     price: listing.price,
@@ -84,22 +87,57 @@ const ListingsTableRowEdit = ({ listing, visibleColumns, onSave, onCancel }: Lis
     shipping_cost: listing.shipping_cost || 0,
     purchase_price: listing.purchase_price || 0,
     source_type: listing.source_type || '',
-    source_location: listing.source_location || ''
+    source_location: listing.source_location || '',
+    measurements: listing.measurements || { length: '', width: '', height: '', weight: '' }
   });
 
-  const handleSave = () => {
-    onSave(editData);
+  useEffect(() => {
+    const loadListingDetails = async () => {
+      console.log('Loading details for edit row:', listing.id);
+      const details = await loadDetails(listing.id);
+      if (details) {
+        console.log('Loaded details:', details);
+        const mergedListing = { ...listing, ...details };
+        setDetailedListing(mergedListing);
+        
+        // Update edit data with loaded details
+        setEditData(prev => ({
+          ...prev,
+          measurements: details.measurements || { length: '', width: '', height: '', weight: '' }
+        }));
+      }
+    };
+
+    loadListingDetails();
+  }, [listing.id, loadDetails]);
+
+  const handleMeasurementChange = (field: string, value: string) => {
+    setEditData(prev => ({
+      ...prev,
+      measurements: { ...prev.measurements, [field]: value }
+    }));
   };
+
+  const handleSave = () => {
+    const updates = { ...editData };
+    // Ensure measurements is properly structured
+    if (editData.measurements) {
+      updates.measurements = editData.measurements;
+    }
+    onSave(updates);
+  };
+
+  const isLoading = isLoadingDetails(listing.id);
 
   return (
     <>
       {visibleColumns.image && (
         <TableCell className="sticky left-12 bg-white z-10 border-r">
           <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center">
-            {listing.photos && listing.photos.length > 0 ? (
+            {detailedListing.photos && detailedListing.photos.length > 0 ? (
               <img 
-                src={listing.photos[0]} 
-                alt={listing.title}
+                src={detailedListing.photos[0]} 
+                alt={detailedListing.title}
                 className="w-full h-full object-cover rounded"
               />
             ) : (
@@ -188,10 +226,58 @@ const ListingsTableRowEdit = ({ listing, visibleColumns, onSave, onCancel }: Lis
         </TableCell>
       )}
 
-      {/* Skip non-editable columns for brevity */}
-      {visibleColumns.measurements && <TableCell>-</TableCell>}
-      {visibleColumns.keywords && <TableCell>-</TableCell>}
-      {visibleColumns.description && <TableCell>-</TableCell>}
+      {visibleColumns.measurements && (
+        <TableCell>
+          {isLoading ? (
+            <div className="flex items-center justify-center">
+              <Loader2 className="w-4 h-4 animate-spin" />
+            </div>
+          ) : (
+            <div className="space-y-1 min-w-[120px]">
+              <Input
+                placeholder="Length"
+                value={editData.measurements.length || ''}
+                onChange={(e) => handleMeasurementChange('length', e.target.value)}
+                className="text-xs h-6"
+              />
+              <Input
+                placeholder="Width" 
+                value={editData.measurements.width || ''}
+                onChange={(e) => handleMeasurementChange('width', e.target.value)}
+                className="text-xs h-6"
+              />
+              <Input
+                placeholder="Height"
+                value={editData.measurements.height || ''}
+                onChange={(e) => handleMeasurementChange('height', e.target.value)}
+                className="text-xs h-6"
+              />
+              <Input
+                placeholder="Weight"
+                value={editData.measurements.weight || ''}
+                onChange={(e) => handleMeasurementChange('weight', e.target.value)}
+                className="text-xs h-6"
+              />
+            </div>
+          )}
+        </TableCell>
+      )}
+
+      {visibleColumns.keywords && (
+        <TableCell>
+          <div className="text-sm text-gray-600">
+            {detailedListing.keywords?.join(', ') || '-'}
+          </div>
+        </TableCell>
+      )}
+
+      {visibleColumns.description && (
+        <TableCell>
+          <div className="text-sm text-gray-600 max-w-[200px] truncate">
+            {detailedListing.description || '-'}
+          </div>
+        </TableCell>
+      )}
 
       {visibleColumns.purchasePrice && (
         <TableCell>
@@ -248,8 +334,8 @@ const ListingsTableRowEdit = ({ listing, visibleColumns, onSave, onCancel }: Lis
 
       <TableCell className="sticky right-0 bg-white z-10 border-l">
         <div className="flex space-x-1">
-          <Button size="sm" onClick={handleSave} className="bg-green-600 hover:bg-green-700">
-            <Check className="w-4 h-4" />
+          <Button size="sm" onClick={handleSave} className="bg-green-600 hover:bg-green-700" disabled={isLoading}>
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
           </Button>
           <Button size="sm" variant="outline" onClick={onCancel}>
             <X className="w-4 h-4" />

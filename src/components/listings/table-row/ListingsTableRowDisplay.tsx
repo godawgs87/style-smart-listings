@@ -1,7 +1,7 @@
-
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Loader2 } from 'lucide-react';
 import ImageCell from './cells/ImageCell';
 import TitleCell from './cells/TitleCell';
 import BadgeCell from './cells/BadgeCell';
@@ -9,6 +9,7 @@ import MeasurementsCell from './cells/MeasurementsCell';
 import KeywordsCell from './cells/KeywordsCell';
 import ConsignmentStatusCell from './cells/ConsignmentStatusCell';
 import ProfitCell from './cells/ProfitCell';
+import { useListingDetails } from '@/hooks/useListingDetails';
 
 interface Listing {
   id: string;
@@ -78,11 +79,34 @@ interface ListingsTableRowDisplayProps {
 }
 
 const ListingsTableRowDisplay = ({ listing, index, visibleColumns }: ListingsTableRowDisplayProps) => {
+  const { loadDetails, isLoadingDetails } = useListingDetails();
+  const [detailedListing, setDetailedListing] = useState<any>(listing);
+
+  useEffect(() => {
+    const loadListingDetails = async () => {
+      // Only load details if we need measurements, keywords, or other detailed fields
+      const needsDetails = visibleColumns.measurements || visibleColumns.keywords || visibleColumns.description;
+      
+      if (needsDetails) {
+        console.log('Loading details for display row:', listing.id);
+        const details = await loadDetails(listing.id);
+        if (details) {
+          console.log('Loaded details for display:', details);
+          setDetailedListing({ ...listing, ...details });
+        }
+      }
+    };
+
+    loadListingDetails();
+  }, [listing.id, loadDetails, visibleColumns.measurements, visibleColumns.keywords, visibleColumns.description]);
+
+  const isLoading = isLoadingDetails(listing.id);
+
   return (
     <>
       {visibleColumns.image && (
         <ImageCell 
-          photos={listing.photos}
+          photos={detailedListing.photos || listing.photos}
           title={listing.title}
           listingId={listing.id}
         />
@@ -91,7 +115,7 @@ const ListingsTableRowDisplay = ({ listing, index, visibleColumns }: ListingsTab
       {visibleColumns.title && (
         <TitleCell 
           title={listing.title}
-          description={listing.description}
+          description={detailedListing.description || listing.description}
         />
       )}
 
@@ -120,18 +144,40 @@ const ListingsTableRowDisplay = ({ listing, index, visibleColumns }: ListingsTab
       )}
 
       {visibleColumns.measurements && (
-        <MeasurementsCell measurements={listing.measurements} />
+        <TableCell className="text-sm">
+          {isLoading ? (
+            <div className="flex items-center justify-center">
+              <Loader2 className="w-4 h-4 animate-spin" />
+            </div>
+          ) : (
+            <MeasurementsCell measurements={detailedListing.measurements || listing.measurements} />
+          )}
+        </TableCell>
       )}
 
       {visibleColumns.keywords && (
-        <KeywordsCell keywords={listing.keywords} />
+        <TableCell className="text-sm">
+          {isLoading ? (
+            <div className="flex items-center justify-center">
+              <Loader2 className="w-4 h-4 animate-spin" />
+            </div>
+          ) : (
+            <KeywordsCell keywords={detailedListing.keywords || listing.keywords} />
+          )}
+        </TableCell>
       )}
 
       {visibleColumns.description && (
         <TableCell className="max-w-[200px]">
-          <div className="text-sm text-gray-600 line-clamp-3">
-            {listing.description || '-'}
-          </div>
+          {isLoading ? (
+            <div className="flex items-center justify-center">
+              <Loader2 className="w-4 h-4 animate-spin" />
+            </div>
+          ) : (
+            <div className="text-sm text-gray-600 line-clamp-3">
+              {detailedListing.description || listing.description || '-'}
+            </div>
+          )}
         </TableCell>
       )}
 

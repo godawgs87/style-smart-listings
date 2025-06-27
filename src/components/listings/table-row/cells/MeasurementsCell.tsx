@@ -14,18 +14,19 @@ interface MeasurementsCellProps {
 }
 
 const MeasurementsCell = ({ measurements }: MeasurementsCellProps) => {
-  return (
-    <TableCell className="text-sm">
-      {measurements ? (
-        <div className="space-y-1">
-          {measurements.length && <div>L: {measurements.length}</div>}
-          {measurements.width && <div>W: {measurements.width}</div>}
-          {measurements.height && <div>H: {measurements.height}</div>}
-          {measurements.weight && <div>Wt: {measurements.weight}</div>}
-        </div>
-      ) : '-'}
-    </TableCell>
+  // Handle the case where measurements might be wrapped in a TableCell already
+  const content = measurements ? (
+    <div className="space-y-1">
+      {measurements.length && <div>L: {measurements.length}</div>}
+      {measurements.width && <div>W: {measurements.width}</div>}
+      {measurements.height && <div>H: {measurements.height}</div>}
+      {measurements.weight && <div>Wt: {measurements.weight}</div>}
+    </div>
+  ) : (
+    '-'
   );
+
+  return content;
 };
 
 export default MeasurementsCell;
