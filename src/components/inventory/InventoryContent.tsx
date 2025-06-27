@@ -2,7 +2,7 @@
 import React from 'react';
 import { AlertCircle, RefreshCw, Wifi, WifiOff, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import InventoryCard from '@/components/InventoryCard';
+import UnifiedListingCard from '@/components/UnifiedListingCard';
 import ListingsTable from '@/components/ListingsTable';
 import type { Listing } from '@/types/Listing';
 
@@ -131,9 +131,9 @@ const InventoryContent = ({
       {viewMode === 'grid' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredListings.map((item) => (
-            <InventoryCard
+            <UnifiedListingCard
               key={item.id}
-              item={item}
+              listing={item}
               isBulkMode={isBulkMode}
               isSelected={selectedItems.includes(item.id)}
               onSelect={(checked) => onSelectItem(item.id, checked)}
@@ -141,6 +141,7 @@ const InventoryContent = ({
               onPreview={() => console.log('Preview', item.id)}
               onDelete={() => onDeleteListing(item.id)}
               onDuplicate={onDuplicateListing ? () => onDuplicateListing(item) : undefined}
+              showDuplicate={true}
             />
           ))}
         </div>

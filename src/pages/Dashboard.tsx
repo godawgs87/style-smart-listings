@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Camera, Plus, ArrowUp, List, TrendingUp } from 'lucide-react';
-import MobileHeader from '@/components/MobileHeader';
+import StreamlinedHeader from '@/components/StreamlinedHeader';
 import EnhancedStatsCard from '@/components/dashboard/EnhancedStatsCard';
 
 interface DashboardProps {
@@ -26,7 +26,7 @@ const Dashboard = ({ onCreateListing, onViewListings }: DashboardProps) => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <MobileHeader title="Smart Listing Generator" />
+      <StreamlinedHeader title="Smart Listing Generator" />
       
       {/* Hero Section */}
       <div className="gradient-bg text-white p-6">

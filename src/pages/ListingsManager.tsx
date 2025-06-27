@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
@@ -6,7 +7,7 @@ import { useListingDetails } from '@/hooks/useListingDetails';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
 import MobileNavigation from '@/components/MobileNavigation';
 import ListingsTable from '@/components/ListingsTable';
-import ListingsCardView from '@/components/ListingsCardView';
+import UnifiedListingCard from '@/components/UnifiedListingCard';
 import ListingsManagerControls from '@/components/ListingsManagerControls';
 import ListingsLoadingState from '@/components/ListingsLoadingState';
 import ListingsErrorState from '@/components/ListingsErrorState';
@@ -319,15 +320,20 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
         )}
 
         {viewMode === 'grid' && (
-          <ListingsCardView
-            listings={filteredListings}
-            isBulkMode={selectedListings.length > 0}
-            selectedListings={selectedListings}
-            onSelectListing={handleSelectListing}
-            onEditListing={handleEditListing}
-            onPreviewListing={handlePreviewListing}
-            onDeleteListing={handleDeleteListing}
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {filteredListings.map((listing) => (
+              <UnifiedListingCard
+                key={listing.id}
+                listing={listing}
+                isBulkMode={selectedListings.length > 0}
+                isSelected={selectedListings.includes(listing.id)}
+                onSelect={(checked) => handleSelectListing(listing.id, checked)}
+                onEdit={() => handleEditListing(listing)}
+                onPreview={() => handlePreviewListing(listing)}
+                onDelete={() => handleDeleteListing(listing.id)}
+              />
+            ))}
+          </div>
         )}
 
         {viewMode === 'table' && (

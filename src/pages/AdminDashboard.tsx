@@ -1,361 +1,149 @@
+
 import React, { useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import StreamlinedHeader from '@/components/StreamlinedHeader';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  DollarSign, 
-  Save,
-  User,
-  Bell,
-  Link,
+  Users, 
+  Database, 
+  Activity, 
+  Settings, 
+  AlertTriangle,
   CheckCircle,
-  AlertCircle,
-  Moon,
-  Sun,
-  Settings as SettingsIcon
+  Clock,
+  TrendingUp
 } from 'lucide-react';
-import MobileHeader from '@/components/MobileHeader';
-import Navigation from '@/components/Navigation';
-import PlatformManager from '@/components/active-listings/PlatformManager';
-import { useAuth } from '@/hooks/useAuth';
-import { useTheme } from '@/components/ThemeProvider';
-import { usePlatformData } from '@/hooks/usePlatformData';
-import { useToast } from '@/hooks/use-toast';
 
-interface AdminDashboardProps {
-  onBack: () => void;
-}
-
-const AdminDashboard = ({ onBack }: AdminDashboardProps) => {
+const AdminDashboard = () => {
   const { user } = useAuth();
-  const { theme, toggleTheme } = useTheme();
-  const { platforms, platformListings, loading } = usePlatformData();
-  const { toast } = useToast();
-  const [settings, setSettings] = useState({
-    defaultShippingCost: '9.95',
-    autoCalculateShipping: true,
-    enableEmailNotifications: true,
-    enableDesktopNotifications: false,
-  });
+  const [activeTab, setActiveTab] = useState('overview');
 
-  const [ebayConnection, setEbayConnection] = useState({
-    isConnected: false,
-    devId: '',
-    appId: '',
-    certId: '',
-    userToken: '',
-  });
-
-  const handleSaveSettings = () => {
-    console.log('Saving settings:', settings);
-    toast({
-      title: "Settings Saved",
-      description: "Your settings have been saved successfully.",
-    });
+  // Mock data for demonstration
+  const systemStats = {
+    totalUsers: 1247,
+    activeListings: 3456,
+    totalRevenue: 89340,
+    systemHealth: 'good'
   };
 
-  const handleConnectEbay = () => {
-    console.log('Connecting to eBay with credentials:', {
-      devId: ebayConnection.devId,
-      appId: ebayConnection.appId,
-      certId: ebayConnection.certId
-    });
-    // TODO: Implement eBay OAuth flow
-    setEbayConnection({ ...ebayConnection, isConnected: true });
-    toast({
-      title: "eBay Connected",
-      description: "Successfully connected to eBay API.",
-    });
-  };
-
-  const handleDisconnectEbay = () => {
-    setEbayConnection({
-      isConnected: false,
-      devId: '',
-      appId: '',
-      certId: '',
-      userToken: '',
-    });
-    toast({
-      title: "eBay Disconnected",
-      description: "Successfully disconnected from eBay API.",
-    });
-  };
-
-  // Fixed platform management handlers with proper implementations
-  const handlePlatformToggle = (platformId: string, enabled: boolean) => {
-    console.log('Toggle platform:', platformId, enabled);
-    toast({
-      title: `Platform ${enabled ? 'Enabled' : 'Disabled'}`,
-      description: `${platformId} has been ${enabled ? 'enabled' : 'disabled'}.`,
-    });
-  };
-
-  const handlePlatformSettings = (platformId: string) => {
-    console.log('Open platform settings:', platformId);
-    toast({
-      title: "Platform Settings",
-      description: `Opening settings for ${platformId}. This feature will be available soon.`,
-    });
-  };
-
-  const handleAddPlatform = () => {
-    console.log('Add new platform');
-    toast({
-      title: "Add Platform",
-      description: "Platform addition feature will be available soon.",
-    });
-  };
+  const recentActivity = [
+    { id: 1, user: 'john@example.com', action: 'Created listing', timestamp: '2 mins ago' },
+    { id: 2, user: 'sarah@example.com', action: 'Updated inventory', timestamp: '5 mins ago' },
+    { id: 3, user: 'mike@example.com', action: 'Deleted listing', timestamp: '8 mins ago' }
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-600 dark:text-gray-400 hidden sm:block">Welcome, {user?.email}</span>
-            <Navigation />
-          </div>
-        </div>
-      </div>
-
-      <MobileHeader 
-        title="Settings" 
-        showBack 
-        onBack={onBack}
+    <div className="min-h-screen bg-gray-50">
+      <StreamlinedHeader 
+        title="Admin Dashboard" 
+        userEmail={user?.email}
+        showBack={false}
       />
+      
+      <div className="max-w-7xl mx-auto p-6">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">System Administration</h1>
+          <p className="text-gray-600">Monitor and manage your Smart Listing Generator platform</p>
+        </div>
 
-      <div className="max-w-4xl mx-auto p-6">
-        <Tabs defaultValue="account" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="account">Account</TabsTrigger>
-            <TabsTrigger value="platforms">Platforms</TabsTrigger>
-            <TabsTrigger value="shipping">Shipping</TabsTrigger>
-            <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="system">System</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="account" className="space-y-6">
-            <Card className="p-6 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-              <div className="flex items-center mb-4">
-                <User className="w-5 h-5 mr-2 text-gray-700 dark:text-gray-300" />
-                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Account Information</h2>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-gray-700 dark:text-gray-300">Email</Label>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{user?.email}</p>
+          <TabsContent value="overview" className="space-y-6">
+            {/* System Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <Card className="p-6">
+                <div className="flex items-center">
+                  <Users className="h-8 w-8 text-blue-600" />
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Total Users</p>
+                    <p className="text-2xl font-bold text-gray-900">{systemStats.totalUsers.toLocaleString()}</p>
+                  </div>
                 </div>
-                <div>
-                  <Label className="text-gray-700 dark:text-gray-300">Account Type</Label>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Free Plan</p>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="p-6 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-              <div className="flex items-center mb-4">
-                {theme === 'dark' ? (
-                  <Moon className="w-5 h-5 mr-2 text-gray-700 dark:text-gray-300" />
-                ) : (
-                  <Sun className="w-5 h-5 mr-2 text-gray-700 dark:text-gray-300" />
-                )}
-                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Appearance</h2>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-gray-700 dark:text-gray-300">Dark Mode</Label>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Toggle between light and dark themes</p>
-                </div>
-                <Switch
-                  checked={theme === 'dark'}
-                  onCheckedChange={toggleTheme}
-                />
-              </div>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="platforms" className="space-y-6">
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="text-center">
-                  <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-                  <p className="text-gray-600">Loading platforms...</p>
-                </div>
-              </div>
-            ) : (
-              <PlatformManager
-                platforms={platforms}
-                platformListings={platformListings}
-                onPlatformToggle={handlePlatformToggle}
-                onPlatformSettings={handlePlatformSettings}
-                onAddPlatform={handleAddPlatform}
-              />
-            )}
-
-            <Card className="p-6">
-              <div className="flex items-center mb-4">
-                <Link className="w-5 h-5 mr-2" />
-                <h2 className="text-xl font-bold">eBay Integration</h2>
-              </div>
+              </Card>
               
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center">
-                    {ebayConnection.isConnected ? (
-                      <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-                    ) : (
-                      <AlertCircle className="w-5 h-5 text-orange-500 mr-2" />
-                    )}
-                    <div>
-                      <p className="font-medium">
-                        {ebayConnection.isConnected ? 'Connected to eBay' : 'Not Connected'}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {ebayConnection.isConnected 
-                          ? 'You can now list items directly to eBay' 
-                          : 'Connect your eBay account to start listing items'
-                        }
-                      </p>
-                    </div>
+              <Card className="p-6">
+                <div className="flex items-center">
+                  <Database className="h-8 w-8 text-green-600" />
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Active Listings</p>
+                    <p className="text-2xl font-bold text-gray-900">{systemStats.activeListings.toLocaleString()}</p>
                   </div>
-                  
-                  {ebayConnection.isConnected ? (
-                    <Button variant="outline" onClick={handleDisconnectEbay}>
-                      Disconnect
-                    </Button>
-                  ) : null}
                 </div>
-
-                {!ebayConnection.isConnected && (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="ebayDevId">Developer ID</Label>
-                        <Input
-                          type="text"
-                          id="ebayDevId"
-                          placeholder="Your eBay Developer ID"
-                          value={ebayConnection.devId}
-                          onChange={(e) => setEbayConnection({ ...ebayConnection, devId: e.target.value })}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="ebayAppId">Application ID</Label>
-                        <Input
-                          type="text"
-                          id="ebayAppId"
-                          placeholder="Your eBay Application ID"
-                          value={ebayConnection.appId}
-                          onChange={(e) => setEbayConnection({ ...ebayConnection, appId: e.target.value })}
-                        />
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="ebayCertId">Certificate ID</Label>
-                      <Input
-                        type="text"
-                        id="ebayCertId"
-                        placeholder="Your eBay Certificate ID"
-                        value={ebayConnection.certId}
-                        onChange={(e) => setEbayConnection({ ...ebayConnection, certId: e.target.value })}
-                      />
-                    </div>
-
-                    <div className="bg-blue-50 p-4 rounded-lg">
-                      <p className="text-sm text-blue-800">
-                        <strong>Need eBay API credentials?</strong> Visit the eBay Developers Program to create your application and get your API keys.
-                      </p>
-                    </div>
-
-                    <Button 
-                      onClick={handleConnectEbay}
-                      disabled={!ebayConnection.devId || !ebayConnection.appId || !ebayConnection.certId}
-                      className="w-full"
-                    >
-                      Connect to eBay
-                    </Button>
+              </Card>
+              
+              <Card className="p-6">
+                <div className="flex items-center">
+                  <TrendingUp className="h-8 w-8 text-purple-600" />
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+                    <p className="text-2xl font-bold text-gray-900">${systemStats.totalRevenue.toLocaleString()}</p>
                   </div>
-                )}
+                </div>
+              </Card>
+              
+              <Card className="p-6">
+                <div className="flex items-center">
+                  <CheckCircle className="h-8 w-8 text-green-600" />
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">System Health</p>
+                    <Badge variant="default" className="mt-1">
+                      {systemStats.systemHealth === 'good' ? 'Healthy' : 'Issues'}
+                    </Badge>
+                  </div>
+                </div>
+              </Card>
+            </div>
+
+            {/* Recent Activity */}
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Recent Activity</h3>
+              <div className="space-y-3">
+                {recentActivity.map((activity) => (
+                  <div key={activity.id} className="flex items-center justify-between py-2 border-b last:border-b-0">
+                    <div>
+                      <p className="font-medium">{activity.user}</p>
+                      <p className="text-sm text-gray-600">{activity.action}</p>
+                    </div>
+                    <div className="flex items-center text-sm text-gray-500">
+                      <Clock className="w-4 h-4 mr-1" />
+                      {activity.timestamp}
+                    </div>
+                  </div>
+                ))}
               </div>
             </Card>
           </TabsContent>
 
-          <TabsContent value="shipping" className="space-y-6">
+          <TabsContent value="users">
             <Card className="p-6">
-              <div className="flex items-center mb-4">
-                <DollarSign className="w-5 h-5 mr-2 text-gray-700 dark:text-gray-300" />
-                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Shipping Settings</h2>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="defaultShippingCost" className="text-gray-700 dark:text-gray-300">Default Shipping Cost</Label>
-                  <Input
-                    type="number"
-                    id="defaultShippingCost"
-                    placeholder="9.95"
-                    value={settings.defaultShippingCost}
-                    onChange={(e) => setSettings({ ...settings, defaultShippingCost: e.target.value })}
-                    className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
-                  />
-                </div>
-                <div className="flex items-center space-x-4">
-                  <Label htmlFor="autoCalculateShipping" className="text-gray-700 dark:text-gray-300">Auto Calculate Shipping</Label>
-                  <Switch
-                    id="autoCalculateShipping"
-                    checked={settings.autoCalculateShipping}
-                    onCheckedChange={(checked) => setSettings({ ...settings, autoCalculateShipping: checked })}
-                  />
-                </div>
-              </div>
+              <h3 className="text-lg font-semibold mb-4">User Management</h3>
+              <p className="text-gray-600">User management features coming soon...</p>
             </Card>
           </TabsContent>
 
-          <TabsContent value="notifications" className="space-y-6">
+          <TabsContent value="system">
             <Card className="p-6">
-              <div className="flex items-center mb-4">
-                <Bell className="w-5 h-5 mr-2 text-gray-700 dark:text-gray-300" />
-                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Notifications</h2>
-              </div>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="enableEmailNotifications" className="text-gray-700 dark:text-gray-300">Email Notifications</Label>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Receive updates about your listings via email</p>
-                  </div>
-                  <Switch
-                    id="enableEmailNotifications"
-                    checked={settings.enableEmailNotifications}
-                    onCheckedChange={(checked) => setSettings({ ...settings, enableEmailNotifications: checked })}
-                  />
-                </div>
-                <Separator className="bg-gray-200 dark:bg-gray-600" />
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="enableDesktopNotifications" className="text-gray-700 dark:text-gray-300">Desktop Notifications</Label>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Get browser notifications for important updates</p>
-                  </div>
-                  <Switch
-                    id="enableDesktopNotifications"
-                    checked={settings.enableDesktopNotifications}
-                    onCheckedChange={(checked) => setSettings({ ...settings, enableDesktopNotifications: checked })}
-                  />
-                </div>
-              </div>
+              <h3 className="text-lg font-semibold mb-4">System Monitoring</h3>
+              <p className="text-gray-600">System monitoring tools coming soon...</p>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Platform Settings</h3>
+              <p className="text-gray-600">Platform configuration options coming soon...</p>
             </Card>
           </TabsContent>
         </Tabs>
-
-        <div className="mt-6">
-          <Button onClick={handleSaveSettings} className="w-full gradient-bg text-white">
-            <Save className="w-4 h-4 mr-2" />
-            Save Settings
-          </Button>
-        </div>
       </div>
     </div>
   );
