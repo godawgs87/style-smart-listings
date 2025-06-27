@@ -19,9 +19,16 @@ const SimpleInventoryManager = ({ onCreateListing, onBack }: SimpleInventoryMana
   const [statusFilter, setStatusFilter] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   
-  const { listings, loading, error, stats } = useSimpleInventory({
+  const { listings, loading, error, stats, refetch } = useSimpleInventory({
     searchTerm,
     statusFilter
+  });
+
+  console.log('📊 SimpleInventoryManager render:', {
+    loading,
+    error,
+    listingsCount: listings.length,
+    stats
   });
 
   return (
@@ -49,6 +56,7 @@ const SimpleInventoryManager = ({ onCreateListing, onBack }: SimpleInventoryMana
           listings={listings}
           loading={loading}
           error={error}
+          onRetry={refetch}
         />
       </div>
 

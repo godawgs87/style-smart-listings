@@ -2,7 +2,8 @@
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Image } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Image, RefreshCw } from 'lucide-react';
 
 interface SimpleListing {
   id: string;
@@ -18,9 +19,10 @@ interface SimpleInventoryGridProps {
   listings: SimpleListing[];
   loading: boolean;
   error: string | null;
+  onRetry?: () => void;
 }
 
-const SimpleInventoryGrid = ({ listings, loading, error }: SimpleInventoryGridProps) => {
+const SimpleInventoryGrid = ({ listings, loading, error, onRetry }: SimpleInventoryGridProps) => {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -36,6 +38,12 @@ const SimpleInventoryGrid = ({ listings, loading, error }: SimpleInventoryGridPr
     return (
       <div className="text-center py-12">
         <p className="text-red-600 mb-4">{error}</p>
+        {onRetry && (
+          <Button onClick={onRetry} variant="outline" className="flex items-center gap-2">
+            <RefreshCw className="w-4 h-4" />
+            Try Again
+          </Button>
+        )}
       </div>
     );
   }
@@ -43,7 +51,10 @@ const SimpleInventoryGrid = ({ listings, loading, error }: SimpleInventoryGridPr
   if (listings.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500">No items found</p>
+        <p className="text-gray-500 mb-4">No items found</p>
+        <p className="text-sm text-gray-400">
+          Your inventory will appear here once you create some listings
+        </p>
       </div>
     );
   }
@@ -63,20 +74,27 @@ const SimpleInventoryGrid = ({ listings, loading, error }: SimpleInventoryGridPr
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.style.display = 'none';
-                    target.nextElementSibling?.classList.remove('hidden');
+                    const placeholder = target.nextElementSibling as HTMLElement;
+                    if (placeholder) {
+                      placeholder.classList.remove('hidden');
+                    }
                   }}
                 />
               ) : null}
-              <div className="w-32 h-32 bg-gray-100 rounded-lg flex items-center justify-center">
+              <div className={`w-32 h-32 bg-gray-100 rounded-lg flex items-center justify-center ${listing.photos && listing.photos.length > 0 ? 'hidden' : ''}`}>
                 <Image className="w-8 h-8 text-gray-400" />
               </div>
             </div>
 
             {/* Title */}
-            <h3 className="font-medium text-sm line-clamp-2">{listing.title}</h3>
+            <h3 className="font-medium text-sm line-clamp-2" title={listing.title}>
+              {listing.title}
+            </h3>
 
             {/* Price */}
-            <p className="text-lg font-bold text-green-600">${listing.price}</p>
+            <p className="text-lg font-bold text-green-600">
+              ${typeof listing.price === 'number' ? listing.price.toFixed(2) : listing.price}
+            </p>
 
             {/* Badges */}
             <div className="flex gap-2 flex-wrap">

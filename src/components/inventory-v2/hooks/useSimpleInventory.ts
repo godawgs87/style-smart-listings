@@ -30,33 +30,37 @@ export const useSimpleInventory = ({ searchTerm, statusFilter }: SimpleInventory
     try {
       setLoading(true);
       setError(null);
+      
+      console.log('🔍 Fetching listings with filters:', { searchTerm, statusFilter });
 
       let query = supabase
         .from('listings')
         .select('id, title, price, status, category, photos, created_at')
-        .order('created_at', { ascending: false })
-        .limit(50);
+        .order('created_at', { ascending: false });
 
       // Apply filters
       if (statusFilter !== 'all') {
         query = query.eq('status', statusFilter);
+        console.log('📋 Applied status filter:', statusFilter);
       }
 
       if (searchTerm.trim()) {
         query = query.ilike('title', `%${searchTerm.trim()}%`);
+        console.log('🔍 Applied search filter:', searchTerm);
       }
 
       const { data, error: fetchError } = await query;
 
       if (fetchError) {
-        console.error('Error fetching listings:', fetchError);
-        setError('Failed to load inventory');
+        console.error('❌ Error fetching listings:', fetchError);
+        setError('Failed to load inventory data');
         return;
       }
 
+      console.log('✅ Successfully loaded listings:', data?.length || 0);
       setListings(data || []);
     } catch (err) {
-      console.error('Exception in fetchListings:', err);
+      console.error('💥 Exception in fetchListings:', err);
       setError('An error occurred while loading inventory');
     } finally {
       setLoading(false);
