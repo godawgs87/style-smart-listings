@@ -14,7 +14,7 @@ export const useProgressiveQuery = () => {
     listings: Listing[];
     error: string | null;
   }> => {
-    console.log('🔄 Starting query with photos...');
+    console.log('🔄 Starting optimized query...');
     
     const { data: { user } } = await supabase.auth.getUser();
     
@@ -23,6 +23,7 @@ export const useProgressiveQuery = () => {
     }
 
     try {
+      // First try with only essential columns to avoid timeout
       let query = supabase
         .from('listings')
         .select('id, title, price, status, created_at, photos, category, condition, shipping_cost')
