@@ -79,7 +79,7 @@ export const useProgressiveQuery = () => {
         days_to_sell: null,
         performance_notes: null,
         is_consignment: false,
-        shipping_cost: item.shipping_cost || null,
+        shipping_cost: item.shipping_cost ? Number(item.shipping_cost) : null,
         purchase_price: null,
         net_profit: null,
         profit_margin: null
