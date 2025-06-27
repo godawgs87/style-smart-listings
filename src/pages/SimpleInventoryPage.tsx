@@ -1,17 +1,14 @@
 
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import SimpleInventoryManager from '@/components/inventory-v2/SimpleInventoryManager';
 
 const SimpleInventoryPage = () => {
-  const navigate = useNavigate();
-
   const handleCreateListing = () => {
-    navigate('/create-listing');
+    window.location.href = '/';
   };
 
   const handleBack = () => {
-    navigate('/');
+    window.location.href = '/';
   };
 
   return (

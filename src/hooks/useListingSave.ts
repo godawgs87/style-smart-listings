@@ -28,43 +28,58 @@ export const useListingSave = () => {
         return { success: false, listingId: null };
       }
 
+      // Ensure required fields have default values
+      const safeListingData = {
+        ...listingData,
+        title: listingData.title || 'Untitled Listing',
+        description: listingData.description || '',
+        price: listingData.price || 0,
+        category: listingData.category || 'Uncategorized',
+        condition: listingData.condition || 'Used',
+        measurements: listingData.measurements || {},
+        keywords: listingData.keywords || [],
+        photos: listingData.photos || []
+      };
+
       // Calculate profit if both purchase price and listing price are available
-      let calculatedCostBasis = listingData.purchase_price || 0;
+      let calculatedCostBasis = safeListingData.purchase_price || 0;
       let calculatedNetProfit = null;
       let calculatedProfitMargin = null;
       
-      if (listingData.purchase_price && listingData.price) {
-        calculatedNetProfit = listingData.price - calculatedCostBasis;
+      if (safeListingData.purchase_price && safeListingData.price) {
+        calculatedNetProfit = safeListingData.price - calculatedCostBasis;
         calculatedProfitMargin = calculatedCostBasis > 0 ? (calculatedNetProfit / calculatedCostBasis) * 100 : 0;
       }
 
       const listingToSave = {
-        title: listingData.title,
-        description: listingData.description,
-        price: listingData.price,
-        purchase_price: listingData.purchase_price,
-        purchase_date: listingData.purchase_date,
-        is_consignment: listingData.is_consignment || false,
-        consignment_percentage: listingData.consignment_percentage,
-        consignor_name: listingData.consignor_name,
-        consignor_contact: listingData.consignor_contact,
-        source_location: listingData.source_location,
-        source_type: listingData.source_type,
-        category: listingData.category,
-        condition: listingData.condition,
-        measurements: listingData.measurements,
-        keywords: listingData.keywords || [],
-        photos: listingData.photos || [],
-        price_research: listingData.priceResearch || '', // Map priceResearch to price_research
-        shipping_cost: shippingCost,
+        title: safeListingData.title,
+        description: safeListingData.description,
+        price: safeListingData.price,
+        purchase_price: safeListingData.purchase_price || null,
+        purchase_date: safeListingData.purchase_date || null,
+        is_consignment: safeListingData.is_consignment || false,
+        consignment_percentage: safeListingData.consignment_percentage || null,
+        consignor_name: safeListingData.consignor_name || null,
+        consignor_contact: safeListingData.consignor_contact || null,
+        source_location: safeListingData.source_location || null,
+        source_type: safeListingData.source_type || null,
+        category: safeListingData.category,
+        condition: safeListingData.condition,
+        measurements: safeListingData.measurements,
+        keywords: safeListingData.keywords,
+        photos: safeListingData.photos,
+        price_research: safeListingData.priceResearch || null,
+        shipping_cost: shippingCost || 0,
         status: status,
         cost_basis: calculatedCostBasis,
-        fees_paid: listingData.fees_paid || 0,
+        fees_paid: safeListingData.fees_paid || 0,
         net_profit: calculatedNetProfit,
         profit_margin: calculatedProfitMargin,
         listed_date: status === 'active' ? new Date().toISOString().split('T')[0] : null,
         user_id: user.id
       };
+
+      console.log('Attempting to save listing with data:', listingToSave);
 
       let result;
       let listingId;
@@ -83,7 +98,7 @@ export const useListingSave = () => {
           console.error('Error updating listing:', result.error);
           toast({
             title: "Error",
-            description: "Failed to update listing. Please try again.",
+            description: `Failed to update listing: ${result.error.message}`,
             variant: "destructive"
           });
           return { success: false, listingId: null };
@@ -101,7 +116,7 @@ export const useListingSave = () => {
           console.error('Error creating listing:', result.error);
           toast({
             title: "Error",
-            description: "Failed to save listing. Please try again.",
+            description: `Failed to save listing: ${result.error.message}`,
             variant: "destructive"
           });
           return { success: false, listingId: null };

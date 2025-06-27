@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
@@ -32,10 +31,15 @@ const SimpleInventoryManager = ({ onCreateListing, onBack }: SimpleInventoryMana
     usingFallback
   });
 
+  const handleRetry = () => {
+    console.log('🔄 Retrying inventory fetch...');
+    refetch();
+  };
+
   return (
     <div className={`min-h-screen bg-gray-50 ${isMobile ? 'pb-20' : ''}`}>
       <StreamlinedHeader
-        title="Inventory Manager"
+        title="Manage Inventory"
         showBack
         onBack={onBack}
       />
@@ -57,7 +61,7 @@ const SimpleInventoryManager = ({ onCreateListing, onBack }: SimpleInventoryMana
           listings={listings}
           loading={loading}
           error={error}
-          onRetry={refetch}
+          onRetry={handleRetry}
           usingFallback={usingFallback}
         />
       </div>

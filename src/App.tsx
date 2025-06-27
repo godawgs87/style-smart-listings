@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,6 +10,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import InventoryManager from "./pages/InventoryManager";
 import SimpleInventoryPage from "./pages/SimpleInventoryPage";
 import QATestPage from "./pages/QATestPage";
+import UserSettings from "./pages/UserSettings";
 import NotFound from "./pages/NotFound";
 
 const App = () => {
@@ -26,8 +26,13 @@ const App = () => {
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/inventory" element={
-                <SimpleInventoryPage />
+              <Route path="/settings" element={<UserSettings />} />
+              <Route path="/inventory" element={<SimpleInventoryPage />} />
+              <Route path="/manage-listings" element={
+                <InventoryManager 
+                  onBack={() => window.history.back()} 
+                  onCreateListing={() => window.location.href = '/'} 
+                />
               } />
               <Route path="/inventory-old" element={
                 <InventoryManager 
