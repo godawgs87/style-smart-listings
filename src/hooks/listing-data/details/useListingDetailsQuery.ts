@@ -44,10 +44,10 @@ export const useListingDetailsQuery = () => {
 
       console.log('✅ Successfully fetched listing details:', data);
       
-      // Transform the data to match Listing interface
+      // Transform the data to match Listing interface with proper measurements handling
       const transformedDetails: Partial<Listing> = {
         description: data.description,
-        measurements: typeof data.measurements === 'object' && data.measurements !== null 
+        measurements: data.measurements && typeof data.measurements === 'object' 
           ? data.measurements as { length?: string; width?: string; height?: string; weight?: string; }
           : {},
         keywords: Array.isArray(data.keywords) ? data.keywords : [],

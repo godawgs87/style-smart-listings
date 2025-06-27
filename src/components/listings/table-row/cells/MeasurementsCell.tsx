@@ -14,19 +14,25 @@ interface MeasurementsCellProps {
 }
 
 const MeasurementsCell = ({ measurements }: MeasurementsCellProps) => {
-  // Handle the case where measurements might be wrapped in a TableCell already
-  const content = measurements ? (
+  if (!measurements || typeof measurements !== 'object') {
+    return <span className="text-gray-400">-</span>;
+  }
+
+  // Check if measurements object has any values
+  const hasValues = Object.values(measurements).some(value => value && value.trim() !== '');
+  
+  if (!hasValues) {
+    return <span className="text-gray-400">-</span>;
+  }
+
+  return (
     <div className="space-y-1">
       {measurements.length && <div>L: {measurements.length}</div>}
       {measurements.width && <div>W: {measurements.width}</div>}
       {measurements.height && <div>H: {measurements.height}</div>}
       {measurements.weight && <div>Wt: {measurements.weight}</div>}
     </div>
-  ) : (
-    '-'
   );
-
-  return content;
 };
 
 export default MeasurementsCell;

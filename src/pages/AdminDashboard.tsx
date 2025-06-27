@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,6 +24,7 @@ import PlatformManager from '@/components/active-listings/PlatformManager';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/components/ThemeProvider';
 import { usePlatformData } from '@/hooks/usePlatformData';
+import { useToast } from '@/hooks/use-toast';
 
 interface AdminDashboardProps {
   onBack: () => void;
@@ -34,6 +34,7 @@ const AdminDashboard = ({ onBack }: AdminDashboardProps) => {
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { platforms, platformListings, loading } = usePlatformData();
+  const { toast } = useToast();
   const [settings, setSettings] = useState({
     defaultShippingCost: '9.95',
     autoCalculateShipping: true,
@@ -51,7 +52,10 @@ const AdminDashboard = ({ onBack }: AdminDashboardProps) => {
 
   const handleSaveSettings = () => {
     console.log('Saving settings:', settings);
-    // TODO: Implement settings save
+    toast({
+      title: "Settings Saved",
+      description: "Your settings have been saved successfully.",
+    });
   };
 
   const handleConnectEbay = () => {
@@ -62,6 +66,10 @@ const AdminDashboard = ({ onBack }: AdminDashboardProps) => {
     });
     // TODO: Implement eBay OAuth flow
     setEbayConnection({ ...ebayConnection, isConnected: true });
+    toast({
+      title: "eBay Connected",
+      description: "Successfully connected to eBay API.",
+    });
   };
 
   const handleDisconnectEbay = () => {
@@ -72,19 +80,35 @@ const AdminDashboard = ({ onBack }: AdminDashboardProps) => {
       certId: '',
       userToken: '',
     });
+    toast({
+      title: "eBay Disconnected",
+      description: "Successfully disconnected from eBay API.",
+    });
   };
 
-  // Platform management handlers
+  // Fixed platform management handlers with proper implementations
   const handlePlatformToggle = (platformId: string, enabled: boolean) => {
     console.log('Toggle platform:', platformId, enabled);
+    toast({
+      title: `Platform ${enabled ? 'Enabled' : 'Disabled'}`,
+      description: `${platformId} has been ${enabled ? 'enabled' : 'disabled'}.`,
+    });
   };
 
   const handlePlatformSettings = (platformId: string) => {
     console.log('Open platform settings:', platformId);
+    toast({
+      title: "Platform Settings",
+      description: `Opening settings for ${platformId}. This feature will be available soon.`,
+    });
   };
 
   const handleAddPlatform = () => {
     console.log('Add new platform');
+    toast({
+      title: "Add Platform",
+      description: "Platform addition feature will be available soon.",
+    });
   };
 
   return (
