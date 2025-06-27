@@ -17,12 +17,12 @@ export const useOptimizedQuery = () => {
     const { statusFilter, categoryFilter, searchTerm, limit } = options;
     
     try {
-      console.log('🚀 Starting ultra-lightweight query...');
+      console.log('🚀 Starting ultra-lightweight query without photos...');
       console.log('📋 Query options:', options);
 
       const startTime = Date.now();
       
-      // Use the most lightweight query possible with minimal columns
+      // Exclude photos completely from the main query for better performance
       let query = supabase
         .from('listings')
         .select(`
@@ -48,13 +48,13 @@ export const useOptimizedQuery = () => {
       // Order and limit - use the most optimized index
       const { data, error } = await query
         .order('created_at', { ascending: false })
-        .limit(Math.min(limit, 25)); // Cap at 25 to prevent timeouts
+        .limit(Math.min(limit, 20)); // Reduced limit for better performance
 
       const duration = Date.now() - startTime;
-      console.log(`⏱️ Lightweight query completed in ${duration}ms`);
+      console.log(`⏱️ Photo-free query completed in ${duration}ms`);
 
       if (error) {
-        console.error('❌ Lightweight query error:', error);
+        console.error('❌ Query error:', error);
         
         if (error.code === 'PGRST301' || error.message?.includes('JWT')) {
           return { listings: [], error: 'AUTH_ERROR' };
@@ -63,9 +63,9 @@ export const useOptimizedQuery = () => {
         return { listings: [], error: 'CONNECTION_ERROR' };
       }
 
-      console.log(`✅ Fetched ${data?.length || 0} listings with lightweight query`);
+      console.log(`✅ Fetched ${data?.length || 0} listings without photos`);
       
-      // Transform the data to match the Listing interface with minimal data
+      // Transform the data to match the Listing interface
       const transformedListings: Listing[] = (data || []).map(item => ({
         id: item.id,
         title: item.title,
@@ -76,7 +76,7 @@ export const useOptimizedQuery = () => {
         condition: item.condition || null,
         measurements: {},
         keywords: [],
-        photos: [], // Don't load photos in main query to prevent timeouts
+        photos: null, // Always null - images handled by imageService
         price_research: null,
         shipping_cost: item.shipping_cost || null,
         status: item.status || null,
@@ -105,7 +105,7 @@ export const useOptimizedQuery = () => {
       return { listings: transformedListings, error: null };
       
     } catch (error: any) {
-      console.error('💥 Exception in lightweight query:', error);
+      console.error('💥 Exception in photo-free query:', error);
       
       if (error.message?.includes('JWT') || error.message?.includes('authentication')) {
         return { listings: [], error: 'AUTH_ERROR' };

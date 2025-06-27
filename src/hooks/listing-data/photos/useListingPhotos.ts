@@ -6,6 +6,7 @@ export const useListingPhotos = () => {
   const [loadingPhotos, setLoadingPhotos] = useState<Set<string>>(new Set());
   const [photosCache, setPhotosCache] = useState<Map<string, string[]>>(new Map());
 
+  // Simplified version - only load photos when explicitly requested
   const loadPhotos = useCallback(async (listingId: string): Promise<string[]> => {
     // Return cached photos if available
     if (photosCache.has(listingId)) {
