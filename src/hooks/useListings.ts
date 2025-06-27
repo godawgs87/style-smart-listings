@@ -4,6 +4,7 @@ import { useOptimizedQuery } from './listing-data/useOptimizedQuery';
 import { useFallbackData } from './listing-data/useFallbackData';
 import { useListingOperations } from './useListingOperations';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import type { Listing } from '@/types/Listing';
 
 interface UseListingsOptions {
