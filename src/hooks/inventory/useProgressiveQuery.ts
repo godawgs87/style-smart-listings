@@ -14,7 +14,7 @@ export const useProgressiveQuery = () => {
     listings: Listing[];
     error: string | null;
   }> => {
-    console.log('🔄 Starting simple query...');
+    console.log('🔄 Starting query with photos...');
     
     const { data: { user } } = await supabase.auth.getUser();
     
@@ -25,7 +25,7 @@ export const useProgressiveQuery = () => {
     try {
       let query = supabase
         .from('listings')
-        .select('id, title, price, status, created_at')
+        .select('id, title, price, status, created_at, photos, category, condition')
         .eq('user_id', user.id);
 
       if (options.statusFilter && options.statusFilter !== 'all') {
@@ -48,19 +48,20 @@ export const useProgressiveQuery = () => {
         };
       }
 
-      console.log(`✅ Query succeeded: ${data?.length || 0} items loaded`);
+      console.log(`✅ Query succeeded: ${data?.length || 0} items loaded with photos`);
       
       const transformedListings: Listing[] = (data || []).map(item => ({
         id: item.id || '',
         title: item.title || 'Untitled',
         price: Number(item.price) || 0,
         status: item.status || 'draft',
-        category: null,
+        category: item.category || null,
+        condition: item.condition || null,
         created_at: item.created_at || new Date().toISOString(),
         updated_at: item.created_at || new Date().toISOString(),
+        photos: Array.isArray(item.photos) ? item.photos : [],
         measurements: {},
         keywords: [],
-        photos: [],
         user_id: user.id,
         description: null,
         purchase_date: null,
@@ -78,7 +79,6 @@ export const useProgressiveQuery = () => {
         days_to_sell: null,
         performance_notes: null,
         is_consignment: false,
-        condition: null,
         shipping_cost: null,
         purchase_price: null,
         net_profit: null,
