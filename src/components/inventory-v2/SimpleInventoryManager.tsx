@@ -8,7 +8,7 @@ import SimpleInventoryControls from './SimpleInventoryControls';
 import SimpleInventoryGrid from './SimpleInventoryGrid';
 import SimpleInventoryStats from './SimpleInventoryStats';
 import { Card } from '@/components/ui/card';
-import { RefreshCw, Database, WifiOff, CheckCircle, AlertTriangle } from 'lucide-react';
+import { RefreshCw, WifiOff, CheckCircle, AlertTriangle, Database } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface SimpleInventoryManagerProps {
@@ -36,17 +36,18 @@ const SimpleInventoryManager = ({ onCreateListing, onBack }: SimpleInventoryMana
   });
 
   const handleRetry = () => {
-    console.log('🔄 Manual retry triggered...');
+    console.log('🔄 Manual retry to fetch real data...');
     refetch();
   };
 
-  // Check for connection issues
   const hasConnectionError = error && (
     error.includes('timeout') || 
     error.includes('Connection') || 
-    error.includes('Database') ||
+    error.includes('Unable to load') ||
     error.includes('issues')
   );
+
+  const isLoadingData = error && error.includes('Loading your inventory');
 
   return (
     <div className={`min-h-screen bg-gray-50 ${isMobile ? 'pb-20' : ''}`}>
@@ -57,15 +58,30 @@ const SimpleInventoryManager = ({ onCreateListing, onBack }: SimpleInventoryMana
       />
       
       <div className="max-w-7xl mx-auto p-4 space-y-6">
+        {/* Show loading state for retry attempts */}
+        {isLoadingData && (
+          <Card className="p-4 border-blue-200 bg-blue-50">
+            <div className="flex items-center gap-3">
+              <Database className="w-5 h-5 text-blue-600 animate-pulse" />
+              <div className="flex-1">
+                <h3 className="font-medium text-blue-800">Loading Your Inventory</h3>
+                <p className="text-sm mt-1 text-blue-700">
+                  Fetching your real listings data from the database...
+                </p>
+              </div>
+            </div>
+          </Card>
+        )}
+
         {/* Show connection error */}
-        {hasConnectionError && !usingFallback && (
+        {hasConnectionError && !usingFallback && !isLoadingData && (
           <Card className="p-4 border-red-200 bg-red-50">
             <div className="flex items-center gap-3">
               <AlertTriangle className="w-5 h-5 text-red-600" />
               <div className="flex-1">
                 <h3 className="font-medium text-red-800">Database Connection Issues</h3>
                 <p className="text-sm mt-1 text-red-700">
-                  Unable to load your inventory data. Please try again.
+                  Unable to load your real inventory data from the database.
                 </p>
               </div>
               <Button 
@@ -81,7 +97,7 @@ const SimpleInventoryManager = ({ onCreateListing, onBack }: SimpleInventoryMana
           </Card>
         )}
 
-        {/* Show fallback notice when using cached data */}
+        {/* Show fallback notice when using cached real data */}
         {usingFallback && (
           <Card className="p-4 border-yellow-200 bg-yellow-50">
             <div className="flex items-center gap-3">
@@ -89,7 +105,7 @@ const SimpleInventoryManager = ({ onCreateListing, onBack }: SimpleInventoryMana
               <div className="flex-1">
                 <h3 className="font-medium text-yellow-800">Using Cached Data</h3>
                 <p className="text-sm mt-1 text-yellow-700">
-                  Database queries are timing out. Showing previously loaded data.
+                  Showing previously loaded inventory data due to connection issues.
                 </p>
               </div>
               <Button 
@@ -99,19 +115,19 @@ const SimpleInventoryManager = ({ onCreateListing, onBack }: SimpleInventoryMana
                 className="border-yellow-300 text-yellow-700 hover:bg-yellow-100"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
-                Try Again
+                Refresh
               </Button>
             </div>
           </Card>
         )}
 
-        {/* Show success notice when data loads properly */}
+        {/* Show success notice when real data loads */}
         {!loading && !error && !usingFallback && listings.length > 0 && (
           <Card className="p-3 border-green-200 bg-green-50">
             <div className="flex items-center gap-2">
               <CheckCircle className="w-4 h-4 text-green-600" />
               <p className="text-sm text-green-700">
-                Inventory loaded successfully ({listings.length} items)
+                Real inventory data loaded successfully ({listings.length} items from database)
               </p>
             </div>
           </Card>
