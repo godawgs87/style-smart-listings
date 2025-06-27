@@ -1,78 +1,83 @@
 
-import { useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import type { Listing } from '@/types/Listing';
 import type { UnifiedInventoryOptions, InventoryStats } from './inventory/types';
-import { useInventoryState } from './inventory/useInventoryState';
-import { useInventoryStats } from './inventory/useInventoryStats';
-import { useInventoryFetch } from './inventory/useInventoryFetch';
+import { useInventoryData } from './inventory/useInventoryData';
 
 export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
-  const {
-    listings,
-    setListings,
-    loading,
-    setLoading,
-    error,
-    setError,
-    usingFallback,
-    setUsingFallback,
-    lastFetchTime,
-    setLastFetchTime,
-    isCurrentlyFetching,
-    setIsCurrentlyFetching,
-    retryCount,
-    setRetryCount,
-    mountedRef,
-    cachedListings,
-    setCachedListings
-  } = useInventoryState();
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [cachedListings, setCachedListings] = useState<Listing[]>([]);
+  const [usingFallback, setUsingFallback] = useState(false);
+  const mountedRef = useRef(true);
+  const { toast } = useToast();
+  const { fetchInventory } = useInventoryData();
 
-  console.log('🔄 useUnifiedInventory render:', {
-    loading,
-    error,
-    usingFallback,
-    listingsCount: listings.length,
-    cachedCount: cachedListings.length,
-    retryCount,
-    options
-  });
+  const stats: InventoryStats = useMemo(() => ({
+    totalItems: listings.length,
+    totalValue: listings.reduce((sum, item) => sum + (item.price || 0), 0),
+    activeItems: listings.filter(item => item.status === 'active').length,
+    draftItems: listings.filter(item => item.status === 'draft').length
+  }), [listings]);
 
-  const { fetchInventory, refetch, forceOfflineMode } = useInventoryFetch({
-    options,
-    mountedRef,
-    isCurrentlyFetching,
-    setIsCurrentlyFetching,
-    lastFetchTime,
-    setLastFetchTime,
-    setError,
-    setListings,
-    setCachedListings,
-    setUsingFallback,
-    setLoading,
-    retryCount,
-    setRetryCount,
-    cachedListings
-  });
+  const loadData = useCallback(async () => {
+    if (!mountedRef.current) return;
 
-  // Calculate stats from real data
-  const stats: InventoryStats = useInventoryStats(listings);
+    setLoading(true);
+    setError(null);
+
+    try {
+      const data = await fetchInventory(options);
+      
+      if (!mountedRef.current) return;
+
+      setListings(data);
+      setCachedListings(data);
+      setUsingFallback(false);
+      
+      if (data.length > 0) {
+        toast({
+          title: "Inventory Loaded",
+          description: `Successfully loaded ${data.length} items.`,
+        });
+      }
+    } catch (err: any) {
+      if (!mountedRef.current) return;
+      
+      console.error('Failed to fetch inventory:', err);
+      
+      if (cachedListings.length > 0) {
+        setListings(cachedListings);
+        setUsingFallback(true);
+        toast({
+          title: "Using Cached Data",
+          description: "Connection issues, showing cached data.",
+          variant: "default"
+        });
+      } else {
+        setError(err.message || 'Failed to load inventory');
+      }
+    } finally {
+      if (mountedRef.current) {
+        setLoading(false);
+      }
+    }
+  }, [options.searchTerm, options.statusFilter, options.categoryFilter, options.limit, fetchInventory, cachedListings.length, toast]);
+
+  const refetch = useCallback(() => {
+    loadData();
+  }, [loadData]);
 
   useEffect(() => {
     mountedRef.current = true;
+    loadData();
     
-    // Initial fetch of real data
-    const timer = setTimeout(() => {
-      if (mountedRef.current && !isCurrentlyFetching) {
-        fetchInventory();
-      }
-    }, 100);
-
     return () => {
-      clearTimeout(timer);
       mountedRef.current = false;
     };
-  }, [fetchInventory, isCurrentlyFetching, mountedRef]);
-
-  console.log('📊 Final stats:', stats);
+  }, [loadData]);
 
   return {
     listings,
@@ -80,10 +85,8 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
     error,
     usingFallback,
     stats,
-    refetch,
-    forceOfflineMode
+    refetch
   };
 };
 
-// Re-export types for convenience
 export type { UnifiedInventoryOptions, InventoryStats };

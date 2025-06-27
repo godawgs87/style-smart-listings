@@ -1,6 +1,6 @@
 
 import React from 'react';
-import SimpleInventoryManager from '@/components/inventory-v2/SimpleInventoryManager';
+import UnifiedInventoryManager from '@/components/inventory/UnifiedInventoryManager';
 
 const SimpleInventoryPage = () => {
   const handleCreateListing = () => {
@@ -12,7 +12,7 @@ const SimpleInventoryPage = () => {
   };
 
   return (
-    <SimpleInventoryManager
+    <UnifiedInventoryManager
       onCreateListing={handleCreateListing}
       onBack={handleBack}
     />

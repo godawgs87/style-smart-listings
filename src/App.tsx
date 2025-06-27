@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -33,12 +32,6 @@ const App = () => {
               <Route path="/manage-listings" element={
                 <ListingsManager 
                   onBack={() => window.history.back()} 
-                />
-              } />
-              <Route path="/inventory-old" element={
-                <InventoryManager 
-                  onBack={() => window.history.back()} 
-                  onCreateListing={() => window.location.href = '/'} 
                 />
               } />
               <Route path="/qa-tests" element={<QATestPage />} />
