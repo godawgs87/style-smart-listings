@@ -8,7 +8,7 @@ import SimpleInventoryControls from './SimpleInventoryControls';
 import SimpleInventoryGrid from './SimpleInventoryGrid';
 import SimpleInventoryStats from './SimpleInventoryStats';
 import { Card } from '@/components/ui/card';
-import { RefreshCw, Database, WifiOff, CheckCircle } from 'lucide-react';
+import { RefreshCw, Database, WifiOff, CheckCircle, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface SimpleInventoryManagerProps {
@@ -40,16 +40,13 @@ const SimpleInventoryManager = ({ onCreateListing, onBack }: SimpleInventoryMana
     refetch();
   };
 
-  // Only show connection issues if there's an actual error AND it's connection-related
+  // Check for connection issues
   const hasConnectionError = error && (
     error.includes('timeout') || 
     error.includes('Connection') || 
     error.includes('Database') ||
     error.includes('issues')
   );
-
-  // Show fallback notice only if using cached data
-  const showFallbackNotice = usingFallback && !loading;
 
   return (
     <div className={`min-h-screen bg-gray-50 ${isMobile ? 'pb-20' : ''}`}>
@@ -60,21 +57,16 @@ const SimpleInventoryManager = ({ onCreateListing, onBack }: SimpleInventoryMana
       />
       
       <div className="max-w-7xl mx-auto p-4 space-y-6">
-        {/* Show connection error only when there's an actual error */}
+        {/* Show connection error */}
         {hasConnectionError && !usingFallback && (
           <Card className="p-4 border-red-200 bg-red-50">
             <div className="flex items-center gap-3">
-              <Database className="w-5 h-5 text-red-600" />
+              <AlertTriangle className="w-5 h-5 text-red-600" />
               <div className="flex-1">
                 <h3 className="font-medium text-red-800">Database Connection Issues</h3>
                 <p className="text-sm mt-1 text-red-700">
-                  Database is experiencing high load. This may affect data freshness.
+                  Unable to load your inventory data. Please try again.
                 </p>
-                {error && (
-                  <p className="text-xs mt-1 font-mono text-gray-600">
-                    Error: {error}
-                  </p>
-                )}
               </div>
               <Button 
                 onClick={handleRetry} 
@@ -83,14 +75,14 @@ const SimpleInventoryManager = ({ onCreateListing, onBack }: SimpleInventoryMana
                 className="border-red-300 text-red-700 hover:bg-red-100"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
-                Retry Connection
+                Try Again
               </Button>
             </div>
           </Card>
         )}
 
         {/* Show fallback notice when using cached data */}
-        {showFallbackNotice && (
+        {usingFallback && (
           <Card className="p-4 border-yellow-200 bg-yellow-50">
             <div className="flex items-center gap-3">
               <WifiOff className="w-5 h-5 text-yellow-600" />
@@ -119,7 +111,7 @@ const SimpleInventoryManager = ({ onCreateListing, onBack }: SimpleInventoryMana
             <div className="flex items-center gap-2">
               <CheckCircle className="w-4 h-4 text-green-600" />
               <p className="text-sm text-green-700">
-                Data loaded successfully ({listings.length} items)
+                Inventory loaded successfully ({listings.length} items)
               </p>
             </div>
           </Card>

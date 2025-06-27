@@ -40,7 +40,7 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
     options
   });
 
-  const fetchWithTimeout = async (query: any, timeoutMs: number = 3000) => {
+  const fetchWithTimeout = async (query: any, timeoutMs: number = 5000) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -106,7 +106,7 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
       }
 
       console.log('📡 Executing database query...');
-      const { data, error: fetchError } = await fetchWithTimeout(query, 3000);
+      const { data, error: fetchError } = await fetchWithTimeout(query, 5000);
 
       if (!mountedRef.current) return;
 
@@ -120,7 +120,7 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
           setUsingFallback(true);
           setError(null); // Don't show error when we have fallback data
         } else {
-          console.log('💥 No cached data available');
+          console.log('💥 No cached data available - showing empty state');
           setListings([]);
           setUsingFallback(false);
           setError('Database connection issues. Please try again.');
