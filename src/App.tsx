@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,6 +9,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import Index from "./pages/Index";
 import AdminDashboard from "./pages/AdminDashboard";
 import InventoryManager from "./pages/InventoryManager";
+import ListingsManager from "./pages/ListingsManager";
 import SimpleInventoryPage from "./pages/SimpleInventoryPage";
 import QATestPage from "./pages/QATestPage";
 import UserSettings from "./pages/UserSettings";
@@ -29,9 +31,8 @@ const App = () => {
               <Route path="/settings" element={<UserSettings />} />
               <Route path="/inventory" element={<SimpleInventoryPage />} />
               <Route path="/manage-listings" element={
-                <InventoryManager 
+                <ListingsManager 
                   onBack={() => window.history.back()} 
-                  onCreateListing={() => window.location.href = '/'} 
                 />
               } />
               <Route path="/inventory-old" element={

@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { fallbackDataService } from '@/services/fallbackDataService';
+import { useToast } from '@/hooks/use-toast';
 
 interface SimpleInventoryOptions {
   searchTerm: string;
@@ -23,10 +23,7 @@ export const useSimpleInventory = ({ searchTerm, statusFilter }: SimpleInventory
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [usingFallback, setUsingFallback] = useState(false);
-
-  useEffect(() => {
-    fetchListings();
-  }, [searchTerm, statusFilter]);
+  const { toast } = useToast();
 
   const fetchListings = async () => {
     try {
@@ -34,98 +31,55 @@ export const useSimpleInventory = ({ searchTerm, statusFilter }: SimpleInventory
       setError(null);
       setUsingFallback(false);
       
-      console.log('🔍 Fetching listings with filters:', { searchTerm, statusFilter });
+      console.log('🔍 Fetching inventory listings...');
 
-      // Set a shorter timeout for the query
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        setError('Please log in to view your inventory');
+        setLoading(false);
+        return;
+      }
 
       let query = supabase
         .from('listings')
         .select('id, title, price, status, category, photos, created_at')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(50); // Limit results to improve performance
+        .limit(100);
 
-      // Apply filters
+      // Apply status filter
       if (statusFilter !== 'all') {
         query = query.eq('status', statusFilter);
-        console.log('📋 Applied status filter:', statusFilter);
       }
 
+      // Apply search filter
       if (searchTerm.trim()) {
         query = query.ilike('title', `%${searchTerm.trim()}%`);
-        console.log('🔍 Applied search filter:', searchTerm);
       }
 
-      const { data, error: fetchError } = await query.abortSignal(controller.signal);
-      clearTimeout(timeoutId);
+      const { data, error: fetchError } = await query;
 
       if (fetchError) {
-        console.error('❌ Database error:', fetchError);
-        
-        // Try fallback data if available
-        if (fallbackDataService.hasFallbackData()) {
-          console.log('🔄 Loading fallback data due to database error');
-          const fallbackData = fallbackDataService.loadFallbackData();
-          const filteredFallback = applyFiltersToFallback(fallbackData, searchTerm, statusFilter);
-          setListings(filteredFallback);
-          setUsingFallback(true);
-          setError('Using cached data - database temporarily unavailable');
-          return;
-        }
-        
-        setError('Failed to load inventory data. Please check your connection and try again.');
+        console.error('❌ Fetch error:', fetchError);
+        setError(`Failed to load inventory: ${fetchError.message}`);
         return;
       }
 
-      console.log('✅ Successfully loaded listings:', data?.length || 0);
-      const processedListings = data || [];
-      setListings(processedListings);
-      
-      // Save successful data as fallback
-      if (processedListings.length > 0) {
-        fallbackDataService.saveFallbackData(processedListings);
-      }
+      console.log('✅ Successfully loaded', data?.length || 0, 'listings');
+      setListings(data || []);
       
     } catch (err: any) {
       console.error('💥 Exception in fetchListings:', err);
-      
-      // Handle timeout or network errors
-      if (err.name === 'AbortError' || err.message?.includes('timeout')) {
-        console.log('⏰ Query timed out, trying fallback data');
-        
-        if (fallbackDataService.hasFallbackData()) {
-          const fallbackData = fallbackDataService.loadFallbackData();
-          const filteredFallback = applyFiltersToFallback(fallbackData, searchTerm, statusFilter);
-          setListings(filteredFallback);
-          setUsingFallback(true);
-          setError('Using cached data - database query timed out');
-          return;
-        }
-      }
-      
-      setError('An error occurred while loading inventory. Please try again.');
+      setError('An error occurred while loading inventory');
     } finally {
       setLoading(false);
     }
   };
 
-  const applyFiltersToFallback = (data: any[], search: string, status: string) => {
-    let filtered = [...data];
-    
-    if (status !== 'all') {
-      filtered = filtered.filter(item => item.status === status);
-    }
-    
-    if (search.trim()) {
-      const searchLower = search.toLowerCase();
-      filtered = filtered.filter(item => 
-        item.title?.toLowerCase().includes(searchLower)
-      );
-    }
-    
-    return filtered;
-  };
+  useEffect(() => {
+    fetchListings();
+  }, [searchTerm, statusFilter]);
 
   const stats = {
     totalItems: listings.length,
@@ -137,9 +91,9 @@ export const useSimpleInventory = ({ searchTerm, statusFilter }: SimpleInventory
   return {
     listings,
     loading,
-    error: usingFallback ? `${error} (${listings.length} items from cache)` : error,
+    error,
     stats,
     refetch: fetchListings,
-    usingFallback
+    usingFallback: false
   };
 };

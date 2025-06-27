@@ -11,13 +11,14 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { User, Bell, Shield, Palette, Database } from 'lucide-react';
+import { User, Bell, Palette, Settings as SettingsIcon } from 'lucide-react';
 
 const UserSettings = () => {
   const isMobile = useIsMobile();
   const { user } = useAuth();
   const [notifications, setNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
+  const [defaultView, setDefaultView] = useState('grid');
 
   const handleBack = () => {
     window.history.back();
@@ -26,7 +27,7 @@ const UserSettings = () => {
   return (
     <div className={`min-h-screen bg-gray-50 ${isMobile ? 'pb-20' : ''}`}>
       <StreamlinedHeader
-        title="Settings"
+        title="Account Settings"
         showBack
         onBack={handleBack}
       />
@@ -37,7 +38,7 @@ const UserSettings = () => {
             <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
             <TabsTrigger value="appearance">Appearance</TabsTrigger>
-            <TabsTrigger value="admin">Admin</TabsTrigger>
+            <TabsTrigger value="advanced">Advanced</TabsTrigger>
           </TabsList>
 
           <TabsContent value="profile" className="space-y-6">
@@ -48,7 +49,7 @@ const UserSettings = () => {
                 </div>
                 <div>
                   <h2 className="text-xl font-semibold">{user?.email}</h2>
-                  <p className="text-gray-600">Account created</p>
+                  <p className="text-gray-600">Your account information</p>
                 </div>
               </div>
 
@@ -60,21 +61,22 @@ const UserSettings = () => {
                     type="email"
                     value={user?.email || ''}
                     disabled
-                    className="mt-1"
+                    className="mt-1 bg-gray-50"
                   />
+                  <p className="text-sm text-gray-500 mt-1">Contact support to change your email</p>
                 </div>
 
                 <div>
                   <Label htmlFor="display-name">Display Name</Label>
                   <Input
                     id="display-name"
-                    placeholder="Your display name"
+                    placeholder="Enter your display name"
                     className="mt-1"
                   />
                 </div>
 
                 <Button className="bg-blue-600 hover:bg-blue-700">
-                  Update Profile
+                  Save Profile Changes
                 </Button>
               </div>
             </Card>
@@ -87,11 +89,11 @@ const UserSettings = () => {
                 <h3 className="text-lg font-semibold">Notification Preferences</h3>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <Label htmlFor="listing-notifications">Listing Updates</Label>
-                    <p className="text-sm text-gray-600">Get notified when listings are viewed or sold</p>
+                    <p className="text-sm text-gray-600">Get notified when your listings are viewed or sold</p>
                   </div>
                   <Switch
                     id="listing-notifications"
@@ -105,7 +107,7 @@ const UserSettings = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <Label htmlFor="price-alerts">Price Alerts</Label>
-                    <p className="text-sm text-gray-600">Get notified about market price changes</p>
+                    <p className="text-sm text-gray-600">Get notified about market price changes for your items</p>
                   </div>
                   <Switch id="price-alerts" />
                 </div>
@@ -115,9 +117,19 @@ const UserSettings = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <Label htmlFor="inventory-reminders">Inventory Reminders</Label>
-                    <p className="text-sm text-gray-600">Reminders to update stale listings</p>
+                    <p className="text-sm text-gray-600">Weekly reminders to update stale listings</p>
                   </div>
                   <Switch id="inventory-reminders" />
+                </div>
+
+                <Separator />
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="email-digest">Weekly Email Digest</Label>
+                    <p className="text-sm text-gray-600">Summary of your selling activity and performance</p>
+                  </div>
+                  <Switch id="email-digest" defaultChecked />
                 </div>
               </div>
             </Card>
@@ -127,14 +139,14 @@ const UserSettings = () => {
             <Card className="p-6">
               <div className="flex items-center space-x-3 mb-6">
                 <Palette className="w-5 h-5 text-gray-600" />
-                <h3 className="text-lg font-semibold">Appearance Settings</h3>
+                <h3 className="text-lg font-semibold">Display Preferences</h3>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <Label htmlFor="dark-mode">Dark Mode</Label>
-                    <p className="text-sm text-gray-600">Use dark theme for the interface</p>
+                    <p className="text-sm text-gray-600">Use dark theme throughout the app</p>
                   </div>
                   <Switch
                     id="dark-mode"
@@ -146,37 +158,85 @@ const UserSettings = () => {
                 <Separator />
 
                 <div>
-                  <Label>Default View</Label>
-                  <p className="text-sm text-gray-600 mb-2">Choose your preferred inventory view</p>
+                  <Label>Default Inventory View</Label>
+                  <p className="text-sm text-gray-600 mb-3">Choose how you want to see your listings by default</p>
                   <div className="flex space-x-2">
-                    <Button variant="outline" size="sm">Grid</Button>
-                    <Button variant="outline" size="sm">Table</Button>
+                    <Button 
+                      variant={defaultView === 'grid' ? 'default' : 'outline'} 
+                      size="sm"
+                      onClick={() => setDefaultView('grid')}
+                    >
+                      Grid View
+                    </Button>
+                    <Button 
+                      variant={defaultView === 'table' ? 'default' : 'outline'} 
+                      size="sm"
+                      onClick={() => setDefaultView('table')}
+                    >
+                      Table View
+                    </Button>
                   </div>
+                </div>
+
+                <Separator />
+
+                <div>
+                  <Label>Items Per Page</Label>
+                  <p className="text-sm text-gray-600 mb-3">How many listings to show at once</p>
+                  <select className="w-full p-2 border rounded-md">
+                    <option value="12">12 items</option>
+                    <option value="24">24 items</option>
+                    <option value="48">48 items</option>
+                  </select>
                 </div>
               </div>
             </Card>
           </TabsContent>
 
-          <TabsContent value="admin" className="space-y-6">
+          <TabsContent value="advanced" className="space-y-6">
             <Card className="p-6">
               <div className="flex items-center space-x-3 mb-6">
-                <Shield className="w-5 h-5 text-gray-600" />
-                <h3 className="text-lg font-semibold">Admin Dashboard</h3>
+                <SettingsIcon className="w-5 h-5 text-gray-600" />
+                <h3 className="text-lg font-semibold">Advanced Settings</h3>
               </div>
 
-              <div className="space-y-4">
-                <Button 
-                  className="w-full justify-start" 
-                  variant="outline"
-                  onClick={() => window.location.href = '/admin'}
-                >
-                  <Database className="w-4 h-4 mr-2" />
-                  Open Admin Dashboard
-                </Button>
+              <div className="space-y-6">
+                <div>
+                  <Label>Data Management</Label>
+                  <p className="text-sm text-gray-600 mb-3">Manage your account data and privacy</p>
+                  <div className="space-y-2">
+                    <Button variant="outline" className="w-full justify-start">
+                      Export My Data
+                    </Button>
+                    <Button variant="outline" className="w-full justify-start">
+                      Download Listings Report
+                    </Button>
+                  </div>
+                </div>
 
-                <p className="text-sm text-gray-600">
-                  Access advanced system settings, user management, and database administration tools.
-                </p>
+                <Separator />
+
+                <div>
+                  <Label>Admin Access</Label>
+                  <p className="text-sm text-gray-600 mb-3">Access advanced admin features</p>
+                  <Button 
+                    variant="outline"
+                    onClick={() => window.location.href = '/admin'}
+                    className="w-full justify-start"
+                  >
+                    Open Admin Dashboard
+                  </Button>
+                </div>
+
+                <Separator />
+
+                <div>
+                  <Label className="text-red-600">Danger Zone</Label>
+                  <p className="text-sm text-gray-600 mb-3">Permanent actions that cannot be undone</p>
+                  <Button variant="destructive" className="w-full">
+                    Delete Account
+                  </Button>
+                </div>
               </div>
             </Card>
           </TabsContent>
