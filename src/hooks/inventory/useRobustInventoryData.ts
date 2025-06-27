@@ -80,7 +80,7 @@ export const useRobustInventoryData = () => {
       
       // Transform the data safely
       const transformedListings: Listing[] = (data || []).map(item => {
-        // Ensure item is an object before spreading
+        // Ensure item is valid and not null
         if (!item || typeof item !== 'object') {
           console.warn('Invalid item received:', item);
           return {
@@ -119,18 +119,21 @@ export const useRobustInventoryData = () => {
           };
         }
 
+        // Type assertion to tell TypeScript that item is not null here
+        const validItem = item as Record<string, any>;
+
         return {
-          id: item.id || '',
-          title: item.title || 'Untitled',
-          price: Number(item.price) || 0,
-          status: item.status || 'draft',
-          category: item.category || null,
-          created_at: item.created_at || new Date().toISOString(),
+          id: validItem.id || '',
+          title: validItem.title || 'Untitled',
+          price: Number(validItem.price) || 0,
+          status: validItem.status || 'draft',
+          category: validItem.category || null,
+          created_at: validItem.created_at || new Date().toISOString(),
           measurements: {},
           keywords: [],
-          photos: Array.isArray(item.photos) ? item.photos.filter(p => p && typeof p === 'string') : [],
+          photos: Array.isArray(validItem.photos) ? validItem.photos.filter((p: any) => p && typeof p === 'string') : [],
           user_id: user.id,
-          description: item.description || null,
+          description: validItem.description || null,
           purchase_date: null,
           cost_basis: null,
           sold_price: null,
@@ -146,12 +149,12 @@ export const useRobustInventoryData = () => {
           days_to_sell: null,
           performance_notes: null,
           is_consignment: false,
-          updated_at: item.created_at || new Date().toISOString(),
+          updated_at: validItem.created_at || new Date().toISOString(),
           condition: null,
-          shipping_cost: item.shipping_cost || null,
-          purchase_price: item.purchase_price || null,
-          net_profit: item.net_profit || null,
-          profit_margin: item.profit_margin || null
+          shipping_cost: validItem.shipping_cost || null,
+          purchase_price: validItem.purchase_price || null,
+          net_profit: validItem.net_profit || null,
+          profit_margin: validItem.profit_margin || null
         };
       });
 
