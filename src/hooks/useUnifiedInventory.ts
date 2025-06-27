@@ -29,7 +29,12 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
     setError(null);
 
     try {
+      // Set a reasonable timeout for the request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
       const data = await fetchInventory(options);
+      clearTimeout(timeoutId);
       
       if (!mountedRef.current) return;
 
@@ -48,7 +53,10 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
       
       console.error('Failed to fetch inventory:', err);
       
-      if (cachedListings.length > 0) {
+      // Better error handling for timeouts
+      if (err.code === '57014' || err.message?.includes('timeout')) {
+        setError('Database query timed out. Try reducing filters or search terms.');
+      } else if (cachedListings.length > 0) {
         setListings(cachedListings);
         setUsingFallback(true);
         toast({
