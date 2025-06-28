@@ -112,16 +112,25 @@ const IndividualItemReview = ({
     };
   };
 
-  // Ensure we have the required ListingData structure
+  // Ensure we have the required ListingData structure with proper type conversion
   const ensureListingData = (): ListingData => {
     const baseData = editedGroup.listingData || {};
+    
+    // Convert measurements to string format as required by ListingData
+    const convertedMeasurements = {
+      length: baseData.measurements?.length ? String(baseData.measurements.length) : '',
+      width: baseData.measurements?.width ? String(baseData.measurements.width) : '',
+      height: baseData.measurements?.height ? String(baseData.measurements.height) : '',
+      weight: baseData.measurements?.weight ? String(baseData.measurements.weight) : ''
+    };
+    
     return {
       title: baseData.title || '',
       description: baseData.description || '',
       price: baseData.price || 0,
       category: baseData.category || '',
       condition: baseData.condition || '',
-      measurements: baseData.measurements || {},
+      measurements: convertedMeasurements,
       photos: baseData.photos || [],
       ...baseData
     };
@@ -180,7 +189,13 @@ const IndividualItemReview = ({
             itemWeight={getWeight()}
             itemDimensions={getDimensions()}
             onShippingSelect={handleShippingSelect}
-            selectedOption={editedGroup.selectedShipping}
+            selectedOption={editedGroup.selectedShipping ? {
+              id: editedGroup.selectedShipping.id,
+              name: editedGroup.selectedShipping.name,
+              cost: editedGroup.selectedShipping.cost,
+              days: editedGroup.selectedShipping.estimatedDays,
+              description: `${editedGroup.selectedShipping.name} shipping option`
+            } : undefined}
           />
         </div>
       </div>
