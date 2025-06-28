@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -69,7 +68,9 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
       profit_margin: item.profit_margin !== null ? Number(item.profit_margin) : null,
       sold_price: item.sold_price !== null ? Number(item.sold_price) : null,
       consignment_percentage: item.consignment_percentage !== null ? Number(item.consignment_percentage) : null,
-      measurements: item.measurements || {},
+      measurements: (typeof item.measurements === 'object' && item.measurements !== null && !Array.isArray(item.measurements)) 
+        ? (item.measurements as { length?: string; width?: string; height?: string; weight?: string; }) 
+        : {},
       keywords: item.keywords || [],
       photos: item.photos || []
     }));
