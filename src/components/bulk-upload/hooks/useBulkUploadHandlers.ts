@@ -1,4 +1,3 @@
-
 import { usePhotoAnalysis } from '@/hooks/usePhotoAnalysis';
 import { generateShippingOptions } from '../utils/shippingCalculator';
 import type { PhotoGroup } from '../BulkUploadManager';
@@ -73,12 +72,11 @@ export const useBulkUploadHandlers = (
         const listingData = await analyzePhotos(group.photos);
         
         if (listingData) {
-          // Ensure weight is a number for shipping calculation
-          const weight = typeof listingData.measurements?.weight === 'string' 
-            ? parseFloat(listingData.measurements.weight) || 1 
-            : listingData.measurements?.weight || 1;
+          // Get weight as string for shipping calculation
+          const weightValue = listingData.measurements?.weight || '1lb';
+          const weightString = typeof weightValue === 'string' ? weightValue : `${weightValue}lb`;
           
-          const shippingOptions = generateShippingOptions(weight);
+          const shippingOptions = generateShippingOptions(weightString);
           
           const result = {
             groupId: group.id,
