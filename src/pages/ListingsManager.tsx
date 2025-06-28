@@ -11,7 +11,7 @@ import ListingsLoadingState from '@/components/ListingsLoadingState';
 import ListingsErrorState from '@/components/ListingsErrorState';
 import QuickFilters from '@/components/listings/QuickFilters';
 import PageInfoDialog from '@/components/PageInfoDialog';
-import ListingsTable from '@/components/ListingsTable';
+import OptimisticInventoryTable from '@/components/inventory/OptimisticInventoryTable';
 import { Card } from '@/components/ui/card';
 
 interface ListingsManagerProps {
@@ -188,7 +188,7 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
         )}
 
         {!loading && (
-          <ListingsTable
+          <OptimisticInventoryTable
             listings={filteredListings}
             selectedListings={selectedListings}
             onSelectListing={handleSelectListing}
