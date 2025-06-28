@@ -16,7 +16,8 @@ export const useBulkUploadHandlers = (
   setPhotoGroups: (groups: PhotoGroup[] | ((prev: PhotoGroup[]) => PhotoGroup[])) => void,
   setProcessingResults: (results: any[]) => void,
   setCurrentReviewIndex: (index: number) => void,
-  onComplete: (results: any[]) => void
+  onComplete: (results: any[]) => void,
+  currentReviewIndex: number
 ) => {
   // Grouping handlers
   const { handleStartGrouping, handleGroupsConfirmed } = useBulkGroupingHandlers(
@@ -49,7 +50,7 @@ export const useBulkUploadHandlers = (
     onComplete
   );
 
-  // Individual review handlers
+  // Individual review handlers - now passing currentReviewIndex
   const {
     handleIndividualReviewNext,
     handleIndividualReviewBack,
@@ -61,7 +62,8 @@ export const useBulkUploadHandlers = (
     photoGroups,
     setCurrentStep,
     setCurrentReviewIndex,
-    setPhotoGroups
+    setPhotoGroups,
+    currentReviewIndex
   );
 
   // Shipping handlers

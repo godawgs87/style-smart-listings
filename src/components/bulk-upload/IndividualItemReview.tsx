@@ -62,6 +62,7 @@ const IndividualItemReview = ({
   };
 
   const handleShippingSelect = (shippingOption: any) => {
+    console.log('🚚 Shipping option selected:', shippingOption);
     setEditedGroup(prev => ({
       ...prev,
       selectedShipping: shippingOption
@@ -72,6 +73,16 @@ const IndividualItemReview = ({
     return editedGroup.listingData?.title && 
            editedGroup.listingData?.price && 
            editedGroup.selectedShipping;
+  };
+
+  const handleApprove = () => {
+    console.log('✅ Approving item:', editedGroup);
+    onApprove(editedGroup);
+  };
+
+  const handleSaveDraft = () => {
+    console.log('💾 Saving draft:', editedGroup);
+    onSaveDraft(editedGroup);
   };
 
   const getRecommendationBadge = () => {
@@ -94,49 +105,50 @@ const IndividualItemReview = ({
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className="w-full max-w-4xl mx-auto p-3 md:p-6">
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <Button variant="outline" onClick={onBack}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between gap-2">
+            <Button variant="outline" onClick={onBack} size="sm">
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              <span className="hidden sm:inline">Back</span>
             </Button>
-            <div className="text-center">
-              <span className="text-sm text-gray-600">
+            <div className="text-center flex-1">
+              <span className="text-xs text-gray-600 block">
                 ({currentIndex + 1} of {totalItems})
               </span>
-              <h1 className="text-xl font-bold">{editedGroup.name}</h1>
+              <h1 className="text-lg md:text-xl font-bold truncate">{editedGroup.name}</h1>
             </div>
             <Button 
               variant="outline" 
               onClick={onSkip}
-              className="flex items-center gap-2"
+              size="sm"
+              className="flex items-center gap-1"
             >
-              Skip Item
+              <span className="hidden sm:inline">Skip</span>
               <ArrowRight className="w-4 h-4" />
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-3 md:p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="photos" className="flex items-center gap-2">
-                <Image className="w-4 h-4" />
-                Photos
+            <TabsList className="grid w-full grid-cols-3 mb-4">
+              <TabsTrigger value="photos" className="flex items-center gap-1 text-xs md:text-sm">
+                <Image className="w-3 h-3 md:w-4 md:h-4" />
+                <span className="hidden sm:inline">Photos</span>
               </TabsTrigger>
-              <TabsTrigger value="details" className="flex items-center gap-2">
-                <FileText className="w-4 h-4" />
-                Details
+              <TabsTrigger value="details" className="flex items-center gap-1 text-xs md:text-sm">
+                <FileText className="w-3 h-3 md:w-4 md:h-4" />
+                <span className="hidden sm:inline">Details</span>
               </TabsTrigger>
-              <TabsTrigger value="shipping" className="flex items-center gap-2">
-                <Truck className="w-4 h-4" />
-                Shipping
+              <TabsTrigger value="shipping" className="flex items-center gap-1 text-xs md:text-sm">
+                <Truck className="w-3 h-3 md:w-4 md:h-4" />
+                <span className="hidden sm:inline">Shipping</span>
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="photos" className="mt-6">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <TabsContent value="photos" className="mt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {editedGroup.photos.map((photo, index) => (
                   <div key={index} className="aspect-square rounded-lg overflow-hidden border">
                     <img
@@ -149,99 +161,103 @@ const IndividualItemReview = ({
               </div>
             </TabsContent>
 
-            <TabsContent value="details" className="mt-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <TabsContent value="details" className="mt-4">
+              <div className="space-y-6">
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">📏 MEASUREMENTS</h3>
-                  <div className="grid grid-cols-2 gap-4">
+                  <h3 className="text-base md:text-lg font-semibold">📏 MEASUREMENTS</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     <div>
-                      <Label htmlFor="length">Length</Label>
+                      <Label htmlFor="length" className="text-sm">Length</Label>
                       <Input
                         id="length"
                         value={editedGroup.listingData?.measurements?.length || ''}
                         onChange={(e) => handleMeasurementUpdate('length', e.target.value)}
                         placeholder="22&quot;"
+                        className="text-sm"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="width">Width</Label>
+                      <Label htmlFor="width" className="text-sm">Width</Label>
                       <Input
                         id="width"
                         value={editedGroup.listingData?.measurements?.width || ''}
                         onChange={(e) => handleMeasurementUpdate('width', e.target.value)}
                         placeholder="28&quot;"
+                        className="text-sm"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="weight">Weight</Label>
+                      <Label htmlFor="weight" className="text-sm">Weight</Label>
                       <Input
                         id="weight"
                         value={editedGroup.listingData?.measurements?.weight || ''}
                         onChange={(e) => handleMeasurementUpdate('weight', e.target.value)}
                         placeholder="6oz"
+                        className="text-sm"
                       />
-                      {editedGroup.listingData?.measurements?.weight?.includes('AI est.') && (
-                        <span className="text-xs text-gray-500">✅ AI Estimated</span>
-                      )}
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">💰 PRICING & CATEGORY</h3>
-                  <div>
-                    <Label htmlFor="title">Title</Label>
-                    <Input
-                      id="title"
-                      value={editedGroup.listingData?.title || ''}
-                      onChange={(e) => handleFieldUpdate('title', e.target.value)}
-                      className="font-medium"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <h3 className="text-base md:text-lg font-semibold">💰 PRICING & DETAILS</h3>
+                  <div className="space-y-3">
                     <div>
-                      <Label htmlFor="price">Price</Label>
+                      <Label htmlFor="title" className="text-sm">Title</Label>
                       <Input
-                        id="price"
-                        type="number"
-                        value={editedGroup.listingData?.price || ''}
-                        onChange={(e) => handleFieldUpdate('price', Number(e.target.value))}
+                        id="title"
+                        value={editedGroup.listingData?.title || ''}
+                        onChange={(e) => handleFieldUpdate('title', e.target.value)}
+                        className="font-medium text-sm"
                       />
                     </div>
-                    <div>
-                      <Label htmlFor="condition">Condition</Label>
-                      <Select 
-                        value={editedGroup.listingData?.condition || ''} 
-                        onValueChange={(value) => handleFieldUpdate('condition', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select condition" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="New">New</SelectItem>
-                          <SelectItem value="Like New">Like New</SelectItem>
-                          <SelectItem value="Very Good">Very Good</SelectItem>
-                          <SelectItem value="Good">Good</SelectItem>
-                          <SelectItem value="Fair">Fair</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <Label htmlFor="price" className="text-sm">Price</Label>
+                        <Input
+                          id="price"
+                          type="number"
+                          value={editedGroup.listingData?.price || ''}
+                          onChange={(e) => handleFieldUpdate('price', Number(e.target.value))}
+                          className="text-sm"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="condition" className="text-sm">Condition</Label>
+                        <Select 
+                          value={editedGroup.listingData?.condition || ''} 
+                          onValueChange={(value) => handleFieldUpdate('condition', value)}
+                        >
+                          <SelectTrigger className="text-sm">
+                            <SelectValue placeholder="Select condition" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="New">New</SelectItem>
+                            <SelectItem value="Like New">Like New</SelectItem>
+                            <SelectItem value="Very Good">Very Good</SelectItem>
+                            <SelectItem value="Good">Good</SelectItem>
+                            <SelectItem value="Fair">Fair</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="category">Category</Label>
-                    <Input
-                      id="category"
-                      value={editedGroup.listingData?.category || ''}
-                      onChange={(e) => handleFieldUpdate('category', e.target.value)}
-                    />
+                    <div>
+                      <Label htmlFor="category" className="text-sm">Category</Label>
+                      <Input
+                        id="category"
+                        value={editedGroup.listingData?.category || ''}
+                        onChange={(e) => handleFieldUpdate('category', e.target.value)}
+                        className="text-sm"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
             </TabsContent>
 
-            <TabsContent value="shipping" className="mt-6">
-              <div className="space-y-6">
-                <h3 className="text-lg font-semibold">🚚 SHIPPING OPTIONS</h3>
+            <TabsContent value="shipping" className="mt-4">
+              <div className="space-y-4">
+                <h3 className="text-base md:text-lg font-semibold">🚚 SHIPPING OPTIONS</h3>
                 
                 {editedGroup.shippingOptions && editedGroup.shippingOptions.length > 0 ? (
                   <ShippingOptionsCalculator
@@ -251,10 +267,10 @@ const IndividualItemReview = ({
                     itemPrice={editedGroup.listingData?.price || 0}
                   />
                 ) : (
-                  <Card className="p-6 text-center border-dashed">
-                    <AlertCircle className="w-8 h-8 mx-auto text-gray-400 mb-2" />
-                    <p className="text-gray-600">No shipping options calculated yet</p>
-                    <Button variant="outline" className="mt-2">
+                  <Card className="p-4 text-center border-dashed">
+                    <AlertCircle className="w-6 h-6 mx-auto text-gray-400 mb-2" />
+                    <p className="text-gray-600 text-sm">No shipping options calculated yet</p>
+                    <Button variant="outline" className="mt-2 text-sm">
                       Calculate Shipping
                     </Button>
                   </Card>
@@ -265,27 +281,33 @@ const IndividualItemReview = ({
             </TabsContent>
           </Tabs>
 
-          <div className="flex justify-between items-center mt-8 pt-6 border-t">
-            <Button variant="destructive" onClick={onReject}>
+          <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center mt-6 pt-4 border-t gap-3">
+            <Button 
+              variant="destructive" 
+              onClick={onReject}
+              className="w-full sm:w-auto"
+            >
               <X className="w-4 h-4 mr-2" />
               Reject
             </Button>
             
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
               <Button 
                 variant="outline" 
-                onClick={() => onSaveDraft(editedGroup)}
+                onClick={handleSaveDraft}
+                className="w-full sm:w-auto"
               >
                 <Save className="w-4 h-4 mr-2" />
                 Save Draft
               </Button>
               <Button 
-                onClick={() => onApprove(editedGroup)}
+                onClick={handleApprove}
                 disabled={!hasRequiredData()}
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
               >
                 <CheckCircle className="w-4 h-4 mr-2" />
-                Approve & Next
+                <span className="hidden sm:inline">Approve & Next</span>
+                <span className="sm:hidden">Approve</span>
               </Button>
             </div>
           </div>
