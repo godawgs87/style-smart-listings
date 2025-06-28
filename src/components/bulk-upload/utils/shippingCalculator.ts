@@ -42,3 +42,29 @@ export const generateShippingOptions = (weight: string) => {
     ];
   }
 };
+
+export const calculateShippingCost = (
+  weight: number,
+  dimensions: { length: number; width: number; height: number },
+  serviceType: 'ground' | 'expedited' | 'priority'
+): number => {
+  const baseRates = {
+    ground: 5.50,
+    priority: 8.95,
+    expedited: 15.50
+  };
+
+  // Calculate dimensional weight
+  const dimensionalWeight = (dimensions.length * dimensions.width * dimensions.height) / 166;
+  const billableWeight = Math.max(weight, dimensionalWeight);
+
+  // Base cost plus weight surcharge
+  let cost = baseRates[serviceType];
+  
+  if (billableWeight > 1) {
+    cost += (billableWeight - 1) * 1.25;
+  }
+
+  // Round to nearest quarter
+  return Math.ceil(cost * 4) / 4;
+};

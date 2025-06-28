@@ -1,13 +1,9 @@
 
 import React, { useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import BulkUploadStep from './components/BulkUploadStep';
+import BulkUploadHeader from './components/BulkUploadHeader';
 import BulkUploadStepIndicator from './components/BulkUploadStepIndicator';
-import PhotoGroupingInterface from './PhotoGroupingInterface';
-import BulkProcessingStatus from './BulkProcessingStatus';
-import BulkShippingReview from './BulkShippingReview';
-import BulkReviewDashboard from './BulkReviewDashboard';
-import IndividualItemReview from './IndividualItemReview';
+import BulkUploadStepRenderer from './components/BulkUploadStepRenderer';
 import { useBulkUploadState } from './hooks/useBulkUploadState';
 import { useBulkUploadHandlers } from './hooks/useBulkUploadHandlers';
 
@@ -113,14 +109,11 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
     currentReviewIndex
   );
 
-  // Clear any lingering toasts when component mounts
   useEffect(() => {
-    // Clear existing toasts by triggering empty toast
     const clearToasts = () => {
       const toastElements = document.querySelectorAll('[data-sonner-toast]');
       toastElements.forEach(el => el.remove());
     };
-    
     clearToasts();
   }, [currentStep]);
 
@@ -128,24 +121,10 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
     setPhotos(uploadedPhotos);
   };
 
-  const handleCompleteWorkflow = (results: any[]) => {
-    toast({
-      title: "Bulk upload complete!",
-      description: `Successfully created ${results.length} listing${results.length > 1 ? 's' : ''}. Redirecting to inventory...`,
-    });
-    
-    setTimeout(() => {
-      onComplete(results);
-    }, 1000);
-  };
-
   return (
     <div className="w-full max-w-6xl mx-auto p-4 space-y-6">
-      <div className="text-center">
-        <h1 className="text-2xl md:text-3xl font-bold mb-2">Bulk Upload Manager</h1>
-        <p className="text-gray-600 text-sm md:text-base">Upload multiple items at once for efficient listing creation</p>
-      </div>
-
+      <BulkUploadHeader />
+      
       <BulkUploadStepIndicator
         currentStep={currentStep}
         photos={photos}
@@ -153,68 +132,34 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
         processingResults={processingResults}
       />
 
-      {currentStep === 'upload' && (
-        <BulkUploadStep
-          photos={photos}
-          isGrouping={isGrouping}
-          onPhotosUploaded={handlePhotosUploaded}
-          onStartGrouping={handleStartGrouping}
-          onBack={onBack}
-        />
-      )}
-
-      {currentStep === 'grouping' && (
-        <PhotoGroupingInterface
-          photoGroups={photoGroups}
-          onGroupsConfirmed={handleGroupsConfirmed}
-          onBack={() => setCurrentStep('upload')}
-        />
-      )}
-
-      {currentStep === 'processing' && (
-        <BulkProcessingStatus
-          photoGroups={photoGroups}
-          results={processingResults}
-          onComplete={() => setCurrentStep('review')}
-          onBack={() => setCurrentStep('grouping')}
-        />
-      )}
-
-      {currentStep === 'shipping' && (
-        <BulkShippingReview
-          photoGroups={photoGroups}
-          onComplete={handleShippingComplete}
-          onBack={() => setCurrentStep('processing')}
-        />
-      )}
-
-      {currentStep === 'review' && (
-        <BulkReviewDashboard
-          photoGroups={photoGroups}
-          onEditItem={handleEditItem}
-          onPreviewItem={handlePreviewItem}
-          onPostItem={handlePostItem}
-          onPostAll={() => handlePostAll()}
-          onReviewAll={handleReviewAll}
-          onSaveDraft={handleSaveDraft}
-          onUpdateGroup={handleUpdateGroup}
-          onRetryAnalysis={handleRetryAnalysis}
-        />
-      )}
-
-      {currentStep === 'individual-review' && photoGroups[currentReviewIndex] && (
-        <IndividualItemReview
-          group={photoGroups[currentReviewIndex]}
-          currentIndex={currentReviewIndex}
-          totalItems={photoGroups.length}
-          onBack={handleIndividualReviewBack}
-          onNext={handleIndividualReviewNext}
-          onSkip={handleIndividualReviewSkip}
-          onApprove={handleIndividualReviewApprove}
-          onReject={handleIndividualReviewReject}
-          onSaveDraft={handleIndividualSaveDraft}
-        />
-      )}
+      <BulkUploadStepRenderer
+        currentStep={currentStep}
+        photos={photos}
+        photoGroups={photoGroups}
+        isGrouping={isGrouping}
+        processingResults={processingResults}
+        currentReviewIndex={currentReviewIndex}
+        onPhotosUploaded={handlePhotosUploaded}
+        onStartGrouping={handleStartGrouping}
+        onGroupsConfirmed={handleGroupsConfirmed}
+        onShippingComplete={handleShippingComplete}
+        onEditItem={handleEditItem}
+        onPreviewItem={handlePreviewItem}
+        onPostItem={handlePostItem}
+        onPostAll={handlePostAll}
+        onReviewAll={handleReviewAll}
+        onSaveDraft={handleSaveDraft}
+        onUpdateGroup={handleUpdateGroup}
+        onRetryAnalysis={handleRetryAnalysis}
+        onIndividualReviewNext={handleIndividualReviewNext}
+        onIndividualReviewBack={handleIndividualReviewBack}
+        onIndividualReviewSkip={handleIndividualReviewSkip}
+        onIndividualReviewApprove={handleIndividualReviewApprove}
+        onIndividualReviewReject={handleIndividualReviewReject}
+        onIndividualSaveDraft={handleIndividualSaveDraft}
+        onBack={onBack}
+        setCurrentStep={setCurrentStep}
+      />
     </div>
   );
 };
