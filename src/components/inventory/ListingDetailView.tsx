@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -194,6 +195,27 @@ const ListingDetailView = ({ listingId, onBack, onDuplicated, onDeleted }: Listi
               </div>
             )}
           </Card>
+
+          {/* Size Information */}
+          {(listing.clothing_size || listing.shoe_size || listing.gender) && (
+            <Card className="p-6">
+              <h3 className="font-medium mb-3">Size Information</h3>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                {listing.gender && (
+                  <div><span className="font-medium">Gender:</span> {listing.gender}</div>
+                )}
+                {listing.age_group && (
+                  <div><span className="font-medium">Age Group:</span> {listing.age_group}</div>
+                )}
+                {listing.clothing_size && (
+                  <div><span className="font-medium">Clothing Size:</span> {listing.clothing_size}</div>
+                )}
+                {listing.shoe_size && (
+                  <div><span className="font-medium">Shoe Size:</span> {listing.shoe_size}</div>
+                )}
+              </div>
+            </Card>
+          )}
 
           {/* Measurements */}
           {listing.measurements && Object.values(listing.measurements).some(v => v) && (

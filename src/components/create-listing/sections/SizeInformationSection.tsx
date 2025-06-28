@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ListingData } from '@/types/CreateListing';
+import { useCategories } from '@/hooks/useCategories';
 
 interface SizeInformationSectionProps {
   listingData: ListingData;
@@ -11,14 +12,50 @@ interface SizeInformationSectionProps {
 }
 
 const SizeInformationSection = ({ listingData, onUpdate }: SizeInformationSectionProps) => {
-  const isClothingCategory = listingData.category?.toLowerCase().includes('clothing') || 
-                           listingData.category?.toLowerCase().includes('apparel') ||
-                           listingData.category?.toLowerCase().includes('fashion');
+  const { getCategoryById, getCategoryPath } = useCategories();
   
-  const isShoeCategory = listingData.category?.toLowerCase().includes('shoe') || 
-                        listingData.category?.toLowerCase().includes('footwear') ||
-                        listingData.category?.toLowerCase().includes('sandal') ||
-                        listingData.category?.toLowerCase().includes('boot');
+  // Check if this category requires size information
+  const requiresSizeInfo = () => {
+    if (listingData.category_id) {
+      const category = getCategoryById(listingData.category_id);
+      const path = getCategoryPath(listingData.category_id);
+      
+      // Check if it's under clothing/shoes category
+      const isClothingCategory = path.some(cat => 
+        cat.slug === 'clothing-shoes-accessories' || 
+        cat.name.toLowerCase().includes('clothing') ||
+        cat.name.toLowerCase().includes('shoe')
+      );
+      
+      return isClothingCategory;
+    }
+    
+    // Fallback to old text-based category check
+    const categoryText = listingData.category?.toLowerCase() || '';
+    return categoryText.includes('clothing') || 
+           categoryText.includes('apparel') ||
+           categoryText.includes('fashion') ||
+           categoryText.includes('shoe') || 
+           categoryText.includes('footwear') ||
+           categoryText.includes('sandal') ||
+           categoryText.includes('boot');
+  };
+
+  const isShoeCategory = () => {
+    if (listingData.category_id) {
+      const path = getCategoryPath(listingData.category_id);
+      return path.some(cat => 
+        cat.name.toLowerCase().includes('shoe') ||
+        cat.name.toLowerCase().includes('footwear')
+      );
+    }
+    
+    const categoryText = listingData.category?.toLowerCase() || '';
+    return categoryText.includes('shoe') || 
+           categoryText.includes('footwear') ||
+           categoryText.includes('sandal') ||
+           categoryText.includes('boot');
+  };
 
   const clothingSizes = {
     'Men': ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', '28', '30', '32', '34', '36', '38', '40', '42', '44'],
@@ -34,7 +71,7 @@ const SizeInformationSection = ({ listingData, onUpdate }: SizeInformationSectio
     'Unisex': ['5', '5.5', '6', '6.5', '7', '7.5', '8', '8.5', '9', '9.5', '10', '10.5', '11', '11.5', '12', '12.5', '13']
   };
 
-  if (!isClothingCategory && !isShoeCategory) {
+  if (!requiresSizeInfo()) {
     return null;
   }
 
@@ -79,7 +116,7 @@ const SizeInformationSection = ({ listingData, onUpdate }: SizeInformationSectio
           </div>
         )}
 
-        {isClothingCategory && listingData.gender && (
+        {!isShoeCategory() && listingData.gender && (
           <div>
             <Label htmlFor="clothing_size">Clothing Size</Label>
             <Select 
@@ -98,7 +135,7 @@ const SizeInformationSection = ({ listingData, onUpdate }: SizeInformationSectio
           </div>
         )}
 
-        {isShoeCategory && listingData.gender && (
+        {isShoeCategory() && listingData.gender && (
           <div>
             <Label htmlFor="shoe_size">Shoe Size</Label>
             <Select 

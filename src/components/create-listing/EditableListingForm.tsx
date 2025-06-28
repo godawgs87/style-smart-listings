@@ -55,7 +55,7 @@ const EditableListingForm = ({
           )}
         </div>
 
-        <div className="space-y-8">
+        <div className="space-y-6">
           <BasicInformationSection
             listingData={listingData}
             onUpdate={onUpdate}

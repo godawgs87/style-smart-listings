@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
+import SizeInformation from './SizeInformation';
 
 interface ListingDetailsProps {
   title: string;
@@ -18,6 +19,10 @@ interface ListingDetailsProps {
     height?: string;
     weight?: string;
   };
+  gender?: string;
+  ageGroup?: string;
+  clothingSize?: string;
+  shoeSize?: string;
 }
 
 const ListingDetails = ({
@@ -30,13 +35,17 @@ const ListingDetails = ({
   model,
   keywords,
   description,
-  measurements
+  measurements,
+  gender,
+  ageGroup,
+  clothingSize,
+  shoeSize
 }: ListingDetailsProps) => {
   return (
-    <>
+    <div className="space-y-6">
       <h2 className="text-xl font-bold text-gray-900 pr-4">{title}</h2>
       
-      <div className="grid grid-cols-2 gap-4 mb-4">
+      <div className="grid grid-cols-2 gap-4">
         <div>
           <span className="text-sm text-gray-500">Price</span>
           <p className="text-2xl font-bold text-green-600">${price}</p>
@@ -47,7 +56,7 @@ const ListingDetails = ({
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-4">
+      <div className="flex flex-wrap gap-2">
         <Badge variant="secondary">{category}</Badge>
         <Badge variant="outline">{condition}</Badge>
         {brand && (
@@ -62,6 +71,13 @@ const ListingDetails = ({
           </Badge>
         ))}
       </div>
+
+      <SizeInformation 
+        gender={gender}
+        ageGroup={ageGroup}
+        clothingSize={clothingSize}
+        shoeSize={shoeSize}
+      />
 
       <div className="space-y-4">
         <div>
@@ -93,7 +109,7 @@ const ListingDetails = ({
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

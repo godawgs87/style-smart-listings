@@ -6,6 +6,7 @@ export interface Listing {
   description: string | null;
   price: number;
   category: string | null;
+  category_id?: string | null;
   condition: string | null;
   measurements: {
     length?: string;
@@ -37,4 +38,8 @@ export interface Listing {
   sold_price?: number | null;
   days_to_sell?: number | null;
   performance_notes?: string | null;
+  clothing_size?: string | null;
+  shoe_size?: string | null;
+  gender?: 'Men' | 'Women' | 'Kids' | 'Unisex' | null;
+  age_group?: 'Adult' | 'Youth' | 'Toddler' | 'Baby' | null;
 }
