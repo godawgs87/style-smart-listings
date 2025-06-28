@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { TableCell } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
@@ -7,48 +8,6 @@ import EditableFields from './edit/EditableFields';
 import EditableMeasurements from './edit/EditableMeasurements';
 import EditActionButtons from './edit/EditActionButtons';
 import type { Listing } from '@/types/Listing';
-
-interface Listing {
-  id: string;
-  title: string;
-  description: string | null;
-  price: number;
-  category: string | null;
-  condition: string | null;
-  status: string | null;
-  shipping_cost: number | null;
-  measurements: {
-    length?: string;
-    width?: string;
-    height?: string;
-    weight?: string;
-  } | null;
-  keywords: string[] | null;
-  photos: string[] | null;
-  price_research: string | null;
-  created_at: string;
-  purchase_price?: number | null;
-  purchase_date?: string | null;
-  is_consignment?: boolean;
-  consignment_percentage?: number | null;
-  consignor_name?: string | null;
-  consignor_contact?: string | null;
-  source_type?: string | null;
-  source_location?: string | null;
-  cost_basis?: number | null;
-  fees_paid?: number | null;
-  net_profit?: number | null;
-  profit_margin?: number | null;
-  listed_date?: string | null;
-  sold_date?: string | null;
-  sold_price?: number | null;
-  days_to_sell?: number | null;
-  performance_notes?: string | null;
-  clothing_size?: string | null;
-  shoe_size?: string | null;
-  gender?: 'Men' | 'Women' | 'Kids' | 'Unisex' | null;
-  age_group?: 'Adult' | 'Youth' | 'Toddler' | 'Baby' | null;
-}
 
 interface VisibleColumns {
   image: boolean;
@@ -146,28 +105,32 @@ const ListingsTableRowEdit = ({ listing, visibleColumns, onSave, onCancel }: Lis
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const updates: Partial<Listing> = { ...editData };
+      const updates: Partial<Listing> = {};
+      
+      // Copy all fields except gender and age_group first
+      Object.entries(editData).forEach(([key, value]) => {
+        if (key !== 'gender' && key !== 'age_group') {
+          if (value === '') {
+            (updates as any)[key] = null;
+          } else {
+            (updates as any)[key] = value;
+          }
+        }
+      });
       
       // Handle gender field - convert empty string to null for type safety
       if (editData.gender === '') {
         updates.gender = null;
       } else {
-        updates.gender = editData.gender as 'Men' | 'Women' | 'Kids' | 'Unisex' | null;
+        updates.gender = editData.gender as 'Men' | 'Women' | 'Kids' | 'Unisex';
       }
       
       // Handle age_group field - convert empty string to null for type safety
       if (editData.age_group === '') {
         updates.age_group = null;
       } else {
-        updates.age_group = editData.age_group as 'Adult' | 'Youth' | 'Toddler' | 'Baby' | null;
+        updates.age_group = editData.age_group as 'Adult' | 'Youth' | 'Toddler' | 'Baby';
       }
-      
-      // Remove empty string values for optional fields and convert to null
-      Object.keys(updates).forEach(key => {
-        if (updates[key as keyof Partial<Listing>] === '') {
-          (updates as any)[key] = null;
-        }
-      });
       
       if (editData.measurements) {
         updates.measurements = editData.measurements;
