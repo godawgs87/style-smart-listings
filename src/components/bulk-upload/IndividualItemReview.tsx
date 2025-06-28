@@ -160,7 +160,7 @@ const IndividualItemReview = ({
                         id="length"
                         value={editedGroup.listingData?.measurements?.length || ''}
                         onChange={(e) => handleMeasurementUpdate('length', e.target.value)}
-                        placeholder="22\""
+                        placeholder="22&quot;"
                       />
                     </div>
                     <div>
@@ -169,7 +169,7 @@ const IndividualItemReview = ({
                         id="width"
                         value={editedGroup.listingData?.measurements?.width || ''}
                         onChange={(e) => handleMeasurementUpdate('width', e.target.value)}
-                        placeholder="28\""
+                        placeholder="28&quot;"
                       />
                     </div>
                     <div>
