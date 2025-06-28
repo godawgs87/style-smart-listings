@@ -1,15 +1,16 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, ArrowRight, SkipForward, CheckCircle, X, Save, Image, FileText, Truck, AlertCircle } from 'lucide-react';
+import { Image, FileText, Truck, AlertCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import ShippingOptionsCalculator from './ShippingOptionsCalculator';
+import IndividualReviewHeader from './components/IndividualReviewHeader';
+import IndividualReviewActions from './components/IndividualReviewActions';
 import type { PhotoGroup } from './BulkUploadManager';
 
 interface IndividualItemReviewProps {
@@ -35,10 +36,13 @@ const IndividualItemReview = ({
   onReject,
   onSaveDraft
 }: IndividualItemReviewProps) => {
+  console.log('🔍 IndividualItemReview render with group:', group);
+  
   const [editedGroup, setEditedGroup] = useState<PhotoGroup>(group);
   const [activeTab, setActiveTab] = useState('details');
 
   const handleFieldUpdate = (field: string, value: any) => {
+    console.log(`📝 Updating field ${field} to:`, value);
     setEditedGroup(prev => ({
       ...prev,
       listingData: {
@@ -49,6 +53,7 @@ const IndividualItemReview = ({
   };
 
   const handleMeasurementUpdate = (field: string, value: string) => {
+    console.log(`📏 Updating measurement ${field} to:`, value);
     setEditedGroup(prev => ({
       ...prev,
       listingData: {
@@ -69,20 +74,29 @@ const IndividualItemReview = ({
     }));
   };
 
-  const hasRequiredData = () => {
-    return editedGroup.listingData?.title && 
-           editedGroup.listingData?.price && 
-           editedGroup.selectedShipping;
+  const handleBack = () => {
+    console.log('⏮️ IndividualItemReview - Back clicked');
+    onBack();
   };
 
-  const handleApprove = () => {
-    console.log('✅ Approving item:', editedGroup);
-    onApprove(editedGroup);
+  const handleSkip = () => {
+    console.log('⏭️ IndividualItemReview - Skip clicked');
+    onSkip();
   };
 
-  const handleSaveDraft = () => {
-    console.log('💾 Saving draft:', editedGroup);
-    onSaveDraft(editedGroup);
+  const handleApprove = (updatedGroup: PhotoGroup) => {
+    console.log('✅ IndividualItemReview - Approve clicked with data:', updatedGroup);
+    onApprove(updatedGroup);
+  };
+
+  const handleReject = () => {
+    console.log('❌ IndividualItemReview - Reject clicked');
+    onReject();
+  };
+
+  const handleSaveDraft = (updatedGroup: PhotoGroup) => {
+    console.log('💾 IndividualItemReview - Save draft clicked with data:', updatedGroup);
+    onSaveDraft(updatedGroup);
   };
 
   const getRecommendationBadge = () => {
@@ -108,27 +122,13 @@ const IndividualItemReview = ({
     <div className="w-full max-w-4xl mx-auto p-3 md:p-6">
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between gap-2">
-            <Button variant="outline" onClick={onBack} size="sm">
-              <ArrowLeft className="w-4 h-4 mr-1" />
-              <span className="hidden sm:inline">Back</span>
-            </Button>
-            <div className="text-center flex-1">
-              <span className="text-xs text-gray-600 block">
-                ({currentIndex + 1} of {totalItems})
-              </span>
-              <h1 className="text-lg md:text-xl font-bold truncate">{editedGroup.name}</h1>
-            </div>
-            <Button 
-              variant="outline" 
-              onClick={onSkip}
-              size="sm"
-              className="flex items-center gap-1"
-            >
-              <span className="hidden sm:inline">Skip</span>
-              <ArrowRight className="w-4 h-4" />
-            </Button>
-          </div>
+          <IndividualReviewHeader
+            currentIndex={currentIndex}
+            totalItems={totalItems}
+            itemName={editedGroup.name}
+            onBack={handleBack}
+            onSkip={handleSkip}
+          />
         </CardHeader>
         <CardContent className="p-3 md:p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -281,36 +281,12 @@ const IndividualItemReview = ({
             </TabsContent>
           </Tabs>
 
-          <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center mt-6 pt-4 border-t gap-3">
-            <Button 
-              variant="destructive" 
-              onClick={onReject}
-              className="w-full sm:w-auto"
-            >
-              <X className="w-4 h-4 mr-2" />
-              Reject
-            </Button>
-            
-            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-              <Button 
-                variant="outline" 
-                onClick={handleSaveDraft}
-                className="w-full sm:w-auto"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                Save Draft
-              </Button>
-              <Button 
-                onClick={handleApprove}
-                disabled={!hasRequiredData()}
-                className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
-              >
-                <CheckCircle className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Approve & Next</span>
-                <span className="sm:hidden">Approve</span>
-              </Button>
-            </div>
-          </div>
+          <IndividualReviewActions
+            editedGroup={editedGroup}
+            onReject={handleReject}
+            onSaveDraft={handleSaveDraft}
+            onApprove={handleApprove}
+          />
         </CardContent>
       </Card>
     </div>

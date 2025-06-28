@@ -1,4 +1,3 @@
-
 import type { PhotoGroup } from '../BulkUploadManager';
 
 type StepType = 'upload' | 'grouping' | 'processing' | 'shipping' | 'review' | 'individual-review';
@@ -10,7 +9,6 @@ export const useBulkIndividualReviewHandlers = (
   setPhotoGroups: (groups: PhotoGroup[] | ((prev: PhotoGroup[]) => PhotoGroup[])) => void,
   currentReviewIndex: number
 ) => {
-  // Individual review handlers
   const handleIndividualReviewNext = () => {
     console.log('⏭️ Individual review next clicked, current index:', currentReviewIndex);
     if (currentReviewIndex < photoGroups.length - 1) {
@@ -44,11 +42,20 @@ export const useBulkIndividualReviewHandlers = (
     console.log('✅ Individual review approve clicked for group:', updatedGroup.id);
     console.log('Updated group data:', updatedGroup);
     
-    // Update the specific group in the array
+    // Update the specific group in the array with completed status
     setPhotoGroups(prev => {
       const updated = prev.map(g => 
         g.id === updatedGroup.id 
-          ? { ...updatedGroup, status: 'completed' as const }
+          ? { 
+              ...updatedGroup, 
+              status: 'completed' as const,
+              // Ensure all data is preserved
+              listingData: {
+                ...g.listingData,
+                ...updatedGroup.listingData
+              },
+              selectedShipping: updatedGroup.selectedShipping || g.selectedShipping
+            }
           : g
       );
       console.log('Updated photo groups after approve:', updated);
@@ -73,8 +80,21 @@ export const useBulkIndividualReviewHandlers = (
 
   const handleIndividualSaveDraft = (updatedGroup: PhotoGroup) => {
     console.log('💾 Individual review save draft clicked for group:', updatedGroup.id);
+    console.log('Saving draft data:', updatedGroup);
+    
+    // Update the group with all the edited data but keep status as is
     setPhotoGroups(prev => prev.map(g => 
-      g.id === updatedGroup.id ? updatedGroup : g
+      g.id === updatedGroup.id 
+        ? {
+            ...g,
+            ...updatedGroup,
+            listingData: {
+              ...g.listingData,
+              ...updatedGroup.listingData
+            },
+            selectedShipping: updatedGroup.selectedShipping || g.selectedShipping
+          }
+        : g
     ));
   };
 
