@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -124,6 +123,9 @@ const IndividualItemReview = ({
       weight: baseData.measurements?.weight ? String(baseData.measurements.weight) : ''
     };
     
+    // Destructure to exclude measurements from the spread
+    const { measurements, ...restBaseData } = baseData;
+    
     return {
       title: baseData.title || '',
       description: baseData.description || '',
@@ -132,7 +134,7 @@ const IndividualItemReview = ({
       condition: baseData.condition || '',
       measurements: convertedMeasurements,
       photos: baseData.photos || [],
-      ...baseData
+      ...restBaseData
     };
   };
 
