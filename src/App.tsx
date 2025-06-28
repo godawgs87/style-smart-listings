@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Toaster } from '@/components/ui/toaster';
 import { useAuth } from '@/hooks/useAuth';
@@ -8,7 +9,7 @@ import AuthForm from '@/components/AuthForm';
 
 const App = () => {
   const [currentView, setCurrentView] = useState<'dashboard' | 'create' | 'data-management'>('dashboard');
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, loading } = useAuth();
 
   const handleNavigate = (view: 'dashboard' | 'create' | 'listings' | 'inventory' | 'active-listings' | 'data-management') => {
     switch (view) {
@@ -41,14 +42,14 @@ const App = () => {
     }
   }, []);
 
-  if (isLoading) {
+  if (loading) {
     return <div>Loading...</div>;
   }
 
-  if (!isAuthenticated) {
+  if (!user) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-100">
-        <AuthForm />
+        <AuthForm onAuthSuccess={() => window.location.reload()} />
         <Toaster />
       </div>
     );
@@ -57,7 +58,7 @@ const App = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {currentView === 'dashboard' && (
-        <Dashboard onNavigate={handleNavigate} />
+        <Dashboard />
       )}
       {currentView === 'create' && (
         <CreateListing 

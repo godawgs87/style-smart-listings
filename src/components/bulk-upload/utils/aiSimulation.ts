@@ -1,45 +1,6 @@
-
 import type { PhotoGroup } from '../BulkUploadManager';
 
-export const getRandomItemSuggestion = () => {
-  const suggestions = [
-    'Vintage T-Shirt',
-    'Blue Denim Jeans',
-    'Nike Sneakers',
-    'Leather Jacket',
-    'Cotton Dress',
-    'Baseball Cap',
-    'Winter Coat',
-    'Running Shoes'
-  ];
-  return suggestions[Math.floor(Math.random() * suggestions.length)];
-};
-
-export const simulateAIGrouping = async (photos: File[]): Promise<PhotoGroup[]> => {
-  await new Promise(resolve => setTimeout(resolve, 2000));
-  
-  const groups: PhotoGroup[] = [];
-  let currentIndex = 0;
-  
-  while (currentIndex < photos.length) {
-    const groupSize = Math.min(3 + Math.floor(Math.random() * 3), photos.length - currentIndex);
-    const groupPhotos = photos.slice(currentIndex, currentIndex + groupSize);
-    
-    groups.push({
-      id: `group-${groups.length + 1}`,
-      photos: groupPhotos,
-      name: `Item ${groups.length + 1}`,
-      confidence: Math.random() > 0.7 ? 'high' : Math.random() > 0.4 ? 'medium' : 'low',
-      status: 'pending',
-      aiSuggestion: getRandomItemSuggestion()
-    });
-    
-    currentIndex += groupSize;
-  }
-  
-  return groups;
-};
-
+// Keep only the shipping option generation since that's still needed
 export const generateListingData = (group: PhotoGroup) => {
   return {
     title: group.name,
