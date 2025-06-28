@@ -1,3 +1,4 @@
+
 import type { PhotoGroup } from '../BulkUploadManager';
 
 type StepType = 'upload' | 'grouping' | 'processing' | 'shipping' | 'review' | 'individual-review';
@@ -42,19 +43,25 @@ export const useBulkIndividualReviewHandlers = (
     console.log('✅ Individual review approve clicked for group:', updatedGroup.id);
     console.log('Updated group data:', updatedGroup);
     
+    if (!updatedGroup.listingData?.title || !updatedGroup.listingData?.price || !updatedGroup.selectedShipping) {
+      console.warn('Missing required data for approval');
+      alert('Please fill in all required fields: Title, Price, and Shipping option');
+      return;
+    }
+    
     // Update the specific group in the array with completed status
     setPhotoGroups(prev => {
       const updated = prev.map(g => 
         g.id === updatedGroup.id 
           ? { 
-              ...updatedGroup, 
+              ...g,
+              ...updatedGroup,
               status: 'completed' as const,
-              // Ensure all data is preserved
               listingData: {
                 ...g.listingData,
                 ...updatedGroup.listingData
               },
-              selectedShipping: updatedGroup.selectedShipping || g.selectedShipping
+              selectedShipping: updatedGroup.selectedShipping
             }
           : g
       );
@@ -96,6 +103,8 @@ export const useBulkIndividualReviewHandlers = (
           }
         : g
     ));
+    
+    console.log('Draft saved successfully');
   };
 
   return {

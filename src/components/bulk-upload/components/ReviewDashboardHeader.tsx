@@ -19,7 +19,7 @@ const ReviewDashboardHeader = ({
   onSaveDraft
 }: ReviewDashboardHeaderProps) => {
   const readyToPost = photoGroups.filter(group => 
-    group.status === 'completed' && group.selectedShipping
+    group.status === 'completed' && group.selectedShipping && !group.isPosted
   );
   const needsReview = photoGroups.filter(group => 
     group.status === 'completed' && !group.selectedShipping
@@ -27,7 +27,7 @@ const ReviewDashboardHeader = ({
   const hasIssues = photoGroups.filter(group => group.status === 'error');
 
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader className="pb-3 md:pb-4">
         <CardTitle className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
           <span className="flex items-center gap-2 text-lg md:text-xl">
@@ -56,7 +56,7 @@ const ReviewDashboardHeader = ({
             Post All Ready ({readyToPost.length})
           </Button>
           <Button variant="outline" onClick={onReviewAll} className="w-full sm:w-auto">
-            Review All
+            Quick Review All
           </Button>
           <Button variant="outline" onClick={onSaveDraft} className="w-full sm:w-auto">
             Save Draft
