@@ -11,6 +11,7 @@ import Index from "./pages/Index";
 import AdminDashboard from "./pages/AdminDashboard";
 import ListingsManager from "./pages/ListingsManager";
 import SimpleInventoryPage from "./pages/SimpleInventoryPage";
+import ActiveListingsPage from "./pages/ActiveListingsPage";
 import QATestPage from "./pages/QATestPage";
 import UserSettings from "./pages/UserSettings";
 import NotFound from "./pages/NotFound";
@@ -39,6 +40,11 @@ const App = () => {
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/settings" element={<UserSettings />} />
                 <Route path="/inventory" element={<SimpleInventoryPage />} />
+                <Route path="/active-listings" element={
+                  <ActiveListingsPage 
+                    onBack={() => window.history.back()} 
+                  />
+                } />
                 <Route path="/manage-listings" element={
                   <ListingsManager 
                     onBack={() => window.history.back()} 
