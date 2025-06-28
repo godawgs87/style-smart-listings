@@ -1,5 +1,7 @@
-
 import React from 'react';
+import { TableRow, TableCell } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
+import ListingImagePreview from '@/components/ListingImagePreview';
 import ImageCell from './cells/ImageCell';
 import TitleCell from './cells/TitleCell';
 import PriceCell from './cells/PriceCell';
@@ -9,15 +11,16 @@ import ShippingCell from './cells/ShippingCell';
 import MeasurementsCell from './cells/MeasurementsCell';
 import KeywordsCell from './cells/KeywordsCell';
 import DescriptionCell from './cells/DescriptionCell';
+import ProfitCell from './cells/ProfitCell';
 import DateCell from './cells/DateCell';
 import ConsignmentStatusCell from './cells/ConsignmentStatusCell';
 import SourceTypeCell from './cells/SourceTypeCell';
 import SourceLocationCell from './cells/SourceLocationCell';
-import ProfitCell from './cells/ProfitCell';
 import DaysToSellCell from './cells/DaysToSellCell';
 import PerformanceNotesCell from './cells/PerformanceNotesCell';
 import LoadingCell from './cells/LoadingCell';
-import { useListingDetailsLoader } from '@/hooks/useListingDetailsLoader';
+import { useOptimizedListingDetailsLoader } from '@/hooks/useOptimizedListingDetailsLoader';
+import type { Listing } from '@/types/Listing';
 
 interface Listing {
   id: string;
@@ -87,7 +90,7 @@ interface ListingsTableRowDisplayProps {
 }
 
 const ListingsTableRowDisplay = ({ listing, index, visibleColumns }: ListingsTableRowDisplayProps) => {
-  const { detailedListing, isLoading } = useListingDetailsLoader(listing, visibleColumns);
+  const { detailedListing, isLoading } = useOptimizedListingDetailsLoader(listing, visibleColumns);
 
   return (
     <>
