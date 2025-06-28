@@ -17,7 +17,7 @@ export const useBulkOperations = (
 ) => {
   const { toast } = useToast();
   const { saveListing } = useListingSave();
-  const { validateGroupForSave } = useBulkValidation();
+  const { validateGroupForSave, validateGroupForDraft } = useBulkValidation();
   const { ensureListingData } = useBulkItemActions(photoGroups, setCurrentStep, setCurrentReviewIndex, setPhotoGroups);
 
   const handlePostAll = async () => {
@@ -87,6 +87,7 @@ export const useBulkOperations = (
         description: `Successfully created ${successCount} listing${successCount > 1 ? 's' : ''}!`,
       });
       
+      // Complete the process
       onComplete(savedListings);
       
       setTimeout(() => {
@@ -102,9 +103,10 @@ export const useBulkOperations = (
   };
 
   const handleSaveDraft = async () => {
-    const draftItems = photoGroups.filter(g => 
-      g.listingData?.title?.trim() && !g.isPosted
-    );
+    const draftItems = photoGroups.filter(g => {
+      const validation = validateGroupForDraft(g);
+      return validation.isValid && !g.isPosted;
+    });
     
     console.log('Draft items:', draftItems.length);
     
