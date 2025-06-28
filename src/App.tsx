@@ -7,6 +7,7 @@ import Index from '@/pages/Index';
 import CreateListing from '@/pages/CreateListing';
 import DataManagement from '@/pages/DataManagement';
 import SimpleInventoryPage from '@/pages/SimpleInventoryPage';
+import ActiveListingsPage from '@/pages/ActiveListingsPage';
 import AuthForm from '@/components/AuthForm';
 import LoadingState from '@/components/LoadingState';
 import SafeErrorBoundary from '@/components/SafeErrorBoundary';
@@ -35,6 +36,7 @@ const App = () => {
             <Route path="/" element={<Index />} />
             <Route path="/inventory" element={<SimpleInventoryPage />} />
             <Route path="/create" element={<CreateListing onBack={() => window.location.href = '/'} onViewListings={() => window.location.href = '/inventory'} />} />
+            <Route path="/active-listings" element={<ActiveListingsPage onBack={() => window.location.href = '/'} />} />
             <Route path="/data-management" element={<DataManagement onBack={() => window.location.href = '/'} onNavigate={(view) => window.location.href = `/${view}`} />} />
             <Route path="*" element={<Index />} />
           </Routes>
