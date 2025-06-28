@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card } from '@/components/ui/card';
@@ -7,6 +8,17 @@ import { Badge } from '@/components/ui/badge';
 import { Eye, Edit, Trash2, Copy, MoreVertical, Grid, List } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import ListingsTableColumnManager from '../listings/table/ListingsTableColumnManager';
 import ListingsTableEmpty from '../listings/table/ListingsTableEmpty';
 import ListingImagePreview from '../ListingImagePreview';
@@ -37,6 +49,7 @@ const OptimisticInventoryTable = ({
 }: OptimisticInventoryTableProps) => {
   const [optimisticUpdates, setOptimisticUpdates] = useState<Map<string, 'deleting' | 'updating'>>(new Map());
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState({
     image: true,
     title: true,
@@ -92,6 +105,37 @@ const OptimisticInventoryTable = ({
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedListings.length === 0) return;
+    
+    // Mark all selected items as deleting
+    const updates = new Map(optimisticUpdates);
+    selectedListings.forEach(id => updates.set(id, 'deleting'));
+    setOptimisticUpdates(updates);
+    
+    try {
+      // Delete all selected listings
+      await Promise.all(selectedListings.map(id => onDeleteListing(id)));
+      
+      // Clear optimistic updates for successfully deleted items
+      setOptimisticUpdates(prev => {
+        const next = new Map(prev);
+        selectedListings.forEach(id => next.delete(id));
+        return next;
+      });
+    } catch (error) {
+      // Revert optimistic updates on error
+      setOptimisticUpdates(prev => {
+        const next = new Map(prev);
+        selectedListings.forEach(id => next.delete(id));
+        return next;
+      });
+      throw error;
+    }
+    
+    setShowBulkDeleteDialog(false);
+  };
+
   const handleOptimisticUpdate = async (listingId: string, updates: Partial<Listing>) => {
     setOptimisticUpdates(prev => new Map(prev).set(listingId, 'updating'));
     
@@ -123,16 +167,51 @@ const OptimisticInventoryTable = ({
     <Card className="border rounded-lg overflow-hidden bg-white shadow-sm">
       {/* View Toggle and Column Manager */}
       <div className="flex items-center justify-between p-4 border-b bg-gray-50">
-        <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as 'table' | 'grid')}>
-          <ToggleGroupItem value="table" aria-label="Table view">
-            <List className="w-4 h-4 mr-2" />
-            Table
-          </ToggleGroupItem>
-          <ToggleGroupItem value="grid" aria-label="Grid view">
-            <Grid className="w-4 h-4 mr-2" />
-            Grid
-          </ToggleGroupItem>
-        </ToggleGroup>
+        <div className="flex items-center gap-4">
+          <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as 'table' | 'grid')}>
+            <ToggleGroupItem value="table" aria-label="Table view">
+              <List className="w-4 h-4 mr-2" />
+              Table
+            </ToggleGroupItem>
+            <ToggleGroupItem value="grid" aria-label="Grid view">
+              <Grid className="w-4 h-4 mr-2" />
+              Grid
+            </ToggleGroupItem>
+          </ToggleGroup>
+
+          {selectedListings.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">
+                {selectedListings.length} selected
+              </span>
+              <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm">
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete Selected
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Selected Listings</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete {selectedListings.length} listing{selectedListings.length !== 1 ? 's' : ''}? This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleBulkDelete}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      Delete {selectedListings.length} Listing{selectedListings.length !== 1 ? 's' : ''}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          )}
+        </div>
 
         {viewMode === 'table' && (
           <ListingsTableColumnManager
@@ -165,7 +244,7 @@ const OptimisticInventoryTable = ({
                             <MoreVertical className="w-3 h-3" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-white border shadow-lg">
+                        <DropdownMenuContent align="end" className="bg-white border shadow-lg z-50">
                           {onPreviewListing && (
                             <DropdownMenuItem onClick={() => onPreviewListing(listing)}>
                               <Eye className="w-4 h-4 mr-2" />
@@ -253,7 +332,7 @@ const OptimisticInventoryTable = ({
                 {visibleColumns.category && <TableHead className="w-32">Category</TableHead>}
                 {visibleColumns.condition && <TableHead className="w-24">Condition</TableHead>}
                 {visibleColumns.shipping && <TableHead className="w-24">Shipping</TableHead>}
-                <TableHead className="w-24">Actions</TableHead>
+                <TableHead className="w-32">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -338,6 +417,7 @@ const OptimisticInventoryTable = ({
                             variant="ghost"
                             size="sm"
                             onClick={() => onPreviewListing(listing)}
+                            className="h-8 w-8 p-0"
                           >
                             <Eye className="w-4 h-4" />
                           </Button>
@@ -347,15 +427,26 @@ const OptimisticInventoryTable = ({
                             variant="ghost"
                             size="sm"
                             onClick={() => onEditListing(listing)}
+                            className="h-8 w-8 p-0"
                           >
                             <Edit className="w-4 h-4" />
+                          </Button>
+                        )}
+                        {onDuplicateListing && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onDuplicateListing(listing)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Copy className="w-4 h-4" />
                           </Button>
                         )}
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleOptimisticDelete(listing.id)}
-                          className="text-red-600 hover:text-red-700"
+                          className="text-red-600 hover:text-red-700 h-8 w-8 p-0"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
