@@ -31,7 +31,7 @@ const OptimisticInventoryGridItem = ({
   onEditListing,
   onDuplicateListing
 }: OptimisticInventoryGridItemProps) => {
-  // Load actual photos for grid items
+  // Load actual photos for grid items - always load images for grid view
   const { detailedListing, isLoading } = useOptimizedListingDetailsLoader(listing, {
     image: true,
     measurements: false,
@@ -66,8 +66,14 @@ const OptimisticInventoryGridItem = ({
     }
   };
 
-  // Use detailedListing photos if available, otherwise fallback to listing photos
+  // Determine which photos to use - prioritize detailed listing photos
   const photosToDisplay = detailedListing?.photos || listing.photos;
+  console.log('🖼️ Grid item photos for', listing.id, ':', {
+    detailedPhotos: detailedListing?.photos?.length || 0,
+    basePhotos: listing.photos?.length || 0,
+    isLoading,
+    photosToDisplay: photosToDisplay?.length || 0
+  });
 
   return (
     <Card className={`p-3 transition-all ${isUpdating ? 'opacity-50' : ''} ${isSelected ? 'ring-2 ring-blue-500' : ''} hover:shadow-md`}>
@@ -114,7 +120,7 @@ const OptimisticInventoryGridItem = ({
           </DropdownMenu>
         </div>
         
-        {/* Image - always show ListingImagePreview, let it handle loading states */}
+        {/* Image - ListingImagePreview handles all loading states */}
         <div className="aspect-square">
           <ListingImagePreview 
             photos={photosToDisplay} 

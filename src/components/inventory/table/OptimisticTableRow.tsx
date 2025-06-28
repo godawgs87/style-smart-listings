@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { TableRow, TableCell } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -99,8 +98,14 @@ const OptimisticTableRow = ({
     }
   };
 
-  // Use loadedListing photos if available, otherwise fallback to listing photos
+  // Determine which photos to use - prioritize loaded listing photos
   const photosToDisplay = loadedListing?.photos || listing.photos;
+  console.log('🖼️ Table row photos for', listing.id, ':', {
+    loadedPhotos: loadedListing?.photos?.length || 0,
+    basePhotos: listing.photos?.length || 0,
+    isLoading,
+    photosToDisplay: photosToDisplay?.length || 0
+  });
 
   return (
     <TableRow 
