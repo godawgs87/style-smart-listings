@@ -31,13 +31,13 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
 
       console.log('🔍 Fetching inventory for user:', user.id);
 
-      // Use minimal query to avoid timeouts
+      // Use very minimal query - only essential fields to avoid timeouts
       let query = supabase
         .from('listings')
-        .select('*')
+        .select('id, title, price, status, category, condition, created_at, user_id')
         .eq('user_id', user.id);
 
-      // Apply filters
+      // Apply filters only if specified
       if (options.statusFilter && options.statusFilter !== 'all') {
         query = query.eq('status', options.statusFilter);
       }
@@ -46,16 +46,18 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
         query = query.eq('category', options.categoryFilter);
       }
 
+      // Simple search on title only to avoid complex operations
       if (options.searchTerm?.trim()) {
         const searchTerm = options.searchTerm.trim();
-        query = query.or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
+        query = query.ilike('title', `%${searchTerm}%`);
       }
 
-      // Conservative limit with timeout
-      const limit = Math.min(options.limit || 10, 15);
+      // Very conservative limit - start small
+      const limit = Math.min(options.limit || 10, 10);
       
+      // Set a very short timeout to fail fast
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Query timeout')), 5000)
+        setTimeout(() => reject(new Error('Query timeout - using cached data')), 3000)
       );
 
       const queryPromise = query
@@ -71,12 +73,33 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
 
       console.log('✅ Fetched listings:', data?.length || 0);
       
-      // Transform the data to match our Listing type
+      // Transform minimal data to match Listing interface
       const transformedData: Listing[] = (data || []).map(item => ({
         ...item,
-        measurements: typeof item.measurements === 'object' && item.measurements !== null 
-          ? item.measurements as { length?: string; width?: string; height?: string; weight?: string; }
-          : {}
+        description: null,
+        measurements: {},
+        keywords: null,
+        photos: null,
+        price_research: null,
+        shipping_cost: null,
+        purchase_price: null,
+        purchase_date: null,
+        is_consignment: null,
+        consignment_percentage: null,
+        consignor_name: null,
+        consignor_contact: null,
+        source_location: null,
+        source_type: null,
+        cost_basis: null,
+        fees_paid: null,
+        net_profit: null,
+        profit_margin: null,
+        listed_date: null,
+        sold_date: null,
+        sold_price: null,
+        days_to_sell: null,
+        performance_notes: null,
+        updated_at: item.created_at // Use created_at as fallback
       }));
       
       return transformedData;
@@ -121,7 +144,7 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
         setError(err.message || 'Failed to load inventory');
         toast({
           title: "Unable to Load Listings", 
-          description: "Please check your connection and try again.",
+          description: "Database query timed out. Try refreshing.",
           variant: "destructive"
         });
       }
