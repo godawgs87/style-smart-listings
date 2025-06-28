@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card } from '@/components/ui/card';
@@ -10,6 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import ListingsTableColumnManager from '../listings/table/ListingsTableColumnManager';
 import ListingsTableEmpty from '../listings/table/ListingsTableEmpty';
+import ListingImagePreview from '../ListingImagePreview';
 import type { Listing } from '@/types/Listing';
 
 interface OptimisticInventoryTableProps {
@@ -145,14 +145,14 @@ const OptimisticInventoryTable = ({
       {/* Grid View */}
       {viewMode === 'grid' && (
         <div className="p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
             {visibleListings.map((listing) => {
               const isUpdating = optimisticUpdates.get(listing.id) === 'updating';
               const isSelected = selectedListings.includes(listing.id);
               
               return (
-                <Card key={listing.id} className={`p-4 transition-all ${isUpdating ? 'opacity-50' : ''} ${isSelected ? 'ring-2 ring-blue-500' : ''} hover:shadow-md`}>
-                  <div className="space-y-3">
+                <Card key={listing.id} className={`p-3 transition-all ${isUpdating ? 'opacity-50' : ''} ${isSelected ? 'ring-2 ring-blue-500' : ''} hover:shadow-md`}>
+                  <div className="space-y-2">
                     <div className="flex items-start justify-between">
                       <Checkbox
                         checked={isSelected}
@@ -161,8 +161,8 @@ const OptimisticInventoryTable = ({
                       
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreVertical className="w-4 h-4" />
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                            <MoreVertical className="w-3 h-3" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-white border shadow-lg">
@@ -196,35 +196,30 @@ const OptimisticInventoryTable = ({
                     </div>
                     
                     {/* Image */}
-                    <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                      {listing.photos && listing.photos.length > 0 ? (
-                        <img 
-                          src={listing.photos[0]} 
-                          alt={listing.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
-                          No image
-                        </div>
-                      )}
+                    <div className="aspect-square">
+                      <ListingImagePreview 
+                        photos={listing.photos} 
+                        title={listing.title}
+                        listingId={listing.id}
+                        className="w-full h-full"
+                      />
                     </div>
                     
                     {/* Content */}
-                    <div className="space-y-2">
-                      <h3 className="font-medium text-sm leading-tight line-clamp-2">{listing.title}</h3>
+                    <div className="space-y-1">
+                      <h3 className="font-medium text-xs leading-tight line-clamp-2">{listing.title}</h3>
                       
                       <div className="flex items-center justify-between">
-                        <span className="font-semibold text-green-600">${listing.price?.toFixed(2)}</span>
+                        <span className="font-semibold text-green-600 text-sm">${listing.price?.toFixed(2)}</span>
                         {listing.status && (
-                          <Badge variant={getStatusBadgeVariant(listing.status)} className="text-xs">
+                          <Badge variant={getStatusBadgeVariant(listing.status)} className="text-xs px-1 py-0">
                             {listing.status}
                           </Badge>
                         )}
                       </div>
                       
                       {listing.category && (
-                        <p className="text-xs text-gray-500">{listing.category}</p>
+                        <p className="text-xs text-gray-500 truncate">{listing.category}</p>
                       )}
                       
                       <div className="text-xs text-gray-400">
@@ -280,17 +275,12 @@ const OptimisticInventoryTable = ({
                     
                     {visibleColumns.image && (
                       <TableCell>
-                        {listing.photos && listing.photos.length > 0 ? (
-                          <img 
-                            src={listing.photos[0]} 
-                            alt={listing.title}
-                            className="w-12 h-12 object-cover rounded"
-                          />
-                        ) : (
-                          <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center">
-                            <span className="text-gray-400 text-xs">No image</span>
-                          </div>
-                        )}
+                        <ListingImagePreview 
+                          photos={listing.photos} 
+                          title={listing.title}
+                          listingId={listing.id}
+                          className="w-12 h-12"
+                        />
                       </TableCell>
                     )}
                     
