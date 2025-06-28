@@ -57,7 +57,8 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
   });
 
   const handleEdit = () => {
-    setCurrentStep('preview');
+    // This should navigate to shipping step when called from preview
+    setCurrentStep('shipping');
   };
 
   const handleBack = () => {

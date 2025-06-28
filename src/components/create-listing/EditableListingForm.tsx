@@ -34,6 +34,11 @@ const EditableListingForm = ({
     onUpdate({ [field]: value });
   };
 
+  const handleContinueToShipping = () => {
+    // This should navigate to shipping step, not publish the listing
+    onEdit(); // This will set current step to 'shipping' in the parent component
+  };
+
   console.log('🔍 EditableListingForm - Current listing data:', listingData);
 
   return (
@@ -91,7 +96,7 @@ const EditableListingForm = ({
             {backButtonText}
           </Button>
           <Button 
-            onClick={onExport}
+            onClick={handleContinueToShipping}
             disabled={isSaving}
             className="bg-blue-600 hover:bg-blue-700"
           >
