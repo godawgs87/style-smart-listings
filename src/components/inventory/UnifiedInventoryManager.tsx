@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Plus, Search } from 'lucide-react';
 import ListingsTable from '@/components/ListingsTable';
+import ListingDetailView from './ListingDetailView';
 import InventoryErrorBoundary from './InventoryErrorBoundary';
 
 interface UnifiedInventoryManagerProps {
@@ -22,6 +23,7 @@ interface UnifiedInventoryManagerProps {
 const UnifiedInventoryManager = ({ onCreateListing, onBack }: UnifiedInventoryManagerProps) => {
   const isMobile = useIsMobile();
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [viewingListingId, setViewingListingId] = useState<string | null>(null);
   
   const { listings, loading, error, stats, refetch, usingFallback } = useUnifiedInventory({
     limit: 25
@@ -38,7 +40,7 @@ const UnifiedInventoryManager = ({ onCreateListing, onBack }: UnifiedInventoryMa
     handleClearFilters
   } = useInventoryFilters(listings);
 
-  const { deleteListing, updateListing } = useListingOperations();
+  const { deleteListing, updateListing, duplicateListing } = useListingOperations();
 
   const handleSelectListing = (listingId: string, checked: boolean) => {
     setSelectedItems(prev => 
@@ -62,6 +64,30 @@ const UnifiedInventoryManager = ({ onCreateListing, onBack }: UnifiedInventoryMa
     setSelectedItems(prev => prev.filter(id => id !== listingId));
     refetch();
   };
+
+  const handlePreviewListing = (listing: any) => {
+    setViewingListingId(listing.id);
+  };
+
+  const handleDuplicateListing = async (listing: any) => {
+    const result = await duplicateListing(listing);
+    if (result) {
+      refetch();
+    }
+    return result;
+  };
+
+  // If viewing a specific listing, show the detail view
+  if (viewingListingId) {
+    return (
+      <ListingDetailView
+        listingId={viewingListingId}
+        onBack={() => setViewingListingId(null)}
+        onDuplicated={refetch}
+        onDeleted={refetch}
+      />
+    );
+  }
 
   return (
     <div className={`min-h-screen bg-gray-50 ${isMobile ? 'pb-20' : ''}`}>
@@ -171,6 +197,8 @@ const UnifiedInventoryManager = ({ onCreateListing, onBack }: UnifiedInventoryMa
             onSelectAll={handleSelectAll}
             onUpdateListing={handleUpdateListing}
             onDeleteListing={handleDeleteListing}
+            onPreviewListing={handlePreviewListing}
+            onDuplicateListing={handleDuplicateListing}
           />
         )}
 
