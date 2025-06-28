@@ -6,6 +6,7 @@ import ReviewDashboardHeader from './components/ReviewDashboardHeader';
 import ImprovedReviewDashboardItem from './components/ImprovedReviewDashboardItem';
 import QuickReviewInterface from './components/QuickReviewInterface';
 import EnhancedPreviewDialog from './components/EnhancedPreviewDialog';
+import GroupingActions from './components/GroupingActions';
 import type { PhotoGroup } from './BulkUploadManager';
 
 interface BulkReviewDashboardProps {
@@ -51,31 +52,41 @@ const BulkReviewDashboard = ({
     setIsPreviewOpen(false);
   };
 
-  const handleQuickReviewNext = () => {
-    if (quickReviewIndex < photoGroups.length - 1) {
-      setQuickReviewIndex(quickReviewIndex + 1);
+  const handleMergeGroups = (groupIds: string[]) => {
+    if (groupIds.length < 2) return;
+    
+    // Find all groups to merge
+    const groupsToMerge = photoGroups.filter(g => groupIds.includes(g.id));
+    if (groupsToMerge.length < 2) return;
+    
+    // Create merged group
+    const mergedGroup: PhotoGroup = {
+      ...groupsToMerge[0],
+      id: groupsToMerge[0].id,
+      photos: groupsToMerge.flatMap(g => g.photos),
+      name: groupsToMerge[0].name.replace(' (1 photo)', ` (${groupsToMerge.flatMap(g => g.photos).length} photos)`),
+      confidence: 'medium' as const
+    };
+    
+    // Update groups - remove old ones and add merged one
+    if (onUpdateGroup) {
+      // First remove the groups being merged (except the first one which becomes the merged group)
+      groupIds.slice(1).forEach(id => {
+        // This would need to be implemented in parent to actually remove groups
+      });
+      
+      // Update the first group to be the merged group
+      onUpdateGroup(mergedGroup);
     }
   };
 
-  const handleQuickReviewBack = () => {
-    if (quickReviewIndex > 0) {
-      setQuickReviewIndex(quickReviewIndex - 1);
-    }
+  const handleSplitGroup = (groupId: string) => {
+    // This would split a group back into individual photos
+    console.log('Split group:', groupId);
   };
 
-  const handleQuickReviewApprove = (updatedGroup: PhotoGroup) => {
-    const groupIndex = photoGroups.findIndex(g => g.id === updatedGroup.id);
-    if (groupIndex >= 0) {
-      handleQuickReviewNext();
-    }
-  };
-
-  const handleQuickReviewReject = () => {
-    handleQuickReviewNext();
-  };
-
-  const handleQuickSaveDraft = (updatedGroup: PhotoGroup) => {
-    // Draft saving handled by parent component
+  const handleReviewGrouping = () => {
+    onReviewAll();
   };
 
   if (viewMode === 'quick') {
@@ -83,11 +94,32 @@ const BulkReviewDashboard = ({
       <QuickReviewInterface
         groups={photoGroups}
         currentIndex={quickReviewIndex}
-        onNext={handleQuickReviewNext}
-        onBack={handleQuickReviewBack}
-        onApprove={handleQuickReviewApprove}
-        onReject={handleQuickReviewReject}
-        onSaveDraft={handleQuickSaveDraft}
+        onNext={() => {
+          if (quickReviewIndex < photoGroups.length - 1) {
+            setQuickReviewIndex(quickReviewIndex + 1);
+          }
+        }}
+        onBack={() => {
+          if (quickReviewIndex > 0) {
+            setQuickReviewIndex(quickReviewIndex - 1);
+          }
+        }}
+        onApprove={(updatedGroup: PhotoGroup) => {
+          const groupIndex = photoGroups.findIndex(g => g.id === updatedGroup.id);
+          if (groupIndex >= 0) {
+            if (quickReviewIndex < photoGroups.length - 1) {
+              setQuickReviewIndex(quickReviewIndex + 1);
+            }
+          }
+        }}
+        onReject={() => {
+          if (quickReviewIndex < photoGroups.length - 1) {
+            setQuickReviewIndex(quickReviewIndex + 1);
+          }
+        }}
+        onSaveDraft={(updatedGroup: PhotoGroup) => {
+          // Draft saving handled by parent component
+        }}
         onReturn={() => setViewMode('dashboard')}
       />
     );
@@ -98,8 +130,15 @@ const BulkReviewDashboard = ({
       <ReviewDashboardHeader
         photoGroups={photoGroups}
         onPostAll={onPostAll}
-        onReviewAll={onReviewAll}
         onSaveDraft={onSaveDraft}
+        onReviewAll={onReviewAll}
+      />
+      
+      <GroupingActions
+        groups={photoGroups}
+        onMergeGroups={handleMergeGroups}
+        onSplitGroup={handleSplitGroup}
+        onReviewGrouping={handleReviewGrouping}
       />
       
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

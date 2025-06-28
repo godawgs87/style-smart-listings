@@ -83,10 +83,11 @@ export const useBulkReviewHandlers = (
           
           toast({
             title: "Success!",
-            description: `${groupToPost.name} posted successfully!`,
+            description: `${groupToPost.listingData?.title || groupToPost.name} posted successfully!`,
           });
         }
       } catch (error) {
+        console.error('Failed to post item:', error);
         toast({
           title: "Error",
           description: "Failed to post item. Please try again.",
@@ -120,12 +121,20 @@ export const useBulkReviewHandlers = (
       return;
     }
 
+    // Show progress toast
+    toast({
+      title: "Creating listings...",
+      description: `Processing ${readyItems.length} item${readyItems.length > 1 ? 's' : ''}...`,
+    });
+
     let successCount = 0;
     const savedListings = [];
 
     for (const item of readyItems) {
       try {
         const listingData = ensureListingData(item.listingData);
+        console.log('Saving listing:', listingData.title, 'with shipping cost:', item.selectedShipping!.cost);
+        
         const result = await saveListing(
           listingData,
           item.selectedShipping!.cost,
@@ -143,7 +152,7 @@ export const useBulkReviewHandlers = (
           ));
         }
       } catch (error) {
-        console.error(`Failed to save ${item.name}:`, error);
+        console.error(`Failed to save ${item.listingData?.title || item.name}:`, error);
       }
     }
 
@@ -157,7 +166,7 @@ export const useBulkReviewHandlers = (
       
       setTimeout(() => {
         window.location.href = '/inventory';
-      }, 1500);
+      }, 2000);
     } else {
       toast({
         title: "Upload failed",
@@ -207,7 +216,7 @@ export const useBulkReviewHandlers = (
           ));
         }
       } catch (error) {
-        console.error(`Failed to save draft for ${item.name}:`, error);
+        console.error(`Failed to save draft for ${item.listingData?.title || item.name}:`, error);
       }
     }
 

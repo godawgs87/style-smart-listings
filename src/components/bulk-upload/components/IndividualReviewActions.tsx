@@ -26,6 +26,8 @@ const IndividualReviewActions = ({
   totalItems,
   canApprove
 }: IndividualReviewActionsProps) => {
+  const isLastItem = currentIndex === totalItems - 1;
+
   return (
     <div className="space-y-4">
       {/* Navigation */}
@@ -40,15 +42,20 @@ const IndividualReviewActions = ({
           <span className="hidden sm:inline">Previous</span>
         </Button>
         
-        <Button 
-          variant="outline" 
-          onClick={onSkip}
-          size="sm"
-          disabled={currentIndex >= totalItems - 1}
-        >
-          <span className="hidden sm:inline">Skip</span>
-          <ArrowRight className="w-4 h-4 ml-1" />
-        </Button>
+        <span className="text-sm text-gray-500">
+          {currentIndex + 1} of {totalItems}
+        </span>
+        
+        {!isLastItem && (
+          <Button 
+            variant="outline" 
+            onClick={onSkip}
+            size="sm"
+          >
+            <span className="hidden sm:inline">Skip</span>
+            <ArrowRight className="w-4 h-4 ml-1" />
+          </Button>
+        )}
       </div>
 
       {/* Actions */}
@@ -77,8 +84,7 @@ const IndividualReviewActions = ({
             className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
           >
             <CheckCircle className="w-4 h-4 mr-2" />
-            <span className="hidden sm:inline">Approve & Next</span>
-            <span className="sm:hidden">Approve</span>
+            {isLastItem ? 'Complete & Save All' : 'Approve & Next'}
           </Button>
         </div>
       </div>
