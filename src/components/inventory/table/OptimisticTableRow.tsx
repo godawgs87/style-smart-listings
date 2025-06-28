@@ -99,6 +99,9 @@ const OptimisticTableRow = ({
     }
   };
 
+  // Use loadedListing photos if available, otherwise fallback to listing photos
+  const photosToDisplay = loadedListing?.photos || listing.photos;
+
   return (
     <TableRow 
       className={`${isUpdating ? 'opacity-50' : ''} ${isSelected ? 'bg-blue-50' : ''}`}
@@ -112,16 +115,12 @@ const OptimisticTableRow = ({
       
       {visibleColumns.image && (
         <TableCell>
-          {isLoading ? (
-            <div className="w-12 h-12 bg-gray-200 animate-pulse rounded" />
-          ) : (
-            <ListingImagePreview 
-              photos={loadedListing.photos || listing.photos} 
-              title={listing.title}
-              listingId={listing.id}
-              className="w-12 h-12"
-            />
-          )}
+          <ListingImagePreview 
+            photos={photosToDisplay} 
+            title={listing.title}
+            listingId={listing.id}
+            className="w-12 h-12"
+          />
         </TableCell>
       )}
       

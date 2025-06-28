@@ -66,6 +66,9 @@ const OptimisticInventoryGridItem = ({
     }
   };
 
+  // Use detailedListing photos if available, otherwise fallback to listing photos
+  const photosToDisplay = detailedListing?.photos || listing.photos;
+
   return (
     <Card className={`p-3 transition-all ${isUpdating ? 'opacity-50' : ''} ${isSelected ? 'ring-2 ring-blue-500' : ''} hover:shadow-md`}>
       <div className="space-y-2">
@@ -111,18 +114,14 @@ const OptimisticInventoryGridItem = ({
           </DropdownMenu>
         </div>
         
-        {/* Image with loading state */}
+        {/* Image - always show ListingImagePreview, let it handle loading states */}
         <div className="aspect-square">
-          {isLoading ? (
-            <div className="w-full h-full bg-gray-200 animate-pulse rounded" />
-          ) : (
-            <ListingImagePreview 
-              photos={detailedListing.photos || listing.photos} 
-              title={listing.title}
-              listingId={listing.id}
-              className="w-full h-full"
-            />
-          )}
+          <ListingImagePreview 
+            photos={photosToDisplay} 
+            title={listing.title}
+            listingId={listing.id}
+            className="w-full h-full"
+          />
         </div>
         
         {/* Content */}

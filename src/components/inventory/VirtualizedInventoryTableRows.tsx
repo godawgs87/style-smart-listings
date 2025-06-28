@@ -1,8 +1,6 @@
 
 import React, { useMemo } from 'react';
 import { FixedSizeList as List } from 'react-window';
-import { TableRow, TableCell } from '@/components/ui/table';
-import { Checkbox } from '@/components/ui/checkbox';
 import OptimisticTableRow from './table/OptimisticTableRow';
 import type { Listing } from '@/types/Listing';
 
@@ -57,7 +55,7 @@ const Row = ({ index, style, data }: { index: number; style: React.CSSProperties
     <div style={style}>
       <OptimisticTableRow
         listing={listing}
-        detailedListing={listing}
+        detailedListing={listing} // Pass the same listing, let the row handle loading details
         isSelected={isSelected}
         isUpdating={isUpdating}
         visibleColumns={visibleColumns}
