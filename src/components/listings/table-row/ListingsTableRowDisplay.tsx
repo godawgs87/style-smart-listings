@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { TableRow, TableCell } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -21,44 +22,6 @@ import PerformanceNotesCell from './cells/PerformanceNotesCell';
 import LoadingCell from './cells/LoadingCell';
 import { useOptimizedListingDetailsLoader } from '@/hooks/useOptimizedListingDetailsLoader';
 import type { Listing } from '@/types/Listing';
-
-interface Listing {
-  id: string;
-  title: string;
-  description: string | null;
-  price: number;
-  category: string | null;
-  condition: string | null;
-  status: string | null;
-  shipping_cost: number | null;
-  measurements: {
-    length?: string;
-    width?: string;
-    height?: string;
-    weight?: string;
-  } | null;
-  keywords: string[] | null;
-  photos: string[] | null;
-  price_research: string | null;
-  created_at: string;
-  purchase_price?: number | null;
-  purchase_date?: string | null;
-  is_consignment?: boolean;
-  consignment_percentage?: number | null;
-  consignor_name?: string | null;
-  consignor_contact?: string | null;
-  source_type?: string | null;
-  source_location?: string | null;
-  cost_basis?: number | null;
-  fees_paid?: number | null;
-  net_profit?: number | null;
-  profit_margin?: number | null;
-  listed_date?: string | null;
-  sold_date?: string | null;
-  sold_price?: number | null;
-  days_to_sell?: number | null;
-  performance_notes?: string | null;
-}
 
 interface VisibleColumns {
   image: boolean;
