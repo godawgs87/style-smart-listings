@@ -1,7 +1,6 @@
 
 import React, { useState, useCallback } from 'react';
 import { Image } from 'lucide-react';
-import { imageService } from '@/services/imageService';
 
 interface ListingImagePreviewProps {
   photos?: string[] | null;
@@ -10,33 +9,30 @@ interface ListingImagePreviewProps {
   className?: string;
 }
 
-const ListingImagePreview = React.memo(({ photos, title, listingId, className = "w-12 h-12" }: ListingImagePreviewProps) => {
+const ListingImagePreview = React.memo(({ photos, title, className = "w-12 h-12" }: ListingImagePreviewProps) => {
   const [imageError, setImageError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Safely check if we have actual uploaded photos
+  // Check if we have actual uploaded photos
   const hasActualPhotos = Array.isArray(photos) && photos.length > 0 && photos[0] && photos[0].trim() !== '';
   
-  // Use actual photo if available, otherwise fallback to placeholder
-  const displayImage = hasActualPhotos ? photos[0] : (listingId ? imageService.getPlaceholderForListing(listingId) : null);
-
   const handleImageLoad = useCallback(() => {
     setIsLoading(false);
     setImageError(false);
   }, []);
 
   const handleImageError = useCallback(() => {
-    console.warn('📸 Image load error for listing:', listingId, 'Image URL:', displayImage);
+    console.warn('📸 Image load error for image:', photos?.[0]);
     setIsLoading(false);
     setImageError(true);
-  }, [listingId, displayImage]);
+  }, [photos]);
 
   const handleImageLoadStart = useCallback(() => {
     setIsLoading(true);
   }, []);
 
   // Show loading state only when actually loading an image
-  if (isLoading) {
+  if (isLoading && hasActualPhotos) {
     return (
       <div className={`${className} bg-gray-100 rounded-lg flex items-center justify-center`}>
         <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
@@ -44,8 +40,8 @@ const ListingImagePreview = React.memo(({ photos, title, listingId, className = 
     );
   }
 
-  // Show error state or fallback
-  if (imageError || !displayImage) {
+  // Show error state or no image fallback
+  if (imageError || !hasActualPhotos) {
     return (
       <div className={`${className} bg-gray-100 rounded-lg flex items-center justify-center`}>
         <Image className="w-6 h-6 text-gray-400" />
@@ -54,9 +50,9 @@ const ListingImagePreview = React.memo(({ photos, title, listingId, className = 
   }
 
   return (
-    <div className={`${className} rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 relative`}>
+    <div className={`${className} rounded-lg overflow-hidden bg-gray-100 flex-shrink-0`}>
       <img
-        src={displayImage}
+        src={photos[0]}
         alt={title}
         className="w-full h-full object-cover"
         onLoad={handleImageLoad}
@@ -64,14 +60,6 @@ const ListingImagePreview = React.memo(({ photos, title, listingId, className = 
         onLoadStart={handleImageLoadStart}
         loading="lazy"
       />
-      {/* Only show demo badge for placeholder images, not actual photos */}
-      {!hasActualPhotos && (
-        <div className="absolute top-1 right-1">
-          <div className="bg-blue-500 text-white px-1 py-0.5 rounded text-xs font-medium opacity-75">
-            DEMO
-          </div>
-        </div>
-      )}
     </div>
   );
 });

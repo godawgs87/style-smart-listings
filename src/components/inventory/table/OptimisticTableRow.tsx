@@ -98,14 +98,8 @@ const OptimisticTableRow = ({
     }
   };
 
-  // Determine which photos to use - prioritize loaded listing photos
+  // Use loaded listing photos if available, otherwise fallback to base listing photos
   const photosToDisplay = loadedListing?.photos || listing.photos;
-  console.log('🖼️ Table row photos for', listing.id, ':', {
-    loadedPhotos: loadedListing?.photos?.length || 0,
-    basePhotos: listing.photos?.length || 0,
-    isLoading,
-    photosToDisplay: photosToDisplay?.length || 0
-  });
 
   return (
     <TableRow 
@@ -123,7 +117,6 @@ const OptimisticTableRow = ({
           <ListingImagePreview 
             photos={photosToDisplay} 
             title={listing.title}
-            listingId={listing.id}
             className="w-12 h-12"
           />
         </TableCell>
