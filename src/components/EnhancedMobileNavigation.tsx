@@ -2,11 +2,11 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Camera, List, Settings, ArrowLeft, Package, Home, Plus, Loader2, BarChart3 } from 'lucide-react';
+import { Camera, Settings, ArrowLeft, Package, Home, Plus, Loader2, BarChart3 } from 'lucide-react';
 
 interface EnhancedMobileNavigationProps {
   currentView: string;
-  onNavigate: (view: 'dashboard' | 'create' | 'listings' | 'inventory' | 'active-listings') => void;
+  onNavigate: (view: 'dashboard' | 'create' | 'inventory' | 'active-listings') => void;
   showBack?: boolean;
   onBack?: () => void;
   title?: string;
@@ -89,13 +89,6 @@ const EnhancedMobileNavigation = ({
       label: 'Inventory',
       action: () => onNavigate('inventory'),
       notification: notifications?.inventory
-    },
-    {
-      view: 'listings',
-      icon: List,
-      label: 'Listings',
-      action: () => onNavigate('listings'),
-      notification: notifications?.listings
     }
   ];
 

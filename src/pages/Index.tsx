@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -110,7 +111,7 @@ const Index = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           <Card className="p-6 md:p-8 hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700" 
                 onClick={() => handleNavigation('create')}>
             <div className="text-center">
@@ -146,23 +147,11 @@ const Index = () => {
               <Button variant="outline" className="w-full hover:bg-orange-50">View Operations</Button>
             </div>
           </Card>
-
-          <Card className="p-6 md:p-8 hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
-                onClick={() => handleNavigation('listings')}>
-            <div className="text-center">
-              <List className="w-12 md:w-16 h-12 md:h-16 mx-auto text-purple-600 mb-4" />
-              <h3 className="text-lg md:text-xl font-semibold mb-2 text-gray-900 dark:text-gray-100">All Listings</h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-4 text-sm md:text-base">
-                View and manage all your listings with advanced controls.
-              </p>
-              <Button variant="outline" className="w-full hover:bg-purple-50">View Listings</Button>
-            </div>
-          </Card>
         </div>
 
         <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 md:p-6 border border-blue-200 dark:border-blue-800">
           <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">How Hustly works:</h3>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-blue-800 dark:text-blue-200">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-blue-800 dark:text-blue-200">
             <div>
               <strong>1. Track Inventory:</strong> Log purchases with cost basis, source, and photos
             </div>
@@ -171,9 +160,6 @@ const Index = () => {
             </div>
             <div>
               <strong>3. Monitor Sales:</strong> Track active listings and optimize performance
-            </div>
-            <div>
-              <strong>4. Manage & Profit:</strong> Calculate profits and grow your business
             </div>
           </div>
         </div>
