@@ -1,57 +1,20 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
 import { useAuth } from '@/hooks/useAuth';
-import Dashboard from '@/pages/Dashboard';
+import Index from '@/pages/Index';
 import CreateListing from '@/pages/CreateListing';
 import DataManagement from '@/pages/DataManagement';
 import AuthForm from '@/components/AuthForm';
+import LoadingState from '@/components/LoadingState';
+import SafeErrorBoundary from '@/components/SafeErrorBoundary';
 
 const App = () => {
-  const [currentView, setCurrentView] = useState<'dashboard' | 'create' | 'data-management'>('dashboard');
   const { user, loading } = useAuth();
 
-  const handleNavigate = (view: 'dashboard' | 'create' | 'listings' | 'inventory' | 'active-listings' | 'data-management') => {
-    switch (view) {
-      case 'dashboard':
-        setCurrentView('dashboard');
-        break;
-      case 'create':
-        setCurrentView('create');
-        break;
-      case 'listings':
-        window.location.href = '/listings';
-        break;
-      case 'inventory':
-        window.location.href = '/inventory';
-        break;
-      case 'active-listings':
-        window.location.href = '/active-listings';
-        break;
-      case 'data-management':
-        setCurrentView('data-management');
-        break;
-    }
-  };
-
-  const handleCreateListing = () => {
-    setCurrentView('create');
-  };
-
-  const handleViewListings = () => {
-    window.location.href = '/inventory';
-  };
-
-  useEffect(() => {
-    if (window.location.pathname === '/create') {
-      setCurrentView('create');
-    } else {
-      setCurrentView('dashboard');
-    }
-  }, []);
-
   if (loading) {
-    return <div>Loading...</div>;
+    return <LoadingState message="Loading your workspace..." fullPage />;
   }
 
   if (!user) {
@@ -64,26 +27,19 @@ const App = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {currentView === 'dashboard' && (
-        <Dashboard 
-          onCreateListing={handleCreateListing}
-          onViewListings={handleViewListings}
-        />
-      )}
-      {currentView === 'create' && (
-        <CreateListing 
-          onBack={() => setCurrentView('dashboard')}
-          onViewListings={() => window.location.href = '/inventory'}
-        />
-      )}
-      {currentView === 'data-management' && (
-        <DataManagement 
-          onBack={() => setCurrentView('dashboard')}
-          onNavigate={handleNavigate}
-        />
-      )}
-    </div>
+    <SafeErrorBoundary>
+      <Router>
+        <div className="min-h-screen bg-gray-50">
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/create" element={<CreateListing onBack={() => window.location.href = '/'} onViewListings={() => window.location.href = '/inventory'} />} />
+            <Route path="/data-management" element={<DataManagement onBack={() => window.location.href = '/'} onNavigate={(view) => window.location.href = `/${view}`} />} />
+            <Route path="*" element={<Index />} />
+          </Routes>
+          <Toaster />
+        </div>
+      </Router>
+    </SafeErrorBoundary>
   );
 };
 
