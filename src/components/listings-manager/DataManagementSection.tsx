@@ -12,7 +12,7 @@ interface DataManagementSectionProps {
 }
 
 const DataManagementSection = ({ listings, onDataUpdate }: DataManagementSectionProps) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true); // Changed to true so it's visible by default
 
   return (
     <Card>

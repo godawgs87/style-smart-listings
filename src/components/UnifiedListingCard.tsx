@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import ListingImagePreview from '@/components/ListingImagePreview';
 import ProfitIndicator from '@/components/listing-card/ProfitIndicator';
 import ListingCardHeader from '@/components/listing-card/ListingCardHeader';
@@ -24,6 +25,10 @@ interface Listing {
   days_to_sell?: number;
   is_consignment?: boolean;
   consignment_percentage?: number;
+  clothing_size?: string | null;
+  shoe_size?: string | null;
+  gender?: 'Men' | 'Women' | 'Kids' | 'Unisex' | null;
+  age_group?: 'Adult' | 'Youth' | 'Toddler' | 'Baby' | null;
 }
 
 interface UnifiedListingCardProps {
@@ -105,6 +110,27 @@ const UnifiedListingCard = ({
             createdAt={listing.created_at}
             daysToSell={listing.days_to_sell}
           />
+
+          {/* Size Information */}
+          {(listing.gender || listing.clothing_size || listing.shoe_size) && (
+            <div className="flex flex-wrap gap-1">
+              {listing.gender && (
+                <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
+                  {listing.gender}
+                </Badge>
+              )}
+              {listing.clothing_size && (
+                <Badge variant="outline" className="text-xs bg-green-50 text-green-700">
+                  Size {listing.clothing_size}
+                </Badge>
+              )}
+              {listing.shoe_size && (
+                <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700">
+                  Size {listing.shoe_size}
+                </Badge>
+              )}
+            </div>
+          )}
 
           <ProfitIndicator
             purchasePrice={listing.purchase_price}

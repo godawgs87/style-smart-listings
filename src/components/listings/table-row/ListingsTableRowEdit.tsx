@@ -44,6 +44,10 @@ interface Listing {
   sold_price?: number | null;
   days_to_sell?: number | null;
   performance_notes?: string | null;
+  clothing_size?: string | null;
+  shoe_size?: string | null;
+  gender?: 'Men' | 'Women' | 'Kids' | 'Unisex' | null;
+  age_group?: 'Adult' | 'Youth' | 'Toddler' | 'Baby' | null;
 }
 
 interface VisibleColumns {
@@ -87,8 +91,17 @@ const ListingsTableRowEdit = ({ listing, visibleColumns, onSave, onCancel }: Lis
     status: listing.status || 'draft',
     shipping_cost: listing.shipping_cost !== null ? listing.shipping_cost : 0,
     purchase_price: listing.purchase_price || 0,
+    purchase_date: listing.purchase_date || '',
     source_type: listing.source_type || '',
     source_location: listing.source_location || '',
+    consignor_name: listing.consignor_name || '',
+    consignor_contact: listing.consignor_contact || '',
+    consignment_percentage: listing.consignment_percentage || 0,
+    clothing_size: listing.clothing_size || '',
+    shoe_size: listing.shoe_size || '',
+    gender: listing.gender || '',
+    age_group: listing.age_group || '',
+    performance_notes: listing.performance_notes || '',
     measurements: listing.measurements || { length: '', width: '', height: '', weight: '' }
   });
   const [isSaving, setIsSaving] = useState(false);
@@ -103,7 +116,15 @@ const ListingsTableRowEdit = ({ listing, visibleColumns, onSave, onCancel }: Lis
         setEditData(prev => ({
           ...prev,
           shipping_cost: details.shipping_cost !== null ? details.shipping_cost : 0,
-          measurements: details.measurements || { length: '', width: '', height: '', weight: '' }
+          measurements: details.measurements || { length: '', width: '', height: '', weight: '' },
+          clothing_size: details.clothing_size || '',
+          shoe_size: details.shoe_size || '',
+          gender: details.gender || '',
+          age_group: details.age_group || '',
+          purchase_date: details.purchase_date || '',
+          consignor_name: details.consignor_name || '',
+          consignor_contact: details.consignor_contact || '',
+          performance_notes: details.performance_notes || ''
         }));
       }
     };
@@ -174,7 +195,6 @@ const ListingsTableRowEdit = ({ listing, visibleColumns, onSave, onCancel }: Lis
         </TableCell>
       )}
 
-      {/* Render other columns with simplified display */}
       {visibleColumns.keywords && (
         <TableCell>
           <div className="text-sm text-gray-600">
@@ -191,14 +211,94 @@ const ListingsTableRowEdit = ({ listing, visibleColumns, onSave, onCancel }: Lis
         </TableCell>
       )}
 
-      {/* Skip other non-essential columns in edit mode */}
-      {visibleColumns.purchaseDate && <TableCell>-</TableCell>}
-      {visibleColumns.consignmentStatus && <TableCell>-</TableCell>}
+      {visibleColumns.purchasePrice && (
+        <TableCell>
+          <Input
+            type="number"
+            value={editData.purchase_price}
+            onChange={(e) => handleFieldUpdate('purchase_price', Number(e.target.value))}
+            className="w-20 text-sm"
+            placeholder="0"
+          />
+        </TableCell>
+      )}
+
+      {visibleColumns.purchaseDate && (
+        <TableCell>
+          <Input
+            type="date"
+            value={editData.purchase_date}
+            onChange={(e) => handleFieldUpdate('purchase_date', e.target.value)}
+            className="w-32 text-sm"
+          />
+        </TableCell>
+      )}
+
+      {visibleColumns.consignmentStatus && (
+        <TableCell>
+          <div className="space-y-1">
+            <Input
+              placeholder="Consignor"
+              value={editData.consignor_name}
+              onChange={(e) => handleFieldUpdate('consignor_name', e.target.value)}
+              className="w-24 text-xs"
+            />
+            <Input
+              type="number"
+              placeholder="%"
+              value={editData.consignment_percentage}
+              onChange={(e) => handleFieldUpdate('consignment_percentage', Number(e.target.value))}
+              className="w-16 text-xs"
+            />
+          </div>
+        </TableCell>
+      )}
+
+      {visibleColumns.sourceType && (
+        <TableCell>
+          <Select value={editData.source_type} onValueChange={(value) => handleFieldUpdate('source_type', value)}>
+            <SelectTrigger className="w-24 text-xs">
+              <SelectValue placeholder="Source" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Thrift Store">Thrift Store</SelectItem>
+              <SelectItem value="Estate Sale">Estate Sale</SelectItem>
+              <SelectItem value="Garage Sale">Garage Sale</SelectItem>
+              <SelectItem value="Online">Online</SelectItem>
+              <SelectItem value="Auction">Auction</SelectItem>
+              <SelectItem value="Consignment">Consignment</SelectItem>
+              <SelectItem value="Other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+        </TableCell>
+      )}
+
+      {visibleColumns.sourceLocation && (
+        <TableCell>
+          <Input
+            value={editData.source_location}
+            onChange={(e) => handleFieldUpdate('source_location', e.target.value)}
+            className="w-32 text-sm"
+            placeholder="Location"
+          />
+        </TableCell>
+      )}
+
       {visibleColumns.costBasis && <TableCell>-</TableCell>}
       {visibleColumns.netProfit && <TableCell>-</TableCell>}
       {visibleColumns.profitMargin && <TableCell>-</TableCell>}
       {visibleColumns.daysToSell && <TableCell>-</TableCell>}
-      {visibleColumns.performanceNotes && <TableCell>-</TableCell>}
+
+      {visibleColumns.performanceNotes && (
+        <TableCell>
+          <Input
+            value={editData.performance_notes}
+            onChange={(e) => handleFieldUpdate('performance_notes', e.target.value)}
+            className="w-32 text-sm"
+            placeholder="Notes"
+          />
+        </TableCell>
+      )}
 
       <TableCell className="sticky right-0 bg-white z-10 border-l">
         <EditActionButtons

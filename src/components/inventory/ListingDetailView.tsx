@@ -106,7 +106,11 @@ const ListingDetailView = ({ listingId, onBack, onDuplicated, onDeleted }: Listi
             measurements: listing.measurements || {},
             keywords: listing.keywords || [],
             photos: listing.photos || [],
-            priceResearch: listing.price_research || ''
+            priceResearch: listing.price_research || '',
+            clothing_size: listing.clothing_size || '',
+            shoe_size: listing.shoe_size || '',
+            gender: listing.gender || '',
+            age_group: listing.age_group || ''
           }}
           onSave={handleSaveEdit}
           onCancel={handleCancelEdit}
@@ -165,7 +169,7 @@ const ListingDetailView = ({ listingId, onBack, onDuplicated, onDeleted }: Listi
         </div>
 
         {/* Details */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4">
           {/* Basic Info */}
           <Card className="p-6">
             <h1 className="text-2xl font-bold mb-4">{listing.title}</h1>
@@ -197,7 +201,7 @@ const ListingDetailView = ({ listingId, onBack, onDuplicated, onDeleted }: Listi
           </Card>
 
           {/* Size Information */}
-          {(listing.clothing_size || listing.shoe_size || listing.gender) && (
+          {(listing.clothing_size || listing.shoe_size || listing.gender || listing.age_group) && (
             <Card className="p-6">
               <h3 className="font-medium mb-3">Size Information</h3>
               <div className="grid grid-cols-2 gap-4 text-sm">
@@ -250,15 +254,60 @@ const ListingDetailView = ({ listingId, onBack, onDuplicated, onDeleted }: Listi
             </Card>
           )}
 
-          {/* Financial Info */}
-          {(listing.purchase_price || listing.net_profit || listing.profit_margin) && (
+          {/* Cross-listing Data */}
+          {(listing.purchase_price || listing.source_type || listing.source_location || listing.consignor_name) && (
             <Card className="p-6">
-              <h3 className="font-medium mb-3">Financial Details</h3>
-              <div className="grid grid-cols-3 gap-4 text-sm">
+              <h3 className="font-medium mb-3">Source & Purchase Information</h3>
+              <div className="grid grid-cols-2 gap-4 text-sm">
                 {listing.purchase_price && (
                   <div>
                     <span className="text-gray-500">Purchase Price</span>
                     <p className="font-medium">${listing.purchase_price}</p>
+                  </div>
+                )}
+                {listing.purchase_date && (
+                  <div>
+                    <span className="text-gray-500">Purchase Date</span>
+                    <p className="font-medium">{listing.purchase_date}</p>
+                  </div>
+                )}
+                {listing.source_type && (
+                  <div>
+                    <span className="text-gray-500">Source Type</span>
+                    <p className="font-medium">{listing.source_type}</p>
+                  </div>
+                )}
+                {listing.source_location && (
+                  <div>
+                    <span className="text-gray-500">Source Location</span>
+                    <p className="font-medium">{listing.source_location}</p>
+                  </div>
+                )}
+                {listing.consignor_name && (
+                  <div>
+                    <span className="text-gray-500">Consignor</span>
+                    <p className="font-medium">{listing.consignor_name}</p>
+                  </div>
+                )}
+                {listing.consignor_contact && (
+                  <div>
+                    <span className="text-gray-500">Consignor Contact</span>
+                    <p className="font-medium">{listing.consignor_contact}</p>
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
+
+          {/* Financial Info */}
+          {(listing.net_profit || listing.profit_margin || listing.cost_basis) && (
+            <Card className="p-6">
+              <h3 className="font-medium mb-3">Financial Details</h3>
+              <div className="grid grid-cols-3 gap-4 text-sm">
+                {listing.cost_basis && (
+                  <div>
+                    <span className="text-gray-500">Cost Basis</span>
+                    <p className="font-medium">${listing.cost_basis}</p>
                   </div>
                 )}
                 {listing.net_profit && (
@@ -274,6 +323,45 @@ const ListingDetailView = ({ listingId, onBack, onDuplicated, onDeleted }: Listi
                   </div>
                 )}
               </div>
+            </Card>
+          )}
+
+          {/* Performance Data */}
+          {(listing.listed_date || listing.sold_date || listing.days_to_sell || listing.performance_notes) && (
+            <Card className="p-6">
+              <h3 className="font-medium mb-3">Performance Data</h3>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                {listing.listed_date && (
+                  <div>
+                    <span className="text-gray-500">Listed Date</span>
+                    <p className="font-medium">{listing.listed_date}</p>
+                  </div>
+                )}
+                {listing.sold_date && (
+                  <div>
+                    <span className="text-gray-500">Sold Date</span>
+                    <p className="font-medium">{listing.sold_date}</p>
+                  </div>
+                )}
+                {listing.sold_price && (
+                  <div>
+                    <span className="text-gray-500">Sold Price</span>
+                    <p className="font-medium text-green-600">${listing.sold_price}</p>
+                  </div>
+                )}
+                {listing.days_to_sell && (
+                  <div>
+                    <span className="text-gray-500">Days to Sell</span>
+                    <p className="font-medium">{listing.days_to_sell} days</p>
+                  </div>
+                )}
+              </div>
+              {listing.performance_notes && (
+                <div className="mt-3">
+                  <span className="text-gray-500 text-sm">Performance Notes</span>
+                  <p className="text-sm mt-1">{listing.performance_notes}</p>
+                </div>
+              )}
             </Card>
           )}
 
