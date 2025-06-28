@@ -22,95 +22,60 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
   }), [listings]);
 
   const fetchInventory = useCallback(async (options: UnifiedInventoryOptions = {}): Promise<Listing[]> => {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error('No authenticated user');
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('Authentication required');
+      }
+
+      console.log('🔍 Fetching inventory for user:', user.id);
+
+      // Use minimal query to avoid timeouts
+      let query = supabase
+        .from('listings')
+        .select('*')
+        .eq('user_id', user.id);
+
+      // Apply filters
+      if (options.statusFilter && options.statusFilter !== 'all') {
+        query = query.eq('status', options.statusFilter);
+      }
+
+      if (options.categoryFilter) {
+        query = query.eq('category', options.categoryFilter);
+      }
+
+      if (options.searchTerm?.trim()) {
+        const searchTerm = options.searchTerm.trim();
+        query = query.or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
+      }
+
+      // Conservative limit with timeout
+      const limit = Math.min(options.limit || 10, 15);
+      
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Query timeout')), 5000)
+      );
+
+      const queryPromise = query
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
+
+      if (error) {
+        console.error('❌ Database error:', error);
+        throw error;
+      }
+
+      console.log('✅ Fetched listings:', data?.length || 0);
+      return data || [];
+      
+    } catch (err: any) {
+      console.error('❌ Failed to fetch inventory:', err);
+      throw err;
     }
-
-    console.log('🔍 Fetching inventory for user:', user.id);
-
-    // Use a much more lightweight query to avoid timeouts
-    let query = supabase
-      .from('listings')
-      .select(`
-        id,
-        user_id,
-        title,
-        description,
-        price,
-        category,
-        condition,
-        status,
-        photos,
-        created_at,
-        updated_at
-      `)
-      .eq('user_id', user.id);
-
-    // Apply filters
-    if (options.statusFilter && options.statusFilter !== 'all') {
-      query = query.eq('status', options.statusFilter);
-    }
-
-    if (options.categoryFilter) {
-      query = query.eq('category', options.categoryFilter);
-    }
-
-    if (options.searchTerm?.trim()) {
-      const searchTerm = options.searchTerm.trim();
-      query = query.or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
-    }
-
-    // Use very conservative limits
-    const limit = Math.min(options.limit || 15, 20);
-    
-    const { data, error } = await query
-      .order('created_at', { ascending: false })
-      .limit(limit);
-
-    if (error) {
-      console.error('❌ Database error:', error);
-      throw error;
-    }
-
-    console.log('✅ Fetched listings:', data?.length || 0);
-
-    // Transform data with minimal processing
-    return (data || []).map(item => ({
-      id: item.id,
-      user_id: item.user_id,
-      title: item.title || '',
-      description: item.description || '',
-      price: Number(item.price) || 0,
-      category: item.category || '',
-      condition: item.condition || '',
-      status: item.status || 'draft',
-      shipping_cost: null,
-      purchase_price: null,
-      purchase_date: null,
-      cost_basis: null,
-      fees_paid: null,
-      net_profit: null,
-      profit_margin: null,
-      sold_price: null,
-      consignment_percentage: null,
-      is_consignment: false,
-      consignor_name: '',
-      consignor_contact: '',
-      source_type: '',
-      source_location: '',
-      listed_date: null,
-      sold_date: null,
-      days_to_sell: null,
-      performance_notes: '',
-      measurements: {},
-      keywords: Array.isArray(item.photos) ? [] : [],
-      photos: Array.isArray(item.photos) ? item.photos : [],
-      price_research: '',
-      created_at: item.created_at,
-      updated_at: item.updated_at
-    }));
   }, []);
 
   const loadData = useCallback(async () => {
@@ -120,10 +85,7 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
     setError(null);
 
     try {
-      const data = await fetchInventory({
-        ...options,
-        limit: Math.min(options.limit || 15, 20) // Conservative limit
-      });
+      const data = await fetchInventory(options);
       
       if (!mountedRef.current) return;
 
@@ -137,18 +99,17 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
       
       console.error('❌ Failed to fetch inventory:', err);
       
-      // Always try cached data first on any error
+      // Use cached data if available
       if (cachedListings.length > 0) {
         setListings(cachedListings);
         setUsingFallback(true);
         toast({
           title: "Using Cached Data",
-          description: "Having trouble loading fresh data, showing cached listings.",
+          description: "Loading fresh data failed, showing cached listings.",
           variant: "default"
         });
       } else {
         setError(err.message || 'Failed to load inventory');
-        // Show a helpful error message
         toast({
           title: "Unable to Load Listings", 
           description: "Please check your connection and try again.",

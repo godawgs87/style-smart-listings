@@ -8,7 +8,7 @@ export const useListingOperations = () => {
 
   const deleteListing = async (id: string) => {
     try {
-      console.log('Attempting to delete listing:', id);
+      console.log('Deleting listing:', id);
       
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) {
@@ -20,28 +20,22 @@ export const useListingOperations = () => {
         return false;
       }
 
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Delete operation timeout')), 8000)
-      );
-
-      const deletePromise = supabase
+      const { error } = await supabase
         .from('listings')
         .delete()
-        .eq('id', id);
-
-      const { error } = await Promise.race([deletePromise, timeoutPromise]) as any;
+        .eq('id', id)
+        .eq('user_id', user.id);
 
       if (error) {
-        console.error('Supabase delete error:', error);
+        console.error('Delete error:', error);
         toast({
           title: "Error",
-          description: `Failed to delete listing: ${error.message}`,
+          description: `Failed to delete: ${error.message}`,
           variant: "destructive"
         });
         return false;
       }
 
-      console.log('Listing deleted successfully from database');
       toast({
         title: "Success",
         description: "Listing deleted successfully"
@@ -49,10 +43,10 @@ export const useListingOperations = () => {
       return true;
       
     } catch (error: any) {
-      console.error('Delete operation failed:', error);
+      console.error('Delete failed:', error);
       toast({
         title: "Error",
-        description: "An unexpected error occurred while deleting the listing",
+        description: "Failed to delete listing",
         variant: "destructive"
       });
       return false;
@@ -61,11 +55,10 @@ export const useListingOperations = () => {
 
   const duplicateListing = async (item: Listing): Promise<Listing | null> => {
     try {
-      console.log('📋 Duplicating listing:', item.id);
+      console.log('Duplicating listing:', item.id);
       
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) {
-        console.error('Authentication error during duplicate:', authError);
         toast({
           title: "Authentication Required",
           description: "Please log in to duplicate listings",
@@ -93,7 +86,7 @@ export const useListingOperations = () => {
         .single();
 
       if (error) {
-        console.error('❌ Error duplicating listing:', error);
+        console.error('Duplicate error:', error);
         toast({
           title: "Error",
           description: "Failed to duplicate listing",
@@ -104,13 +97,17 @@ export const useListingOperations = () => {
 
       toast({
         title: "Success",
-        description: "Listing duplicated successfully",
-        variant: "default"
+        description: "Listing duplicated successfully"
       });
       
       return data as Listing;
     } catch (error) {
-      console.error('💥 Exception duplicating listing:', error);
+      console.error('Duplicate failed:', error);
+      toast({
+        title: "Error",
+        description: "Failed to duplicate listing",
+        variant: "destructive"
+      });
       return null;
     }
   };
@@ -130,7 +127,8 @@ export const useListingOperations = () => {
       const { error } = await supabase
         .from('listings')
         .update(updates)
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', user.id);
 
       if (error) {
         console.error('Update error:', error);
@@ -148,24 +146,20 @@ export const useListingOperations = () => {
       });
       return true;
     } catch (error) {
-      console.error('Update operation failed:', error);
+      console.error('Update failed:', error);
       toast({
         title: "Error",
-        description: "An unexpected error occurred while updating the listing",
+        description: "Failed to update listing",
         variant: "destructive"
       });
       return false;
     }
   };
 
-  const updateListingStatus = async (id: string, status: string) => {
-    return updateListing(id, { status });
-  };
-
   return {
     deleteListing,
     duplicateListing,
     updateListing,
-    updateListingStatus
+    updateListingStatus: (id: string, status: string) => updateListing(id, { status })
   };
 };

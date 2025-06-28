@@ -1,5 +1,5 @@
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { usePhotoAnalysis } from '@/hooks/usePhotoAnalysis';
 import { useListingSave } from '@/hooks/useListingSave';
 import { ListingData } from '@/types/CreateListing';
@@ -31,57 +31,89 @@ export const useCreateListingActions = ({
 }: UseCreateListingActionsProps) => {
   const { analyzePhotos, isAnalyzing } = usePhotoAnalysis();
   const { saveListing, isSaving } = useListingSave();
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const mountedRef = useRef(true);
 
-  // Auto-save draft whenever listingData changes (debounced)
+  // Auto-save draft with proper cleanup
   useEffect(() => {
-    if (!listingData || isAnalyzing || isSaving || isAutoSaving) return;
+    if (!listingData || isAnalyzing || isSaving || isAutoSaving || !mountedRef.current) {
+      return;
+    }
     
-    const autoSaveTimer = setTimeout(async () => {
+    // Clear existing timer
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+
+    autoSaveTimerRef.current = setTimeout(async () => {
+      if (!mountedRef.current) return;
+      
       setIsAutoSaving(true);
       
       try {
         const saveResult = await saveListing(listingData, shippingCost, 'draft', draftId || undefined);
-        if (saveResult.success && saveResult.listingId && !draftId) {
+        if (saveResult.success && saveResult.listingId && !draftId && mountedRef.current) {
           setDraftId(saveResult.listingId);
         }
       } catch (error) {
         console.error('Auto-save failed:', error);
       } finally {
-        setIsAutoSaving(false);
+        if (mountedRef.current) {
+          setIsAutoSaving(false);
+        }
       }
     }, 2000);
 
-    return () => clearTimeout(autoSaveTimer);
-  }, [listingData, shippingCost, draftId, isAnalyzing, isSaving, isAutoSaving, saveListing]);
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, [listingData, shippingCost, draftId, isAnalyzing, isSaving, isAutoSaving, saveListing, setDraftId, setIsAutoSaving]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleAnalyze = async () => {
-    if (photos.length === 0) return;
+    if (photos.length === 0 || !mountedRef.current) return;
     
-    const result = await analyzePhotos(photos);
-    if (result) {
-      const enrichedResult = {
-        ...result,
-        is_consignment: listingData?.is_consignment || false,
-        consignment_percentage: listingData?.consignment_percentage,
-        consignor_name: listingData?.consignor_name,
-        consignor_contact: listingData?.consignor_contact,
-        purchase_price: listingData?.purchase_price,
-        purchase_date: listingData?.purchase_date,
-        source_location: listingData?.source_location,
-        source_type: listingData?.source_type
-      };
-      
-      setListingData(enrichedResult);
-      setCurrentStep('preview');
+    try {
+      const result = await analyzePhotos(photos);
+      if (result && mountedRef.current) {
+        const enrichedResult = {
+          ...result,
+          is_consignment: listingData?.is_consignment || false,
+          consignment_percentage: listingData?.consignment_percentage,
+          consignor_name: listingData?.consignor_name,
+          consignor_contact: listingData?.consignor_contact,
+          purchase_price: listingData?.purchase_price,
+          purchase_date: listingData?.purchase_date,
+          source_location: listingData?.source_location,
+          source_type: listingData?.source_type
+        };
+        
+        setListingData(enrichedResult);
+        setCurrentStep('preview');
+      }
+    } catch (error) {
+      console.error('Photo analysis failed:', error);
     }
   };
 
   const handleExport = async () => {
-    if (!listingData) return;
+    if (!listingData || !mountedRef.current) return;
     
     try {
       const success = await saveListing(listingData, shippingCost, 'active', draftId || undefined);
-      if (success.success) {
+      if (success.success && mountedRef.current) {
         onViewListings();
       }
     } catch (error) {

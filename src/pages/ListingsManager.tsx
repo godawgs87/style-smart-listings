@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
@@ -9,8 +10,6 @@ import ListingsManagerControls from '@/components/ListingsManagerControls';
 import ListingsLoadingState from '@/components/ListingsLoadingState';
 import ListingsManagerFilters from '@/components/listings-manager/ListingsManagerFilters';
 import ListingsManagerContent from '@/components/listings-manager/ListingsManagerContent';
-import CompactListingsHeader from '@/components/listings-manager/CompactListingsHeader';
-import DataManagementSection from '@/components/listings-manager/DataManagementSection';
 
 interface ListingsManagerProps {
   onBack: () => void;
@@ -19,7 +18,6 @@ interface ListingsManagerProps {
 const ListingsManager = ({ onBack }: ListingsManagerProps) => {
   const [selectedListings, setSelectedListings] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [conditionFilter, setConditionFilter] = useState('all');
   const [priceRangeFilter, setPriceRangeFilter] = useState('all');
@@ -37,7 +35,7 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
     searchTerm: searchTerm.trim() || undefined,
     statusFilter: 'all',
     categoryFilter: categoryFilter === 'all' ? undefined : categoryFilter,
-    limit: 15 // Reduced even further to prevent timeouts
+    limit: 10
   });
 
   const { deleteListing, updateListing } = useListingOperations();
@@ -48,11 +46,10 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
   }, [listings]);
 
   const filteredListings = useMemo(() => {
-    const filtered = listings.filter(listing => {
+    return listings.filter(listing => {
       const matchesSearch = searchTerm === '' || 
         listing.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        listing.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        listing.category?.toLowerCase().includes(searchTerm.toLowerCase());
+        listing.description?.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesCategory = categoryFilter === 'all' || listing.category === categoryFilter;
       const matchesCondition = conditionFilter === 'all' || 
@@ -72,8 +69,6 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
 
       return matchesSearch && matchesCategory && matchesCondition && matchesPriceRange();
     });
-    
-    return filtered;
   }, [listings, searchTerm, categoryFilter, conditionFilter, priceRangeFilter]);
 
   const handleSelectListing = (listingId: string, checked: boolean) => {
@@ -102,7 +97,7 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
   const handleBulkDelete = async () => {
     if (selectedListings.length === 0) return;
     
-    if (window.confirm(`Are you sure you want to delete ${selectedListings.length} listings? This action cannot be undone.`)) {
+    if (window.confirm(`Delete ${selectedListings.length} listings? This cannot be undone.`)) {
       for (const id of selectedListings) {
         await deleteListing(id);
       }
@@ -110,9 +105,6 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
       refetch();
     }
   };
-
-  const activeFiltersCount = [categoryFilter, conditionFilter, priceRangeFilter]
-    .filter(filter => filter !== 'all').length;
 
   const handleClearFilters = () => {
     setCategoryFilter('all');
@@ -141,25 +133,25 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
         onBack={onBack}
       />
 
-      <div className="max-w-7xl mx-auto p-4 space-y-3">
-        <CompactListingsHeader
-          usingFallback={usingFallback}
-          onRefetch={refetch}
-          filteredListings={filteredListings}
-        />
-
-        <DataManagementSection 
-          listings={filteredListings}
-          onDataUpdate={refetch}
-        />
+      <div className="max-w-7xl mx-auto p-4 space-y-4">
+        {usingFallback && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+            <p className="text-yellow-800 text-sm">
+              Using cached data due to connection issues. 
+              <button onClick={refetch} className="ml-2 underline">
+                Try again
+              </button>
+            </p>
+          </div>
+        )}
 
         <ListingsManagerControls
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
           selectedListings={selectedListings}
           onBulkDelete={handleBulkDelete}
-          viewMode={viewMode}
-          setViewMode={setViewMode}
+          viewMode="table"
+          setViewMode={() => {}}
           filteredCount={filteredListings.length}
         />
 
@@ -171,7 +163,8 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
           onConditionChange={setConditionFilter}
           priceRangeFilter={priceRangeFilter}
           onPriceRangeChange={setPriceRangeFilter}
-          activeFiltersCount={activeFiltersCount}
+          activeFiltersCount={[categoryFilter, conditionFilter, priceRangeFilter]
+            .filter(filter => filter !== 'all').length}
           onClearFilters={handleClearFilters}
         />
 
