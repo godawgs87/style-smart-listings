@@ -15,26 +15,26 @@ const InventoryStats = ({ listings }: InventoryStatsProps) => {
   };
 
   return (
-    <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-4 text-xs">
-      <div className="flex items-center gap-1 p-2 bg-blue-50 rounded">
-        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-        <span className="font-semibold text-blue-600">{stats.totalItems}</span>
-        <span className="text-gray-600">Items</span>
+    <div className="grid grid-cols-2 gap-3 w-full sm:max-w-md">
+      <div className="flex flex-col items-center p-3 bg-blue-50 rounded-lg aspect-square justify-center">
+        <div className="w-2 h-2 bg-blue-500 rounded-full mb-1"></div>
+        <span className="font-bold text-blue-600 text-lg">{stats.totalItems}</span>
+        <span className="text-gray-600 text-xs text-center">Items</span>
       </div>
-      <div className="flex items-center gap-1 p-2 bg-green-50 rounded">
-        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-        <span className="font-semibold text-green-600">${stats.totalValue.toFixed(0)}</span>
-        <span className="text-gray-600">Value</span>
+      <div className="flex flex-col items-center p-3 bg-green-50 rounded-lg aspect-square justify-center">
+        <div className="w-2 h-2 bg-green-500 rounded-full mb-1"></div>
+        <span className="font-bold text-green-600 text-lg">${stats.totalValue.toFixed(0)}</span>
+        <span className="text-gray-600 text-xs text-center">Value</span>
       </div>
-      <div className="flex items-center gap-1 p-2 bg-purple-50 rounded">
-        <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-        <span className="font-semibold text-purple-600">{stats.activeItems}</span>
-        <span className="text-gray-600">Active</span>
+      <div className="flex flex-col items-center p-3 bg-purple-50 rounded-lg aspect-square justify-center">
+        <div className="w-2 h-2 bg-purple-500 rounded-full mb-1"></div>
+        <span className="font-bold text-purple-600 text-lg">{stats.activeItems}</span>
+        <span className="text-gray-600 text-xs text-center">Active</span>
       </div>
-      <div className="flex items-center gap-1 p-2 bg-orange-50 rounded">
-        <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-        <span className="font-semibold text-orange-600">{stats.draftItems}</span>
-        <span className="text-gray-600">Drafts</span>
+      <div className="flex flex-col items-center p-3 bg-orange-50 rounded-lg aspect-square justify-center">
+        <div className="w-2 h-2 bg-orange-500 rounded-full mb-1"></div>
+        <span className="font-bold text-orange-600 text-lg">{stats.draftItems}</span>
+        <span className="text-gray-600 text-xs text-center">Drafts</span>
       </div>
     </div>
   );
