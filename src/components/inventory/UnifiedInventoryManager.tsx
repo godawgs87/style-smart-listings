@@ -73,6 +73,12 @@ const UnifiedInventoryManager = ({ onCreateListing, onBack }: UnifiedInventoryMa
     setViewingListingId(listing.id);
   };
 
+  const handleEditListing = (listing: any) => {
+    // Navigate to edit mode or open edit dialog
+    console.log('Edit listing:', listing.id);
+    // For now, just log - you can implement edit functionality as needed
+  };
+
   const handleDuplicateListing = async (listing: any) => {
     const result = await duplicateListing(listing);
     if (result) {
@@ -102,23 +108,27 @@ const UnifiedInventoryManager = ({ onCreateListing, onBack }: UnifiedInventoryMa
       />
       
       <div className="max-w-7xl mx-auto p-4 space-y-6">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="p-4 bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
+        {/* Stats Cards - 2x2 grid on mobile, 4 columns on desktop */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card className="p-4 bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200 aspect-square flex flex-col items-center justify-center">
+            <div className="w-2 h-2 bg-blue-500 rounded-full mb-2"></div>
             <div className="text-2xl font-bold text-blue-600">{stats.totalItems}</div>
-            <div className="text-sm text-blue-700">Total Items</div>
+            <div className="text-sm text-blue-700 text-center">Total Items</div>
           </Card>
-          <Card className="p-4 bg-gradient-to-r from-green-50 to-green-100 border-green-200">
-            <div className="text-2xl font-bold text-green-600">${stats.totalValue.toFixed(2)}</div>
-            <div className="text-sm text-green-700">Total Value</div>
+          <Card className="p-4 bg-gradient-to-r from-green-50 to-green-100 border-green-200 aspect-square flex flex-col items-center justify-center">
+            <div className="w-2 h-2 bg-green-500 rounded-full mb-2"></div>
+            <div className="text-2xl font-bold text-green-600">${stats.totalValue.toFixed(0)}</div>
+            <div className="text-sm text-green-700 text-center">Total Value</div>
           </Card>
-          <Card className="p-4 bg-gradient-to-r from-purple-50 to-purple-100 border-purple-200">
+          <Card className="p-4 bg-gradient-to-r from-purple-50 to-purple-100 border-purple-200 aspect-square flex flex-col items-center justify-center">
+            <div className="w-2 h-2 bg-purple-500 rounded-full mb-2"></div>
             <div className="text-2xl font-bold text-purple-600">{stats.activeItems}</div>
-            <div className="text-sm text-purple-700">Active</div>
+            <div className="text-sm text-purple-700 text-center">Active</div>
           </Card>
-          <Card className="p-4 bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200">
+          <Card className="p-4 bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200 aspect-square flex flex-col items-center justify-center">
+            <div className="w-2 h-2 bg-orange-500 rounded-full mb-2"></div>
             <div className="text-2xl font-bold text-orange-600">{stats.draftItems}</div>
-            <div className="text-sm text-orange-700">Drafts</div>
+            <div className="text-sm text-orange-700 text-center">Drafts</div>
           </Card>
         </div>
 
@@ -170,6 +180,7 @@ const UnifiedInventoryManager = ({ onCreateListing, onBack }: UnifiedInventoryMa
             onDeleteListing={handleDeleteListing}
             onPreviewListing={handlePreviewListing}
             onDuplicateListing={handleDuplicateListing}
+            onEditListing={handleEditListing}
           />
         )}
 
