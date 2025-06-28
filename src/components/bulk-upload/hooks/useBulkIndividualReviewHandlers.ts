@@ -1,5 +1,6 @@
 
 import { useToast } from '@/hooks/use-toast';
+import { validateListingData, sanitizeListingData } from '@/utils/listingDataValidator';
 import type { PhotoGroup } from '../BulkUploadManager';
 
 type StepType = 'upload' | 'grouping' | 'processing' | 'shipping' | 'review' | 'individual-review';
@@ -12,6 +13,35 @@ export const useBulkIndividualReviewHandlers = (
   currentReviewIndex: number
 ) => {
   const { toast } = useToast();
+
+  const validateGroupForApproval = (group: PhotoGroup): { isValid: boolean; errors: string[] } => {
+    const errors: string[] = [];
+    
+    if (!group.listingData?.title?.trim()) {
+      errors.push('Title is required');
+    }
+    
+    if (!group.listingData?.price || group.listingData.price <= 0) {
+      errors.push('Valid price is required');
+    }
+    
+    if (!group.selectedShipping) {
+      errors.push('Shipping option is required');
+    }
+    
+    if (!group.listingData?.category?.trim()) {
+      errors.push('Category is required');
+    }
+    
+    if (!group.listingData?.condition?.trim()) {
+      errors.push('Condition is required');
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  };
 
   const handleIndividualReviewNext = () => {
     if (currentReviewIndex < photoGroups.length - 1) {
@@ -39,21 +69,12 @@ export const useBulkIndividualReviewHandlers = (
   };
 
   const handleIndividualReviewApprove = (updatedGroup: PhotoGroup) => {
-    // Validate required fields
-    if (!updatedGroup.listingData?.title || !updatedGroup.listingData?.price) {
+    const validation = validateGroupForApproval(updatedGroup);
+    
+    if (!validation.isValid) {
       toast({
         title: "Missing required fields",
-        description: "Please fill in Title and Price before approving.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Validate shipping selection (unless local pickup)
-    if (!updatedGroup.selectedShipping) {
-      toast({
-        title: "Missing shipping option",
-        description: "Please select a shipping option before approving.",
+        description: validation.errors.join(', '),
         variant: "destructive"
       });
       return;
@@ -97,7 +118,7 @@ export const useBulkIndividualReviewHandlers = (
   };
 
   const handleIndividualSaveDraft = (updatedGroup: PhotoGroup) => {
-    if (!updatedGroup.listingData?.title) {
+    if (!updatedGroup.listingData?.title?.trim()) {
       toast({
         title: "Title required",
         description: "Please enter a title before saving as draft.",
@@ -112,7 +133,7 @@ export const useBulkIndividualReviewHandlers = (
       g.id === updatedGroup.id 
         ? {
             ...updatedGroup,
-            status: 'completed' as const  // Mark as completed even for drafts
+            status: 'completed' as const
           }
         : g
     ));

@@ -1,12 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Separator } from '@/components/ui/separator';
-import { Truck, Package } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, Truck, MapPin, Package } from 'lucide-react';
+import { calculateShippingCost } from '../utils/shippingCalculator';
 
 interface ShippingOption {
   id: string;
@@ -17,237 +15,176 @@ interface ShippingOption {
 }
 
 interface BulkShippingOptionsProps {
-  itemWeight?: number;
-  itemDimensions?: {
-    length: number;
-    width: number;
-    height: number;
-  };
+  itemWeight: number;
+  itemDimensions: { length: number; width: number; height: number };
   onShippingSelect: (option: ShippingOption) => void;
   selectedOption?: ShippingOption;
 }
 
-const BulkShippingOptions = ({ 
-  itemWeight = 1, 
-  itemDimensions = { length: 12, width: 12, height: 6 },
+const BulkShippingOptions: React.FC<BulkShippingOptionsProps> = ({
+  itemWeight,
+  itemDimensions,
   onShippingSelect,
   selectedOption
-}: BulkShippingOptionsProps) => {
-  const [weight, setWeight] = useState(itemWeight);
-  const [dimensions, setDimensions] = useState(itemDimensions);
-  const [isLocalPickup, setIsLocalPickup] = useState(false);
+}) => {
+  const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const calculateShipping = (): ShippingOption[] => {
-    if (isLocalPickup) {
-      return [
-        { 
+  useEffect(() => {
+    const calculateOptions = async () => {
+      setIsLoading(true);
+      try {
+        // Local pickup option (always available)
+        const localPickup: ShippingOption = {
           id: 'local-pickup',
-          name: 'Local Pickup Only', 
-          cost: 0, 
-          days: 'Same day', 
-          description: 'Buyer picks up item locally - no shipping required' 
-        }
-      ];
-    }
+          name: 'Local Pickup',
+          cost: 0,
+          days: 'Same day',
+          description: 'Buyer picks up item in person - no shipping required'
+        };
 
-    const baseRate = 9.95;
-    const volumeWeight = (dimensions.length * dimensions.width * dimensions.height) / 166;
-    const billableWeight = Math.max(weight, volumeWeight);
-    
-    return [
-      { 
-        id: 'usps-ground',
-        name: 'USPS Ground Advantage', 
-        cost: Math.round((baseRate + (billableWeight * 0.5)) * 100) / 100, 
-        days: '2-5 business days',
-        description: 'Most economical shipping option'
-      },
-      { 
-        id: 'usps-priority',
-        name: 'USPS Priority Mail', 
-        cost: Math.round((baseRate + (billableWeight * 1.2)) * 100) / 100, 
-        days: '1-3 business days',
-        description: 'Faster delivery with tracking included'
-      },
-      { 
-        id: 'ups-ground',
-        name: 'UPS Ground', 
-        cost: Math.round((baseRate + (billableWeight * 0.8)) * 100) / 100, 
-        days: '1-5 business days',
-        description: 'Reliable ground shipping service'
+        // Calculate shipping costs based on weight and dimensions
+        const groundCost = calculateShippingCost(itemWeight, itemDimensions, 'ground');
+        const expeditedCost = calculateShippingCost(itemWeight, itemDimensions, 'expedited');
+        const priorityCost = calculateShippingCost(itemWeight, itemDimensions, 'priority');
+
+        const calculatedOptions: ShippingOption[] = [
+          localPickup,
+          {
+            id: 'usps-ground',
+            name: 'USPS Ground Advantage',
+            cost: groundCost,
+            days: '3-5 business days',
+            description: 'Reliable ground shipping with tracking'
+          },
+          {
+            id: 'usps-priority',
+            name: 'USPS Priority Mail',
+            cost: priorityCost,
+            days: '1-3 business days',
+            description: 'Faster delivery with priority handling'
+          },
+          {
+            id: 'usps-express',
+            name: 'USPS Priority Mail Express',
+            cost: expeditedCost,
+            days: '1-2 business days',
+            description: 'Fastest delivery option available'
+          }
+        ];
+
+        setShippingOptions(calculatedOptions);
+      } catch (error) {
+        console.error('Error calculating shipping options:', error);
+        // Fallback options
+        setShippingOptions([
+          {
+            id: 'local-pickup',
+            name: 'Local Pickup',
+            cost: 0,
+            days: 'Same day',
+            description: 'Buyer picks up item in person'
+          },
+          {
+            id: 'standard',
+            name: 'Standard Shipping',
+            cost: 9.95,
+            days: '3-7 business days',
+            description: 'Standard ground shipping'
+          }
+        ]);
+      } finally {
+        setIsLoading(false);
       }
-    ];
-  };
+    };
 
-  const shippingOptions = calculateShipping();
+    calculateOptions();
+  }, [itemWeight, itemDimensions]);
 
-  const handleSelectOption = (option: ShippingOption) => {
+  const handleOptionSelect = (option: ShippingOption) => {
+    console.log('Selected shipping option:', option);
     onShippingSelect(option);
   };
 
-  const handleLocalPickupToggle = (checked: boolean) => {
-    setIsLocalPickup(checked);
-    if (checked) {
-      // Auto-select local pickup when toggled on
-      const localOption = { 
-        id: 'local-pickup',
-        name: 'Local Pickup Only', 
-        cost: 0, 
-        days: 'Same day', 
-        description: 'Buyer picks up item locally - no shipping required' 
-      };
-      handleSelectOption(localOption);
-    }
-  };
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <Package className="w-5 h-5 mr-2" />
+            Calculate Shipping Options
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin mr-2" />
+            <span>Calculating shipping costs...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center">
-          <Truck className="w-4 h-4 mr-2 text-blue-600" />
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          <Package className="w-5 h-5 mr-2" />
           Shipping Options
         </CardTitle>
+        <p className="text-sm text-gray-600">
+          Weight: {itemWeight} lbs | Dimensions: {itemDimensions.length}" × {itemDimensions.width}" × {itemDimensions.height}"
+        </p>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Local Pickup Toggle */}
-        <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-          <Checkbox 
-            id="local-pickup"
-            checked={isLocalPickup}
-            onCheckedChange={handleLocalPickupToggle}
-          />
-          <div>
-            <Label htmlFor="local-pickup" className="text-sm font-medium">
-              Local Pickup Only (Free)
-            </Label>
-            <p className="text-xs text-gray-600">Buyer picks up item locally - no shipping required</p>
-          </div>
-        </div>
-
-        {!isLocalPickup && (
-          <>
-            <Separator />
-            
-            {/* Item Specifications */}
-            <div className="space-y-3">
-              <h4 className="font-medium text-gray-900 text-sm">Item Specifications</h4>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <CardContent className="space-y-3">
+        {shippingOptions.map((option) => (
+          <div
+            key={option.id}
+            className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+              selectedOption?.id === option.id
+                ? 'border-blue-500 bg-blue-50'
+                : 'border-gray-200 hover:border-gray-300'
+            }`}
+            onClick={() => handleOptionSelect(option)}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                {option.id === 'local-pickup' ? (
+                  <MapPin className="w-5 h-5 text-green-600" />
+                ) : (
+                  <Truck className="w-5 h-5 text-blue-600" />
+                )}
                 <div>
-                  <Label htmlFor="weight" className="text-xs">Weight (lbs)</Label>
-                  <Input
-                    id="weight"
-                    type="number"
-                    step="0.1"
-                    value={weight}
-                    onChange={(e) => setWeight(parseFloat(e.target.value) || 0)}
-                    className="mt-1 text-sm"
-                  />
+                  <div className="font-medium">{option.name}</div>
+                  <div className="text-sm text-gray-600">{option.description}</div>
                 </div>
               </div>
-
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <Label htmlFor="length" className="text-xs">Length (in)</Label>
-                  <Input
-                    id="length"
-                    type="number"
-                    value={dimensions.length}
-                    onChange={(e) => setDimensions(prev => ({
-                      ...prev,
-                      length: parseInt(e.target.value) || 0
-                    }))}
-                    className="mt-1 text-sm"
-                  />
+              <div className="text-right">
+                <div className="font-semibold">
+                  {option.cost === 0 ? 'FREE' : `$${option.cost.toFixed(2)}`}
                 </div>
-                <div>
-                  <Label htmlFor="width" className="text-xs">Width (in)</Label>
-                  <Input
-                    id="width"
-                    type="number"
-                    value={dimensions.width}
-                    onChange={(e) => setDimensions(prev => ({
-                      ...prev,
-                      width: parseInt(e.target.value) || 0
-                    }))}
-                    className="mt-1 text-sm"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="height" className="text-xs">Height (in)</Label>
-                  <Input
-                    id="height"
-                    type="number"
-                    value={dimensions.height}
-                    onChange={(e) => setDimensions(prev => ({
-                      ...prev,
-                      height: parseInt(e.target.value) || 0
-                    }))}
-                    className="mt-1 text-sm"
-                  />
-                </div>
+                <div className="text-sm text-gray-600">{option.days}</div>
               </div>
             </div>
-
-            <Separator />
-          </>
-        )}
-
-        {/* Shipping Options */}
-        <div className="space-y-3">
-          <h4 className="font-medium text-gray-900 text-sm">
-            {isLocalPickup ? 'Pickup Option' : 'Available Shipping Options'}
-          </h4>
-          
-          <RadioGroup
-            value={selectedOption?.id || ''}
-            onValueChange={(value) => {
-              const option = shippingOptions.find(opt => opt.id === value);
-              if (option) handleSelectOption(option);
-            }}
-            className="space-y-2"
-          >
-            {shippingOptions.map((option) => (
-              <div 
-                key={option.id} 
-                className={`flex items-center space-x-3 p-3 border rounded-lg cursor-pointer transition-colors ${
-                  selectedOption?.id === option.id 
-                    ? 'border-blue-500 bg-blue-50' 
-                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                }`}
-                onClick={() => handleSelectOption(option)}
-              >
-                <RadioGroupItem value={option.id} id={option.id} />
-                <Label htmlFor={option.id} className="flex-1 cursor-pointer">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <span className="font-medium text-sm">{option.name}</span>
-                      </div>
-                      <div className="text-xs text-gray-600 mt-1">
-                        <span className="flex items-center">
-                          <Package className="w-3 h-3 mr-1" />
-                          {option.days} • {option.description}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-semibold text-sm">
-                        {option.cost === 0 ? 'FREE' : `$${option.cost.toFixed(2)}`}
-                      </div>
-                    </div>
-                  </div>
-                </Label>
+            {selectedOption?.id === option.id && (
+              <div className="mt-2">
+                <Badge variant="default" className="bg-blue-600">
+                  Selected
+                </Badge>
               </div>
-            ))}
-          </RadioGroup>
-        </div>
-
+            )}
+          </div>
+        ))}
+        
         {selectedOption && (
-          <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-            <p className="text-xs text-green-700">
-              ✓ Selected: <strong>{selectedOption.name}</strong> - {selectedOption.cost === 0 ? 'FREE' : `$${selectedOption.cost.toFixed(2)}`}
-            </p>
+          <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center text-green-800">
+              <Package className="w-4 h-4 mr-2" />
+              <span className="font-medium">
+                {selectedOption.name} selected
+                {selectedOption.cost === 0 ? ' (FREE)' : ` ($${selectedOption.cost.toFixed(2)})`}
+              </span>
+            </div>
           </div>
         )}
       </CardContent>

@@ -78,20 +78,30 @@ const IndividualItemReview = ({
 
   const handleApprove = () => {
     console.log('Approving item with data:', editedGroup);
-    if (!editedGroup.listingData?.title || !editedGroup.listingData?.price || !editedGroup.selectedShipping) {
+    
+    // Validation matching single item upload
+    const errors = [];
+    if (!editedGroup.listingData?.title?.trim()) errors.push('Title');
+    if (!editedGroup.listingData?.price || editedGroup.listingData.price <= 0) errors.push('Price');
+    if (!editedGroup.selectedShipping) errors.push('Shipping option');
+    if (!editedGroup.listingData?.category?.trim()) errors.push('Category');
+    if (!editedGroup.listingData?.condition?.trim()) errors.push('Condition');
+    
+    if (errors.length > 0) {
       toast({
         title: "Missing required fields",
-        description: "Please fill in Title, Price, and select a Shipping option before approving.",
+        description: `Please complete: ${errors.join(', ')}`,
         variant: "destructive"
       });
       return;
     }
+    
     onApprove(editedGroup);
   };
 
   const handleSaveDraft = () => {
     console.log('Saving draft with data:', editedGroup);
-    if (!editedGroup.listingData?.title) {
+    if (!editedGroup.listingData?.title?.trim()) {
       toast({
         title: "Title required",
         description: "Please enter a title before saving as draft.",
@@ -137,6 +147,7 @@ const IndividualItemReview = ({
       description: baseData.description || '',
       price: baseData.price || 0,
       category: baseData.category || '',
+      category_id: baseData.category_id || null,
       condition: baseData.condition || '',
       measurements: {
         length: baseData.measurements?.length ? String(baseData.measurements.length) : '',
@@ -146,6 +157,7 @@ const IndividualItemReview = ({
       },
       photos: baseData.photos || [],
       keywords: baseData.keywords,
+      priceResearch: baseData.priceResearch,
       purchase_price: baseData.purchase_price,
       purchase_date: baseData.purchase_date,
       source_location: baseData.source_location,
@@ -231,7 +243,14 @@ const IndividualItemReview = ({
         onSaveDraft={handleSaveDraft}
         currentIndex={currentIndex}
         totalItems={totalItems}
-        canApprove={!!(editedGroup.listingData?.title && editedGroup.listingData?.price && editedGroup.selectedShipping)}
+        canApprove={!!(
+          editedGroup.listingData?.title?.trim() && 
+          editedGroup.listingData?.price && 
+          editedGroup.listingData.price > 0 &&
+          editedGroup.selectedShipping &&
+          editedGroup.listingData?.category?.trim() &&
+          editedGroup.listingData?.condition?.trim()
+        )}
       />
     </div>
   );

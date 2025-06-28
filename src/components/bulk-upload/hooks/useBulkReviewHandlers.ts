@@ -3,6 +3,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useListingSave } from '@/hooks/useListingSave';
 import type { PhotoGroup } from '../BulkUploadManager';
 import type { ListingData } from '@/types/CreateListing';
+import { validateListingData, sanitizeListingData } from '@/utils/listingDataValidator';
 
 type StepType = 'upload' | 'grouping' | 'processing' | 'shipping' | 'review' | 'individual-review';
 
@@ -16,37 +17,75 @@ export const useBulkReviewHandlers = (
   const { toast } = useToast();
   const { saveListing } = useListingSave();
 
-  // Helper function to ensure ListingData has required fields
+  // Helper function to ensure ListingData matches single item format exactly
   const ensureListingData = (listingData?: PhotoGroup['listingData']): ListingData => {
+    const baseData = listingData || {};
+    
     return {
-      title: listingData?.title || 'Untitled Item',
-      description: listingData?.description || '',
-      price: listingData?.price || 0,
-      category: listingData?.category || '',
-      condition: listingData?.condition || '',
+      title: baseData.title || '',
+      description: baseData.description || '',
+      price: baseData.price || 0,
+      category: baseData.category || '',
+      category_id: baseData.category_id || null,
+      condition: baseData.condition || '',
       measurements: {
-        length: listingData?.measurements?.length ? String(listingData.measurements.length) : '',
-        width: listingData?.measurements?.width ? String(listingData.measurements.width) : '',
-        height: listingData?.measurements?.height ? String(listingData.measurements.height) : '',
-        weight: listingData?.measurements?.weight ? String(listingData.measurements.weight) : ''
+        length: baseData.measurements?.length ? String(baseData.measurements.length) : '',
+        width: baseData.measurements?.width ? String(baseData.measurements.width) : '',
+        height: baseData.measurements?.height ? String(baseData.measurements.height) : '',
+        weight: baseData.measurements?.weight ? String(baseData.measurements.weight) : ''
       },
-      photos: listingData?.photos || [],
-      keywords: listingData?.keywords,
-      purchase_price: listingData?.purchase_price,
-      purchase_date: listingData?.purchase_date,
-      source_location: listingData?.source_location,
-      source_type: listingData?.source_type,
-      is_consignment: listingData?.is_consignment,
-      consignment_percentage: listingData?.consignment_percentage,
-      consignor_name: listingData?.consignor_name,
-      consignor_contact: listingData?.consignor_contact,
-      clothing_size: listingData?.clothing_size,
-      shoe_size: listingData?.shoe_size,
-      gender: listingData?.gender,
-      age_group: listingData?.age_group,
-      features: listingData?.features,
-      includes: listingData?.includes,
-      defects: listingData?.defects
+      photos: baseData.photos || [],
+      keywords: baseData.keywords || [],
+      priceResearch: baseData.priceResearch || '',
+      purchase_price: baseData.purchase_price,
+      purchase_date: baseData.purchase_date,
+      source_location: baseData.source_location,
+      source_type: baseData.source_type,
+      is_consignment: baseData.is_consignment || false,
+      consignment_percentage: baseData.consignment_percentage,
+      consignor_name: baseData.consignor_name,
+      consignor_contact: baseData.consignor_contact,
+      clothing_size: baseData.clothing_size,
+      shoe_size: baseData.shoe_size,
+      gender: baseData.gender,
+      age_group: baseData.age_group,
+      features: baseData.features || [],
+      includes: baseData.includes || [],
+      defects: baseData.defects || []
+    };
+  };
+
+  const validateGroupForSave = (group: PhotoGroup): { isValid: boolean; errors: string[] } => {
+    const errors: string[] = [];
+    
+    // Title validation
+    if (!group.listingData?.title?.trim()) {
+      errors.push('Title is required');
+    }
+    
+    // Price validation
+    if (!group.listingData?.price || group.listingData.price <= 0) {
+      errors.push('Valid price is required');
+    }
+    
+    // Shipping validation - allow local pickup (cost = 0) or paid shipping
+    if (!group.selectedShipping && group.listingData?.price) {
+      errors.push('Shipping option is required');
+    }
+    
+    // Category validation
+    if (!group.listingData?.category?.trim()) {
+      errors.push('Category is required');
+    }
+    
+    // Condition validation
+    if (!group.listingData?.condition?.trim()) {
+      errors.push('Condition is required');
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
     };
   };
 
@@ -73,38 +112,30 @@ export const useBulkReviewHandlers = (
       return;
     }
 
-    if (!groupToPost.listingData?.title || !groupToPost.listingData?.price) {
+    const validation = validateGroupForSave(groupToPost);
+    if (!validation.isValid) {
       toast({
         title: "Cannot post item",
-        description: "Missing required information: title and price are required.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!groupToPost.selectedShipping) {
-      toast({
-        title: "Cannot post item",
-        description: "Please select a shipping option.",
+        description: validation.errors.join(', '),
         variant: "destructive"
       });
       return;
     }
 
     try {
-      console.log('Posting single item:', groupToPost.listingData.title);
-      const listingData = ensureListingData(groupToPost.listingData);
+      console.log('Posting single item:', groupToPost.listingData?.title);
+      const listingData = sanitizeListingData(ensureListingData(groupToPost.listingData));
       
       const result = await saveListing(
         listingData,
-        groupToPost.selectedShipping.cost,
+        groupToPost.selectedShipping?.cost || 0,
         'active'
       );
 
       if (result.success) {
         setPhotoGroups(prev => prev.map(g => 
           g.id === groupId 
-            ? { ...g, isPosted: true, listingId: result.listingId }
+            ? { ...g, isPosted: true, listingId: result.listingId, status: 'completed' as const }
             : g
         ));
         
@@ -124,21 +155,24 @@ export const useBulkReviewHandlers = (
   };
 
   const handlePostAll = async () => {
-    const readyItems = photoGroups.filter(g => 
-      g.status === 'completed' && 
-      g.selectedShipping && 
-      !g.isPosted &&
-      g.listingData?.title &&
-      g.listingData?.price
-    );
+    // Filter items that are ready to post
+    const readyItems = photoGroups.filter(g => {
+      const validation = validateGroupForSave(g);
+      return validation.isValid && !g.isPosted && g.status === 'completed';
+    });
     
     console.log('Ready items for posting:', readyItems.length);
-    console.log('Ready items:', readyItems.map(i => ({ title: i.listingData?.title, price: i.listingData?.price, shipping: i.selectedShipping })));
     
     if (readyItems.length === 0) {
+      const incompleteItems = photoGroups.filter(g => !g.isPosted);
+      const validationErrors = incompleteItems.map(g => {
+        const validation = validateGroupForSave(g);
+        return validation.errors;
+      }).flat();
+      
       toast({
         title: "No items ready to post",
-        description: "Please complete required fields (title, price, shipping) for at least one item.",
+        description: `Please complete: ${[...new Set(validationErrors)].join(', ')}`,
         variant: "destructive"
       });
       return;
@@ -155,12 +189,12 @@ export const useBulkReviewHandlers = (
 
     for (const item of readyItems) {
       try {
-        const listingData = ensureListingData(item.listingData);
-        console.log('Saving listing:', listingData.title, 'with shipping cost:', item.selectedShipping!.cost);
+        const listingData = sanitizeListingData(ensureListingData(item.listingData));
+        console.log('Saving listing:', listingData.title, 'with shipping cost:', item.selectedShipping?.cost || 0);
         
         const result = await saveListing(
           listingData,
-          item.selectedShipping!.cost,
+          item.selectedShipping?.cost || 0,
           'active'
         );
 
@@ -170,7 +204,7 @@ export const useBulkReviewHandlers = (
           
           setPhotoGroups(prev => prev.map(g => 
             g.id === item.id
-              ? { ...g, isPosted: true, listingId: result.listingId }
+              ? { ...g, isPosted: true, listingId: result.listingId, status: 'completed' as const }
               : g
           ));
         } else {
@@ -189,12 +223,13 @@ export const useBulkReviewHandlers = (
         description: `Successfully created ${successCount} listing${successCount > 1 ? 's' : ''}!`,
       });
       
-      // Navigate to inventory after successful completion
+      // Call completion callback first
+      onComplete(savedListings);
+      
+      // Navigate to inventory after a short delay
       setTimeout(() => {
         window.location.href = '/inventory';
-      }, 2000);
-      
-      onComplete(savedListings);
+      }, 1500);
     } else {
       toast({
         title: "Upload failed",
@@ -211,8 +246,7 @@ export const useBulkReviewHandlers = (
 
   const handleSaveDraft = async () => {
     const draftItems = photoGroups.filter(g => 
-      g.listingData?.title && 
-      !g.isPosted
+      g.listingData?.title?.trim() && !g.isPosted
     );
     
     console.log('Draft items:', draftItems.length);
@@ -230,7 +264,7 @@ export const useBulkReviewHandlers = (
 
     for (const item of draftItems) {
       try {
-        const listingData = ensureListingData(item.listingData);
+        const listingData = sanitizeListingData(ensureListingData(item.listingData));
         const result = await saveListing(
           listingData,
           item.selectedShipping?.cost || 0,
@@ -260,6 +294,7 @@ export const useBulkReviewHandlers = (
   };
 
   const handleUpdateGroup = (updatedGroup: PhotoGroup) => {
+    console.log('Updating group:', updatedGroup.id, updatedGroup);
     setPhotoGroups(prev => prev.map(g => 
       g.id === updatedGroup.id ? updatedGroup : g
     ));
@@ -283,6 +318,7 @@ export const useBulkReviewHandlers = (
                 title: g.listingData?.title || `${g.name} - Analysis Complete`,
                 price: g.listingData?.price || 25,
                 condition: g.listingData?.condition || 'Good',
+                category: g.listingData?.category || 'Miscellaneous',
                 measurements: g.listingData?.measurements || {
                   length: '12',
                   width: '8',

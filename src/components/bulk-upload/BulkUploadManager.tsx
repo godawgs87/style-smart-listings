@@ -23,6 +23,7 @@ export interface PhotoGroup {
     description?: string;
     price?: number;
     category?: string;
+    category_id?: string | null;
     condition?: string;
     measurements?: {
       length?: string | number;
@@ -32,6 +33,7 @@ export interface PhotoGroup {
     };
     keywords?: string[];
     photos?: string[];
+    priceResearch?: string;
     purchase_price?: number;
     purchase_date?: string;
     source_location?: string;
@@ -56,6 +58,7 @@ export interface PhotoGroup {
     estimatedDays: string;
   };
   isPosted?: boolean;
+  listingId?: string;
 }
 
 interface BulkUploadManagerProps {
