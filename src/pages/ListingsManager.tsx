@@ -38,7 +38,7 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
     searchTerm: searchTerm.trim() || undefined,
     statusFilter: 'all',
     categoryFilter: categoryFilter === 'all' ? undefined : categoryFilter,
-    limit: 100
+    limit: 25 // Reduced limit to prevent timeouts
   });
 
   const { deleteListing, updateListing } = useListingOperations();

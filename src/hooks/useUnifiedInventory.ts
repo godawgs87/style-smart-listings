@@ -30,11 +30,46 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
 
     console.log('🔍 Fetching inventory for user:', user.id);
 
+    // Start with a lightweight query with proper limits
     let query = supabase
       .from('listings')
-      .select('*')
+      .select(`
+        id,
+        user_id,
+        title,
+        description,
+        price,
+        category,
+        condition,
+        status,
+        shipping_cost,
+        purchase_price,
+        purchase_date,
+        cost_basis,
+        fees_paid,
+        net_profit,
+        profit_margin,
+        sold_price,
+        consignment_percentage,
+        is_consignment,
+        consignor_name,
+        consignor_contact,
+        source_type,
+        source_location,
+        listed_date,
+        sold_date,
+        days_to_sell,
+        performance_notes,
+        measurements,
+        keywords,
+        photos,
+        price_research,
+        created_at,
+        updated_at
+      `)
       .eq('user_id', user.id);
 
+    // Apply filters
     if (options.statusFilter && options.statusFilter !== 'all') {
       query = query.eq('status', options.statusFilter);
     }
@@ -44,12 +79,16 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
     }
 
     if (options.searchTerm?.trim()) {
-      query = query.or(`title.ilike.%${options.searchTerm.trim()}%,description.ilike.%${options.searchTerm.trim()}%`);
+      const searchTerm = options.searchTerm.trim();
+      query = query.or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
     }
 
+    // Apply strict limits to prevent timeouts
+    const limit = Math.min(options.limit || 25, 50); // Cap at 50 items max
+    
     const { data, error } = await query
       .order('created_at', { ascending: false })
-      .limit(options.limit || 50);
+      .limit(limit);
 
     if (error) {
       console.error('❌ Database error:', error);
@@ -58,16 +97,16 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
 
     console.log('✅ Fetched listings:', data?.length || 0);
 
-    // Transform data to match Listing type
+    // Transform data with safe type handling
     return (data || []).map(item => ({
       id: item.id,
       user_id: item.user_id,
-      title: item.title,
-      description: item.description,
+      title: item.title || '',
+      description: item.description || '',
       price: Number(item.price) || 0,
-      category: item.category,
-      condition: item.condition,
-      status: item.status,
+      category: item.category || '',
+      condition: item.condition || '',
+      status: item.status || 'draft',
       shipping_cost: item.shipping_cost !== null ? Number(item.shipping_cost) : null,
       purchase_price: item.purchase_price !== null ? Number(item.purchase_price) : null,
       purchase_date: item.purchase_date,
@@ -78,20 +117,20 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
       sold_price: item.sold_price !== null ? Number(item.sold_price) : null,
       consignment_percentage: item.consignment_percentage !== null ? Number(item.consignment_percentage) : null,
       is_consignment: item.is_consignment || false,
-      consignor_name: item.consignor_name,
-      consignor_contact: item.consignor_contact,
-      source_type: item.source_type,
-      source_location: item.source_location,
+      consignor_name: item.consignor_name || '',
+      consignor_contact: item.consignor_contact || '',
+      source_type: item.source_type || '',
+      source_location: item.source_location || '',
       listed_date: item.listed_date,
       sold_date: item.sold_date,
       days_to_sell: item.days_to_sell,
-      performance_notes: item.performance_notes,
+      performance_notes: item.performance_notes || '',
       measurements: (item.measurements && typeof item.measurements === 'object' && !Array.isArray(item.measurements)) 
         ? item.measurements as { length?: string; width?: string; height?: string; weight?: string; }
         : {},
       keywords: Array.isArray(item.keywords) ? item.keywords : [],
       photos: Array.isArray(item.photos) ? item.photos : [],
-      price_research: item.price_research,
+      price_research: item.price_research || '',
       created_at: item.created_at,
       updated_at: item.updated_at
     }));
@@ -104,7 +143,10 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
     setError(null);
 
     try {
-      const data = await fetchInventory(options);
+      const data = await fetchInventory({
+        ...options,
+        limit: options.limit || 25 // Default to 25 items to prevent timeouts
+      });
       
       if (!mountedRef.current) return;
 
@@ -118,7 +160,20 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
       
       console.error('❌ Failed to fetch inventory:', err);
       
-      if (cachedListings.length > 0) {
+      // Handle timeout errors specifically
+      if (err.message?.includes('timeout') || err.code === '57014') {
+        setError('Query timed out. Try using filters to reduce the data load.');
+        
+        if (cachedListings.length > 0) {
+          setListings(cachedListings);
+          setUsingFallback(true);
+          toast({
+            title: "Using Cached Data",
+            description: "Query timed out, showing cached data. Try using filters.",
+            variant: "default"
+          });
+        }
+      } else if (cachedListings.length > 0) {
         setListings(cachedListings);
         setUsingFallback(true);
         toast({
