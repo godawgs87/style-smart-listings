@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,7 @@ import ListingDetailView from './ListingDetailView';
 import InventoryErrorBoundary from './InventoryErrorBoundary';
 import OptimisticInventoryTable from './OptimisticInventoryTable';
 import ImprovedInventoryControls from './ImprovedInventoryControls';
+import type { Listing } from '@/types/Listing';
 
 interface UnifiedInventoryManagerProps {
   onCreateListing: () => void;
@@ -96,14 +98,19 @@ const UnifiedInventoryManager = ({ onCreateListing, onBack }: UnifiedInventoryMa
 
   // If viewing a specific listing, show the detail view
   if (viewingListingId) {
-    return (
-      <ListingDetailView
-        listingId={viewingListingId}
-        onBack={() => setViewingListingId(null)}
-        onDuplicated={refetch}
-        onDeleted={refetch}
-      />
-    );
+    const viewingListing = listings.find(l => l.id === viewingListingId);
+    if (viewingListing) {
+      return (
+        <ListingDetailView
+          listing={viewingListing}
+          onClose={() => setViewingListingId(null)}
+          onEdit={() => {
+            setEditingListing(viewingListing);
+            setViewingListingId(null);
+          }}
+        />
+      );
+    }
   }
 
   return (

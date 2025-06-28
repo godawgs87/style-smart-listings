@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { TableCell } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
@@ -7,6 +6,7 @@ import { useListingDetails } from '@/hooks/useListingDetails';
 import EditableFields from './edit/EditableFields';
 import EditableMeasurements from './edit/EditableMeasurements';
 import EditActionButtons from './edit/EditActionButtons';
+import type { Listing } from '@/types/Listing';
 
 interface Listing {
   id: string;
@@ -152,20 +152,20 @@ const ListingsTableRowEdit = ({ listing, visibleColumns, onSave, onCancel }: Lis
       if (editData.gender === '') {
         updates.gender = null;
       } else {
-        updates.gender = editData.gender as 'Men' | 'Women' | 'Kids' | 'Unisex';
+        updates.gender = editData.gender as 'Men' | 'Women' | 'Kids' | 'Unisex' | null;
       }
       
       // Handle age_group field - convert empty string to null for type safety
       if (editData.age_group === '') {
         updates.age_group = null;
       } else {
-        updates.age_group = editData.age_group as 'Adult' | 'Youth' | 'Toddler' | 'Baby';
+        updates.age_group = editData.age_group as 'Adult' | 'Youth' | 'Toddler' | 'Baby' | null;
       }
       
-      // Remove empty string values for optional fields
+      // Remove empty string values for optional fields and convert to null
       Object.keys(updates).forEach(key => {
-        if (updates[key] === '') {
-          updates[key] = null;
+        if (updates[key as keyof Partial<Listing>] === '') {
+          (updates as any)[key] = null;
         }
       });
       
