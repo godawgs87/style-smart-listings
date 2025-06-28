@@ -7,12 +7,15 @@ import CreateListing from "./CreateListing";
 import ListingsManager from "./ListingsManager";
 import AuthForm from "@/components/AuthForm";
 import StreamlinedHeader from "@/components/StreamlinedHeader";
-import MobileNavigation from "@/components/MobileNavigation";
+import EnhancedMobileNavigation from "@/components/EnhancedMobileNavigation";
+import LoadingState from "@/components/LoadingState";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const Index = () => {
   const [currentView, setCurrentView] = useState<'dashboard' | 'create' | 'listings' | 'inventory'>('dashboard');
+  const [pageLoading, setPageLoading] = useState(false);
   const { user, loading } = useAuth();
   const isMobile = useIsMobile();
 
@@ -28,18 +31,24 @@ const Index = () => {
   }, []);
 
   const handleInventoryClick = () => {
+    setPageLoading(true);
     window.location.href = '/inventory';
   };
 
+  const handleNavigation = (view: 'dashboard' | 'create' | 'listings' | 'inventory') => {
+    if (view === 'inventory') {
+      handleInventoryClick();
+    } else {
+      setPageLoading(true);
+      setTimeout(() => {
+        setCurrentView(view);
+        setPageLoading(false);
+      }, 200); // Small delay for smooth transition
+    }
+  };
+
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
-        </div>
-      </div>
-    );
+    return <LoadingState message="Loading your workspace..." fullPage />;
   }
 
   if (!user) {
@@ -53,19 +62,19 @@ const Index = () => {
   if (currentView === 'create') {
     return (
       <CreateListing 
-        onBack={() => setCurrentView('dashboard')}
-        onViewListings={() => setCurrentView('listings')}
+        onBack={() => handleNavigation('dashboard')}
+        onViewListings={() => handleNavigation('listings')}
       />
     );
   }
 
   if (currentView === 'listings') {
-    return <ListingsManager onBack={() => setCurrentView('dashboard')} />;
+    return <ListingsManager onBack={() => handleNavigation('dashboard')} />;
   }
 
   if (currentView === 'inventory') {
     handleInventoryClick();
-    return null;
+    return <LoadingState message="Loading inventory..." fullPage />;
   }
 
   return (
@@ -73,6 +82,11 @@ const Index = () => {
       <StreamlinedHeader
         title="Hustly"
         userEmail={user.email}
+        loading={pageLoading}
+        notifications={{
+          inventory: 3, // Mock notification count
+          listings: 1
+        }}
       />
 
       <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-6 md:space-y-8">
@@ -86,19 +100,19 @@ const Index = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-          <Card className="p-6 md:p-8 hover:shadow-lg transition-shadow cursor-pointer bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700" 
-                onClick={() => setCurrentView('create')}>
+          <Card className="p-6 md:p-8 hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700" 
+                onClick={() => handleNavigation('create')}>
             <div className="text-center">
               <Camera className="w-12 md:w-16 h-12 md:h-16 mx-auto text-blue-600 mb-4" />
               <h3 className="text-lg md:text-xl font-semibold mb-2 text-gray-900 dark:text-gray-100">Create Listing</h3>
               <p className="text-gray-600 dark:text-gray-400 mb-4 text-sm md:text-base">
                 Upload photos and create professional listings with AI assistance.
               </p>
-              <Button className="w-full">Start Creating</Button>
+              <Button className="w-full bg-blue-600 hover:bg-blue-700">Start Creating</Button>
             </div>
           </Card>
 
-          <Card className="p-6 md:p-8 hover:shadow-lg transition-shadow cursor-pointer bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+          <Card className="p-6 md:p-8 hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
                 onClick={handleInventoryClick}>
             <div className="text-center">
               <Package className="w-12 md:w-16 h-12 md:h-16 mx-auto text-green-600 mb-4" />
@@ -106,19 +120,19 @@ const Index = () => {
               <p className="text-gray-600 dark:text-gray-400 mb-4 text-sm md:text-base">
                 Track purchases, calculate profits, and manage your reseller inventory.
               </p>
-              <Button variant="outline" className="w-full">Manage Inventory</Button>
+              <Button variant="outline" className="w-full hover:bg-green-50">Manage Inventory</Button>
             </div>
           </Card>
 
-          <Card className="p-6 md:p-8 hover:shadow-lg transition-shadow cursor-pointer bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
-                onClick={() => setCurrentView('listings')}>
+          <Card className="p-6 md:p-8 hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                onClick={() => handleNavigation('listings')}>
             <div className="text-center">
               <List className="w-12 md:w-16 h-12 md:h-16 mx-auto text-purple-600 mb-4" />
               <h3 className="text-lg md:text-xl font-semibold mb-2 text-gray-900 dark:text-gray-100">Listings Manager</h3>
               <p className="text-gray-600 dark:text-gray-400 mb-4 text-sm md:text-base">
                 View and manage your listings with advanced controls.
               </p>
-              <Button variant="outline" className="w-full">View Listings</Button>
+              <Button variant="outline" className="w-full hover:bg-purple-50">View Listings</Button>
             </div>
           </Card>
         </div>
@@ -140,14 +154,13 @@ const Index = () => {
       </div>
 
       {isMobile && (
-        <MobileNavigation
+        <EnhancedMobileNavigation
           currentView={currentView}
-          onNavigate={(view) => {
-            if (view === 'inventory') {
-              handleInventoryClick();
-            } else {
-              setCurrentView(view);
-            }
+          onNavigate={handleNavigation}
+          loading={pageLoading}
+          notifications={{
+            inventory: 3,
+            listings: 1
           }}
         />
       )}

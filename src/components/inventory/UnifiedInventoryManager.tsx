@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { Button } from '@/components/ui/button';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
 import MobileNavigation from '@/components/MobileNavigation';
 import { useUnifiedInventory } from '@/hooks/useUnifiedInventory';
@@ -59,14 +60,13 @@ const UnifiedInventoryManager = ({ onCreateListing, onBack }: UnifiedInventoryMa
     }
   };
 
-  const handleDeleteListing = async (listingId: string) => {
+  const handleDeleteListing = async (listingId: string): Promise<void> => {
     const success = await deleteListing(listingId);
     if (success) {
       setSelectedItems(prev => prev.filter(id => id !== listingId));
       // Delayed refetch to sync with server
       setTimeout(() => refetch(), 1000);
     }
-    return success;
   };
 
   const handlePreviewListing = (listing: any) => {

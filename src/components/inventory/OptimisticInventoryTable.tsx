@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import ListingsTableHeader from '../listings/table/ListingsTableHeader';
 import ListingsTableColumnManager from '../listings/table/ListingsTableColumnManager';
 import ListingsTableEmpty from '../listings/table/ListingsTableEmpty';
-import ListingsTableRow from '../ListingsTableRow';
+import ListingsTableRow from '../listings/ListingsTableRow';
 import type { Listing } from '@/types/Listing';
 
 interface OptimisticInventoryTableProps {
