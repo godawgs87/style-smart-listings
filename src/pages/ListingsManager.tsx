@@ -8,11 +8,9 @@ import StreamlinedHeader from '@/components/StreamlinedHeader';
 import MobileNavigation from '@/components/MobileNavigation';
 import ListingsManagerControls from '@/components/ListingsManagerControls';
 import ListingsLoadingState from '@/components/ListingsLoadingState';
-import ListingsErrorState from '@/components/ListingsErrorState';
-import QuickFilters from '@/components/listings/QuickFilters';
-import PageInfoDialog from '@/components/PageInfoDialog';
-import OptimisticInventoryTable from '@/components/inventory/OptimisticInventoryTable';
-import { Card } from '@/components/ui/card';
+import ListingsManagerHeader from '@/components/listings-manager/ListingsManagerHeader';
+import ListingsManagerFilters from '@/components/listings-manager/ListingsManagerFilters';
+import ListingsManagerContent from '@/components/listings-manager/ListingsManagerContent';
 
 interface ListingsManagerProps {
   onBack: () => void;
@@ -143,23 +141,10 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
       />
 
       <div className="max-w-7xl mx-auto p-4 space-y-6">
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold">Manage Listings</h1>
-          <PageInfoDialog pageName="Manage Listings" />
-          {usingFallback && (
-            <div className="flex items-center gap-2">
-              <div className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm font-medium">
-                Offline Mode
-              </div>
-              <button
-                onClick={refetch}
-                className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
-              >
-                Reconnect
-              </button>
-            </div>
-          )}
-        </div>
+        <ListingsManagerHeader
+          usingFallback={usingFallback}
+          onRefetch={refetch}
+        />
 
         <ListingsManagerControls
           searchTerm={searchTerm}
@@ -171,38 +156,28 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
           filteredCount={filteredListings.length}
         />
 
-        <QuickFilters
+        <ListingsManagerFilters
           categories={categories}
-          selectedCategory={categoryFilter}
+          categoryFilter={categoryFilter}
           onCategoryChange={setCategoryFilter}
           conditionFilter={conditionFilter}
           onConditionChange={setConditionFilter}
-          priceRange={priceRangeFilter}
+          priceRangeFilter={priceRangeFilter}
           onPriceRangeChange={setPriceRangeFilter}
           activeFiltersCount={activeFiltersCount}
           onClearFilters={handleClearFilters}
         />
 
-        {error && (
-          <ListingsErrorState error={error} />
-        )}
-
-        {!loading && (
-          <OptimisticInventoryTable
-            listings={filteredListings}
-            selectedListings={selectedListings}
-            onSelectListing={handleSelectListing}
-            onSelectAll={handleSelectAll}
-            onUpdateListing={handleUpdateListing}
-            onDeleteListing={handleDeleteListing}
-          />
-        )}
-
-        {loading && (
-          <Card className="p-8 text-center">
-            <div className="text-gray-500">Loading listings...</div>
-          </Card>
-        )}
+        <ListingsManagerContent
+          loading={loading}
+          error={error}
+          filteredListings={filteredListings}
+          selectedListings={selectedListings}
+          onSelectListing={handleSelectListing}
+          onSelectAll={handleSelectAll}
+          onUpdateListing={handleUpdateListing}
+          onDeleteListing={handleDeleteListing}
+        />
       </div>
 
       {isMobile && (
