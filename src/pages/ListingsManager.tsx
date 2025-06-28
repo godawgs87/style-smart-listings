@@ -1,17 +1,16 @@
+
 import React, { useState, useMemo } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
 import { useUnifiedInventory } from '@/hooks/useUnifiedInventory';
 import { useListingOperations } from '@/hooks/useListingOperations';
-import { Button } from '@/components/ui/button';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
 import MobileNavigation from '@/components/MobileNavigation';
 import ListingsManagerControls from '@/components/ListingsManagerControls';
 import ListingsLoadingState from '@/components/ListingsLoadingState';
 import ListingsManagerFilters from '@/components/listings-manager/ListingsManagerFilters';
 import ListingsManagerContent from '@/components/listings-manager/ListingsManagerContent';
-import InventoryStats from '@/components/inventory/InventoryStats';
-import PageInfoDialog from '@/components/PageInfoDialog';
+import CompactListingsHeader from '@/components/listings-manager/CompactListingsHeader';
 
 interface ListingsManagerProps {
   onBack: () => void;
@@ -142,28 +141,11 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
       />
 
       <div className="max-w-7xl mx-auto p-4 space-y-3">
-        {/* Compact Header and Stats Row */}
-        <div className="flex items-center justify-between bg-white rounded-lg p-3 shadow-sm">
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold">Manage Listings</h1>
-            <PageInfoDialog pageName="Manage Listings" />
-            {usingFallback && (
-              <div className="flex items-center gap-2">
-                <div className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs font-medium">
-                  Offline
-                </div>
-                <Button
-                  onClick={refetch}
-                  size="sm"
-                  className="bg-blue-500 text-white hover:bg-blue-600 h-7 text-xs"
-                >
-                  Reconnect
-                </Button>
-              </div>
-            )}
-          </div>
-          <InventoryStats listings={filteredListings} />
-        </div>
+        <CompactListingsHeader
+          usingFallback={usingFallback}
+          onRefetch={refetch}
+          filteredListings={filteredListings}
+        />
 
         <ListingsManagerControls
           searchTerm={searchTerm}
