@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import BulkUploadStep from './components/BulkUploadStep';
 import BulkUploadStepIndicator from './components/BulkUploadStepIndicator';
@@ -30,7 +31,6 @@ export interface PhotoGroup {
     };
     keywords?: string[];
     photos?: string[];
-    // Purchase/Consignment fields
     purchase_price?: number;
     purchase_date?: string;
     source_location?: string;
@@ -39,12 +39,10 @@ export interface PhotoGroup {
     consignment_percentage?: number;
     consignor_name?: string;
     consignor_contact?: string;
-    // Size fields
     clothing_size?: string;
     shoe_size?: string;
     gender?: 'Men' | 'Women' | 'Kids' | 'Unisex';
     age_group?: 'Adult' | 'Youth' | 'Toddler' | 'Baby';
-    // Features
     features?: string[];
     includes?: string[];
     defects?: string[];
@@ -105,21 +103,10 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
     setProcessingResults,
     setCurrentReviewIndex,
     onComplete,
-    currentReviewIndex // Now passing this parameter
+    currentReviewIndex
   );
 
-  // Debug logging for state changes
-  useEffect(() => {
-    console.log('🔍 BulkUploadManager State Debug:');
-    console.log('Current step:', currentStep);
-    console.log('Photos count:', photos.length);
-    console.log('Photo groups count:', photoGroups.length);
-    console.log('Photo groups:', photoGroups);
-    console.log('Is grouping:', isGrouping);
-  }, [currentStep, photos.length, photoGroups.length, isGrouping]);
-
   const handlePhotosUploaded = (uploadedPhotos: File[]) => {
-    console.log('📸 Photos uploaded in BulkUploadManager:', uploadedPhotos.length);
     setPhotos(uploadedPhotos);
   };
 

@@ -30,45 +30,6 @@ const BulkReviewDashboard = ({
   const [viewMode, setViewMode] = useState<'dashboard' | 'quick'>('dashboard');
   const [quickReviewIndex, setQuickReviewIndex] = useState(0);
 
-  console.log('📊 BulkReviewDashboard render with groups:', photoGroups);
-
-  const handleEditItem = (groupId: string) => {
-    console.log('🔧 BulkReviewDashboard - Edit item clicked:', groupId);
-    onEditItem(groupId);
-  };
-
-  const handlePreviewItem = (groupId: string) => {
-    console.log('👁️ BulkReviewDashboard - Preview item clicked:', groupId);
-    // Create a simple preview dialog or modal
-    const group = photoGroups.find(g => g.id === groupId);
-    if (group) {
-      // For now, just log the preview data - you can implement a modal later
-      console.log('Preview data for group:', group);
-      alert(`Preview for ${group.name}\nPrice: $${group.listingData?.price || 'Not set'}\nCondition: ${group.listingData?.condition || 'Not set'}\nShipping: ${group.selectedShipping ? `$${group.selectedShipping.cost}` : 'Not selected'}`);
-    }
-  };
-
-  const handlePostItem = (groupId: string) => {
-    console.log('📤 BulkReviewDashboard - Post item clicked:', groupId);
-    onPostItem(groupId);
-  };
-
-  const handlePostAll = () => {
-    console.log('📤📤 BulkReviewDashboard - Post all clicked');
-    onPostAll();
-  };
-
-  const handleReviewAll = () => {
-    console.log('👁️👁️ BulkReviewDashboard - Review all clicked');
-    setViewMode('quick');
-    setQuickReviewIndex(0);
-  };
-
-  const handleSaveDraft = () => {
-    console.log('💾 BulkReviewDashboard - Save draft clicked');
-    onSaveDraft();
-  };
-
   const handleQuickReviewNext = () => {
     if (quickReviewIndex < photoGroups.length - 1) {
       setQuickReviewIndex(quickReviewIndex + 1);
@@ -82,22 +43,18 @@ const BulkReviewDashboard = ({
   };
 
   const handleQuickReviewApprove = (updatedGroup: PhotoGroup) => {
-    // Update the group data similar to individual review
     const groupIndex = photoGroups.findIndex(g => g.id === updatedGroup.id);
     if (groupIndex >= 0) {
-      // This would need to be handled by the parent component
-      console.log('Quick approve:', updatedGroup);
       handleQuickReviewNext();
     }
   };
 
   const handleQuickReviewReject = () => {
-    console.log('Quick reject');
     handleQuickReviewNext();
   };
 
   const handleQuickSaveDraft = (updatedGroup: PhotoGroup) => {
-    console.log('Quick save draft:', updatedGroup);
+    // Draft saving handled by parent component
   };
 
   if (viewMode === 'quick') {
@@ -119,14 +76,17 @@ const BulkReviewDashboard = ({
     <div className="w-full max-w-6xl mx-auto p-3 md:p-6 space-y-4 md:space-y-6">
       <ReviewDashboardHeader
         photoGroups={photoGroups}
-        onPostAll={handlePostAll}
-        onReviewAll={handleReviewAll}
-        onSaveDraft={handleSaveDraft}
+        onPostAll={onPostAll}
+        onReviewAll={onReviewAll}
+        onSaveDraft={onSaveDraft}
       />
       
-      {/* View Mode Toggle */}
       <div className="flex justify-between items-center">
-        <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as 'dashboard' | 'quick')}>
+        <ToggleGroup 
+          type="single" 
+          value={viewMode} 
+          onValueChange={(value) => value && setViewMode(value as 'dashboard' | 'quick')}
+        >
           <ToggleGroupItem value="dashboard">
             <Grid className="w-4 h-4 mr-2" />
             Dashboard View
@@ -154,9 +114,9 @@ const BulkReviewDashboard = ({
           <ReviewDashboardItem
             key={group.id}
             group={group}
-            onEditItem={handleEditItem}
-            onPreviewItem={handlePreviewItem}
-            onPostItem={handlePostItem}
+            onEditItem={onEditItem}
+            onPreviewItem={onPreviewItem}
+            onPostItem={onPostItem}
           />
         ))}
       </div>

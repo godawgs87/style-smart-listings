@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -34,13 +35,11 @@ const IndividualItemReview = ({
 }: IndividualItemReviewProps) => {
   const [editedGroup, setEditedGroup] = useState<PhotoGroup>(group);
 
-  // Update editedGroup when group changes
   useEffect(() => {
     setEditedGroup(group);
   }, [group]);
 
   const handleListingDataUpdate = (updates: Partial<ListingData>) => {
-    console.log('📝 IndividualItemReview - Updating listing data:', updates);
     setEditedGroup(prev => ({
       ...prev,
       listingData: {
@@ -51,7 +50,6 @@ const IndividualItemReview = ({
   };
 
   const handleConsignmentUpdate = (field: string, value: any) => {
-    console.log('💼 IndividualItemReview - Updating consignment field:', field, 'with value:', value);
     setEditedGroup(prev => ({
       ...prev,
       listingData: {
@@ -62,7 +60,6 @@ const IndividualItemReview = ({
   };
 
   const handleShippingSelect = (option: any) => {
-    console.log('🚚 IndividualItemReview - Shipping option selected:', option);
     setEditedGroup(prev => ({
       ...prev,
       selectedShipping: {
@@ -75,12 +72,10 @@ const IndividualItemReview = ({
   };
 
   const handleApprove = () => {
-    console.log('✅ IndividualItemReview - Approving item with data:', editedGroup);
     onApprove(editedGroup);
   };
 
   const handleSaveDraft = () => {
-    console.log('💾 IndividualItemReview - Saving draft with data:', editedGroup);
     onSaveDraft(editedGroup);
   };
 
@@ -111,20 +106,8 @@ const IndividualItemReview = ({
     };
   };
 
-  // Ensure we have the required ListingData structure with proper type conversion
   const ensureListingData = (): ListingData => {
     const baseData = editedGroup.listingData || {};
-    
-    // Convert measurements to string format as required by ListingData
-    const convertedMeasurements = {
-      length: baseData.measurements?.length ? String(baseData.measurements.length) : '',
-      width: baseData.measurements?.width ? String(baseData.measurements.width) : '',
-      height: baseData.measurements?.height ? String(baseData.measurements.height) : '',
-      weight: baseData.measurements?.weight ? String(baseData.measurements.weight) : ''
-    };
-    
-    // Destructure to exclude measurements from the spread
-    const { measurements, ...restBaseData } = baseData;
     
     return {
       title: baseData.title || '',
@@ -132,13 +115,31 @@ const IndividualItemReview = ({
       price: baseData.price || 0,
       category: baseData.category || '',
       condition: baseData.condition || '',
-      measurements: convertedMeasurements,
+      measurements: {
+        length: baseData.measurements?.length ? String(baseData.measurements.length) : '',
+        width: baseData.measurements?.width ? String(baseData.measurements.width) : '',
+        height: baseData.measurements?.height ? String(baseData.measurements.height) : '',
+        weight: baseData.measurements?.weight ? String(baseData.measurements.weight) : ''
+      },
       photos: baseData.photos || [],
-      ...restBaseData
+      keywords: baseData.keywords,
+      purchase_price: baseData.purchase_price,
+      purchase_date: baseData.purchase_date,
+      source_location: baseData.source_location,
+      source_type: baseData.source_type,
+      is_consignment: baseData.is_consignment,
+      consignment_percentage: baseData.consignment_percentage,
+      consignor_name: baseData.consignor_name,
+      consignor_contact: baseData.consignor_contact,
+      clothing_size: baseData.clothing_size,
+      shoe_size: baseData.shoe_size,
+      gender: baseData.gender,
+      age_group: baseData.age_group,
+      features: baseData.features,
+      includes: baseData.includes,
+      defects: baseData.defects
     };
   };
-
-  console.log('🔍 IndividualItemReview - Current group:', editedGroup);
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -149,16 +150,15 @@ const IndividualItemReview = ({
       />
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-        {/* Left Column - Main Listing Form */}
         <div className="space-y-4">
           <Card>
             <CardContent className="p-4 md:p-6">
               <EditableListingForm
                 listingData={ensureListingData()}
                 onUpdate={handleListingDataUpdate}
-                onEdit={() => {}} // Not used in bulk context
-                onExport={() => {}} // Not used in bulk context
-                onBack={() => {}} // Not used in bulk context
+                onEdit={() => {}}
+                onExport={() => {}}
+                onBack={() => {}}
                 backButtonText=""
                 isSaving={false}
               />
@@ -166,9 +166,7 @@ const IndividualItemReview = ({
           </Card>
         </div>
 
-        {/* Right Column - Consignment & Shipping */}
         <div className="space-y-4">
-          {/* Consignment Options */}
           <BulkConsignmentOptions
             data={{
               purchase_price: editedGroup.listingData?.purchase_price,
@@ -186,7 +184,6 @@ const IndividualItemReview = ({
 
           <Separator />
 
-          {/* Shipping Options */}
           <BulkShippingOptions
             itemWeight={getWeight()}
             itemDimensions={getDimensions()}

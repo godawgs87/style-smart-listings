@@ -11,47 +11,33 @@ export const useBulkIndividualReviewHandlers = (
   currentReviewIndex: number
 ) => {
   const handleIndividualReviewNext = () => {
-    console.log('⏭️ Individual review next clicked, current index:', currentReviewIndex);
     if (currentReviewIndex < photoGroups.length - 1) {
-      const nextIndex = currentReviewIndex + 1;
-      console.log('Moving to next item:', nextIndex);
-      setCurrentReviewIndex(nextIndex);
+      setCurrentReviewIndex(currentReviewIndex + 1);
     } else {
-      console.log('Reached end, returning to review dashboard');
       setCurrentStep('review');
     }
   };
 
   const handleIndividualReviewBack = () => {
-    console.log('⏮️ Individual review back clicked, current index:', currentReviewIndex);
     if (currentReviewIndex > 0) {
-      const prevIndex = currentReviewIndex - 1;
-      console.log('Moving to previous item:', prevIndex);
-      setCurrentReviewIndex(prevIndex);
+      setCurrentReviewIndex(currentReviewIndex - 1);
     } else {
-      console.log('At beginning, returning to review dashboard');
       setCurrentStep('review');
     }
   };
 
   const handleIndividualReviewSkip = () => {
-    console.log('⏭️ Individual review skip clicked');
     handleIndividualReviewNext();
   };
 
   const handleIndividualReviewApprove = (updatedGroup: PhotoGroup) => {
-    console.log('✅ Individual review approve clicked for group:', updatedGroup.id);
-    console.log('Updated group data:', updatedGroup);
-    
     if (!updatedGroup.listingData?.title || !updatedGroup.listingData?.price || !updatedGroup.selectedShipping) {
-      console.warn('Missing required data for approval');
       alert('Please fill in all required fields: Title, Price, and Shipping option');
       return;
     }
     
-    // Update the specific group in the array with completed status
     setPhotoGroups(prev => {
-      const updated = prev.map(g => 
+      return prev.map(g => 
         g.id === updatedGroup.id 
           ? { 
               ...g,
@@ -65,19 +51,14 @@ export const useBulkIndividualReviewHandlers = (
             }
           : g
       );
-      console.log('Updated photo groups after approve:', updated);
-      return updated;
     });
     
-    // Move to next item
     handleIndividualReviewNext();
   };
 
   const handleIndividualReviewReject = () => {
-    console.log('❌ Individual review reject clicked');
     const currentGroup = photoGroups[currentReviewIndex];
     if (currentGroup) {
-      console.log('Rejecting group:', currentGroup.id);
       setPhotoGroups(prev => prev.map(g => 
         g.id === currentGroup.id ? { ...g, status: 'error' as const } : g
       ));
@@ -86,10 +67,6 @@ export const useBulkIndividualReviewHandlers = (
   };
 
   const handleIndividualSaveDraft = (updatedGroup: PhotoGroup) => {
-    console.log('💾 Individual review save draft clicked for group:', updatedGroup.id);
-    console.log('Saving draft data:', updatedGroup);
-    
-    // Update the group with all the edited data but keep status as is
     setPhotoGroups(prev => prev.map(g => 
       g.id === updatedGroup.id 
         ? {
@@ -103,8 +80,6 @@ export const useBulkIndividualReviewHandlers = (
           }
         : g
     ));
-    
-    console.log('Draft saved successfully');
   };
 
   return {
