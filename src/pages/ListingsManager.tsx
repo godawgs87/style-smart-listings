@@ -28,6 +28,8 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
   const isMobile = useIsMobile();
   const { user } = useAuth();
   
+  console.log('👤 Current user in ListingsManager:', user?.id);
+  
   const { 
     listings, 
     loading, 
@@ -38,8 +40,12 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
     searchTerm: searchTerm.trim() || undefined,
     statusFilter: 'all',
     categoryFilter: categoryFilter === 'all' ? undefined : categoryFilter,
-    limit: 25
+    limit: 50
   });
+
+  console.log('📊 Listings Manager - Loaded listings:', listings.length);
+  console.log('📊 Listings Manager - Loading:', loading);
+  console.log('📊 Listings Manager - Error:', error);
 
   const { deleteListing, updateListing } = useListingOperations();
 
