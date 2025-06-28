@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -41,32 +41,34 @@ const OptimisticInventoryTableView = ({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editData, setEditData] = useState<Partial<Listing>>({});
   const [detailedListings, setDetailedListings] = useState<Map<string, Listing>>(new Map());
+  const loadedListingsRef = useRef<Set<string>>(new Set());
   const { loadDetails, isLoadingDetails } = useListingDetails();
 
   // Load detailed data for all listings to get photos
   useEffect(() => {
     const loadAllDetails = async () => {
       const updatedDetails = new Map(detailedListings);
+      let hasUpdates = false;
       
       for (const listing of listings) {
-        if (!detailedListings.has(listing.id) && !isLoadingDetails(listing.id)) {
-          console.log('🔍 Loading details for listing:', listing.id);
+        if (!loadedListingsRef.current.has(listing.id) && !isLoadingDetails(listing.id)) {
+          loadedListingsRef.current.add(listing.id);
           const details = await loadDetails(listing.id);
           if (details) {
             const mergedListing = { ...listing, ...details };
-            console.log('📸 Merged listing photos:', mergedListing.photos);
             updatedDetails.set(listing.id, mergedListing);
+            hasUpdates = true;
           }
         }
       }
       
-      if (updatedDetails.size !== detailedListings.size) {
+      if (hasUpdates) {
         setDetailedListings(updatedDetails);
       }
     };
 
     loadAllDetails();
-  }, [listings, loadDetails, isLoadingDetails, detailedListings]);
+  }, [listings, loadDetails, isLoadingDetails]);
 
   const getListingWithDetails = (listing: Listing): Listing => {
     const detailed = detailedListings.get(listing.id);
@@ -150,8 +152,6 @@ const OptimisticInventoryTableView = ({
             const isUpdating = optimisticUpdates.get(listing.id) === 'updating';
             const isSelected = selectedListings.includes(listing.id);
             const isEditing = editingId === listing.id;
-            
-            console.log('🎯 Rendering listing:', listing.id, 'with photos:', detailedListing.photos);
             
             return (
               <TableRow 
