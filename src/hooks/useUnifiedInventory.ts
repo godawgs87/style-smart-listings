@@ -68,11 +68,11 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
       profit_margin: item.profit_margin !== null ? Number(item.profit_margin) : null,
       sold_price: item.sold_price !== null ? Number(item.sold_price) : null,
       consignment_percentage: item.consignment_percentage !== null ? Number(item.consignment_percentage) : null,
-      measurements: (typeof item.measurements === 'object' && item.measurements !== null && !Array.isArray(item.measurements)) 
-        ? (item.measurements as { length?: string; width?: string; height?: string; weight?: string; }) 
+      measurements: (item.measurements && typeof item.measurements === 'object' && !Array.isArray(item.measurements)) 
+        ? item.measurements as { length?: string; width?: string; height?: string; weight?: string; }
         : {},
-      keywords: item.keywords || [],
-      photos: item.photos || []
+      keywords: Array.isArray(item.keywords) ? item.keywords : [],
+      photos: Array.isArray(item.photos) ? item.photos : []
     }));
   }, []);
 

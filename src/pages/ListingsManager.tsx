@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
@@ -29,6 +28,7 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
   const { user } = useAuth();
   
   console.log('👤 Current user in ListingsManager:', user?.id);
+  console.log('🔍 Search filters:', { searchTerm, categoryFilter, conditionFilter, priceRangeFilter });
   
   const { 
     listings, 
@@ -40,22 +40,24 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
     searchTerm: searchTerm.trim() || undefined,
     statusFilter: 'all',
     categoryFilter: categoryFilter === 'all' ? undefined : categoryFilter,
-    limit: 50
+    limit: 100
   });
 
-  console.log('📊 Listings Manager - Loaded listings:', listings.length);
+  console.log('📊 Listings Manager - Raw listings from hook:', listings.length);
   console.log('📊 Listings Manager - Loading:', loading);
   console.log('📊 Listings Manager - Error:', error);
+  console.log('📊 Listings Manager - Sample listing:', listings[0]);
 
   const { deleteListing, updateListing } = useListingOperations();
 
   const categories = useMemo(() => {
     const uniqueCategories = [...new Set(listings.map(l => l.category).filter(Boolean))];
+    console.log('📊 Unique categories found:', uniqueCategories);
     return uniqueCategories as string[];
   }, [listings]);
 
   const filteredListings = useMemo(() => {
-    return listings.filter(listing => {
+    const filtered = listings.filter(listing => {
       const matchesSearch = searchTerm === '' || 
         listing.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         listing.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -79,6 +81,9 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
 
       return matchesSearch && matchesCategory && matchesCondition && matchesPriceRange();
     });
+    
+    console.log('📊 Filtered listings count:', filtered.length);
+    return filtered;
   }, [listings, searchTerm, categoryFilter, conditionFilter, priceRangeFilter]);
 
   const handleSelectListing = (listingId: string, checked: boolean) => {
