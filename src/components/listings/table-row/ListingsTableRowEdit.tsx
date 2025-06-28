@@ -1,10 +1,12 @@
+
 import React, { useState, useEffect } from 'react';
 import { TableCell } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Check, X, Loader2 } from 'lucide-react';
 import { useListingDetails } from '@/hooks/useListingDetails';
+import EditableFields from './edit/EditableFields';
+import EditableMeasurements from './edit/EditableMeasurements';
+import EditActionButtons from './edit/EditActionButtons';
 
 interface Listing {
   id: string;
@@ -83,7 +85,7 @@ const ListingsTableRowEdit = ({ listing, visibleColumns, onSave, onCancel }: Lis
     category: listing.category || '',
     condition: listing.condition || '',
     status: listing.status || 'draft',
-    shipping_cost: listing.shipping_cost !== null ? listing.shipping_cost : 9.95,
+    shipping_cost: listing.shipping_cost !== null ? listing.shipping_cost : 0,
     purchase_price: listing.purchase_price || 0,
     source_type: listing.source_type || '',
     source_location: listing.source_location || '',
@@ -91,22 +93,16 @@ const ListingsTableRowEdit = ({ listing, visibleColumns, onSave, onCancel }: Lis
   });
   const [isSaving, setIsSaving] = useState(false);
 
-  console.log('✏️ Edit row - listing shipping_cost:', listing.shipping_cost);
-  console.log('✏️ Edit row - editData shipping_cost:', editData.shipping_cost);
-
   useEffect(() => {
     const loadListingDetails = async () => {
-      console.log('Loading details for edit row:', listing.id);
       const details = await loadDetails(listing.id);
       if (details) {
-        console.log('Loaded details:', details);
         const mergedListing = { ...listing, ...details };
         setDetailedListing(mergedListing);
         
-        // Update edit data with loaded details
         setEditData(prev => ({
           ...prev,
-          shipping_cost: details.shipping_cost !== null ? details.shipping_cost : 9.95,
+          shipping_cost: details.shipping_cost !== null ? details.shipping_cost : 0,
           measurements: details.measurements || { length: '', width: '', height: '', weight: '' }
         }));
       }
@@ -115,7 +111,11 @@ const ListingsTableRowEdit = ({ listing, visibleColumns, onSave, onCancel }: Lis
     loadListingDetails();
   }, [listing.id, loadDetails]);
 
-  const handleMeasurementChange = (field: string, value: string) => {
+  const handleFieldUpdate = (field: string, value: any) => {
+    setEditData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleMeasurementUpdate = (field: string, value: string) => {
     setEditData(prev => ({
       ...prev,
       measurements: { ...prev.measurements, [field]: value }
@@ -126,11 +126,9 @@ const ListingsTableRowEdit = ({ listing, visibleColumns, onSave, onCancel }: Lis
     setIsSaving(true);
     try {
       const updates = { ...editData };
-      // Ensure measurements is properly structured
       if (editData.measurements) {
         updates.measurements = editData.measurements;
       }
-      console.log('✏️ Saving updates:', updates);
       await onSave(updates);
     } finally {
       setIsSaving(false);
@@ -159,120 +157,24 @@ const ListingsTableRowEdit = ({ listing, visibleColumns, onSave, onCancel }: Lis
 
       {visibleColumns.title && (
         <TableCell className="sticky left-28 bg-white z-10 border-r min-w-[250px]">
-          <Input
-            value={editData.title}
-            onChange={(e) => setEditData(prev => ({ ...prev, title: e.target.value }))}
-            className="w-full"
-          />
-        </TableCell>
-      )}
-
-      {visibleColumns.price && (
-        <TableCell>
-          <Input
-            type="number"
-            step="0.01"
-            value={editData.price}
-            onChange={(e) => setEditData(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
-            className="w-24"
-          />
-        </TableCell>
-      )}
-
-      {visibleColumns.status && (
-        <TableCell>
-          <Select value={editData.status} onValueChange={(value) => setEditData(prev => ({ ...prev, status: value }))}>
-            <SelectTrigger className="w-24">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="draft">Draft</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="sold">Sold</SelectItem>
-              <SelectItem value="archived">Archived</SelectItem>
-            </SelectContent>
-          </Select>
-        </TableCell>
-      )}
-
-      {visibleColumns.category && (
-        <TableCell>
-          <Input
-            value={editData.category}
-            onChange={(e) => setEditData(prev => ({ ...prev, category: e.target.value }))}
-            className="w-32"
-            placeholder="Category"
-          />
-        </TableCell>
-      )}
-
-      {visibleColumns.condition && (
-        <TableCell>
-          <Select value={editData.condition} onValueChange={(value) => setEditData(prev => ({ ...prev, condition: value }))}>
-            <SelectTrigger className="w-24">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="New">New</SelectItem>
-              <SelectItem value="Like New">Like New</SelectItem>
-              <SelectItem value="Used">Used</SelectItem>
-              <SelectItem value="Fair">Fair</SelectItem>
-              <SelectItem value="Poor">Poor</SelectItem>
-              <SelectItem value="For Parts">For Parts</SelectItem>
-            </SelectContent>
-          </Select>
-        </TableCell>
-      )}
-
-      {visibleColumns.shipping && (
-        <TableCell>
-          <Input
-            type="number"
-            step="0.01"
-            value={editData.shipping_cost}
-            onChange={(e) => setEditData(prev => ({ ...prev, shipping_cost: parseFloat(e.target.value) || 0 }))}
-            className="w-24"
+          <EditableFields 
+            editData={editData} 
+            onUpdate={handleFieldUpdate}
           />
         </TableCell>
       )}
 
       {visibleColumns.measurements && (
         <TableCell>
-          {isLoadingData ? (
-            <div className="flex items-center justify-center">
-              <Loader2 className="w-4 h-4 animate-spin" />
-            </div>
-          ) : (
-            <div className="space-y-1 min-w-[120px]">
-              <Input
-                placeholder="Length"
-                value={editData.measurements.length || ''}
-                onChange={(e) => handleMeasurementChange('length', e.target.value)}
-                className="text-xs h-6"
-              />
-              <Input
-                placeholder="Width" 
-                value={editData.measurements.width || ''}
-                onChange={(e) => handleMeasurementChange('width', e.target.value)}
-                className="text-xs h-6"
-              />
-              <Input
-                placeholder="Height"
-                value={editData.measurements.height || ''}
-                onChange={(e) => handleMeasurementChange('height', e.target.value)}
-                className="text-xs h-6"
-              />
-              <Input
-                placeholder="Weight"
-                value={editData.measurements.weight || ''}
-                onChange={(e) => handleMeasurementChange('weight', e.target.value)}
-                className="text-xs h-6"
-              />
-            </div>
-          )}
+          <EditableMeasurements
+            measurements={editData.measurements}
+            onUpdate={handleMeasurementUpdate}
+            isLoading={isLoadingData}
+          />
         </TableCell>
       )}
 
+      {/* Render other columns with simplified display */}
       {visibleColumns.keywords && (
         <TableCell>
           <div className="text-sm text-gray-600">
@@ -289,53 +191,9 @@ const ListingsTableRowEdit = ({ listing, visibleColumns, onSave, onCancel }: Lis
         </TableCell>
       )}
 
-      {visibleColumns.purchasePrice && (
-        <TableCell>
-          <Input
-            type="number"
-            step="0.01"
-            value={editData.purchase_price}
-            onChange={(e) => setEditData(prev => ({ ...prev, purchase_price: parseFloat(e.target.value) || 0 }))}
-            className="w-24"
-          />
-        </TableCell>
-      )}
-
-      {/* Skip other non-critical edit fields for now */}
+      {/* Skip other non-essential columns in edit mode */}
       {visibleColumns.purchaseDate && <TableCell>-</TableCell>}
       {visibleColumns.consignmentStatus && <TableCell>-</TableCell>}
-
-      {visibleColumns.sourceType && (
-        <TableCell>
-          <Select value={editData.source_type} onValueChange={(value) => setEditData(prev => ({ ...prev, source_type: value }))}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="estate_sale">Estate Sale</SelectItem>
-              <SelectItem value="garage_sale">Garage Sale</SelectItem>
-              <SelectItem value="thrift_store">Thrift Store</SelectItem>
-              <SelectItem value="auction">Auction</SelectItem>
-              <SelectItem value="online">Online</SelectItem>
-              <SelectItem value="wholesale">Wholesale</SelectItem>
-              <SelectItem value="other">Other</SelectItem>
-            </SelectContent>
-          </Select>
-        </TableCell>
-      )}
-
-      {visibleColumns.sourceLocation && (
-        <TableCell>
-          <Input
-            value={editData.source_location}
-            onChange={(e) => setEditData(prev => ({ ...prev, source_location: e.target.value }))}
-            className="w-32"
-            placeholder="Location"
-          />
-        </TableCell>
-      )}
-
-      {/* Skip calculated fields */}
       {visibleColumns.costBasis && <TableCell>-</TableCell>}
       {visibleColumns.netProfit && <TableCell>-</TableCell>}
       {visibleColumns.profitMargin && <TableCell>-</TableCell>}
@@ -343,19 +201,12 @@ const ListingsTableRowEdit = ({ listing, visibleColumns, onSave, onCancel }: Lis
       {visibleColumns.performanceNotes && <TableCell>-</TableCell>}
 
       <TableCell className="sticky right-0 bg-white z-10 border-l">
-        <div className="flex space-x-1">
-          <Button 
-            size="sm" 
-            onClick={handleSave} 
-            className="bg-green-600 hover:bg-green-700" 
-            disabled={isSaving || isLoadingData}
-          >
-            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-          </Button>
-          <Button size="sm" variant="outline" onClick={onCancel} disabled={isSaving}>
-            <X className="w-4 h-4" />
-          </Button>
-        </div>
+        <EditActionButtons
+          onSave={handleSave}
+          onCancel={onCancel}
+          isSaving={isSaving}
+          isLoadingData={isLoadingData}
+        />
       </TableCell>
     </>
   );

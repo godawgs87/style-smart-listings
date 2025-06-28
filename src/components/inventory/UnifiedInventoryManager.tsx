@@ -1,10 +1,11 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
 import MobileNavigation from '@/components/MobileNavigation';
 import { useUnifiedInventory } from '@/hooks/useUnifiedInventory';
 import { useListingOperations } from '@/hooks/useListingOperations';
+import { useInventoryFilters } from '@/hooks/useInventoryFilters';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -20,30 +21,24 @@ interface UnifiedInventoryManagerProps {
 
 const UnifiedInventoryManager = ({ onCreateListing, onBack }: UnifiedInventoryManagerProps) => {
   const isMobile = useIsMobile();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [categoryFilter, setCategoryFilter] = useState('all');
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   
   const { listings, loading, error, stats, refetch, usingFallback } = useUnifiedInventory({
-    searchTerm: searchTerm.trim() || undefined,
-    statusFilter: statusFilter === 'all' ? undefined : statusFilter,
-    categoryFilter: categoryFilter === 'all' ? undefined : categoryFilter,
-    limit: 25 // Reduced limit for better performance
+    limit: 25
   });
 
+  const {
+    searchTerm,
+    setSearchTerm,
+    statusFilter,
+    setStatusFilter,
+    categoryFilter,
+    setCategoryFilter,
+    categories,
+    handleClearFilters
+  } = useInventoryFilters(listings);
+
   const { deleteListing, updateListing } = useListingOperations();
-
-  const categories = useMemo(() => {
-    const uniqueCategories = [...new Set(listings.map(l => l.category).filter(Boolean))];
-    return uniqueCategories as string[];
-  }, [listings]);
-
-  const handleClearFilters = () => {
-    setSearchTerm('');
-    setStatusFilter('all');
-    setCategoryFilter('all');
-  };
 
   const handleSelectListing = (listingId: string, checked: boolean) => {
     setSelectedItems(prev => 

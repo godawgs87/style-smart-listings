@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
+
+import React from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
-import { usePhotoAnalysis } from '@/hooks/usePhotoAnalysis';
-import { useListingSave } from '@/hooks/useListingSave';
+import { useCreateListingState } from '@/hooks/useCreateListingState';
+import { useCreateListingActions } from '@/hooks/useCreateListingActions';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
 import MobileNavigation from '@/components/MobileNavigation';
 import CreateListingContent from '@/components/create-listing/CreateListingContent';
 import CreateListingSteps from '@/components/create-listing/CreateListingSteps';
-import { Step, ListingData } from '@/types/CreateListing';
 
 interface CreateListingProps {
   onBack: () => void;
@@ -15,105 +15,45 @@ interface CreateListingProps {
 }
 
 const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
-  const [currentStep, setCurrentStep] = useState<Step>('photos');
-  const [photos, setPhotos] = useState<File[]>([]);
-  const [shippingCost, setShippingCost] = useState(0);
-  const [listingData, setListingData] = useState<ListingData | null>(null);
-  const [draftId, setDraftId] = useState<string | null>(null);
-  const [isAutoSaving, setIsAutoSaving] = useState(false);
-  
   const isMobile = useIsMobile();
   const { user } = useAuth();
-  const { analyzePhotos, isAnalyzing } = usePhotoAnalysis();
-  const { saveListing, isSaving } = useListingSave();
+  
+  const {
+    currentStep,
+    setCurrentStep,
+    photos,
+    shippingCost,
+    listingData,
+    draftId,
+    isAutoSaving,
+    setDraftId,
+    setListingData,
+    setIsAutoSaving,
+    handlePhotosChange,
+    handleListingDataChange,
+    handleShippingSelect
+  } = useCreateListingState();
 
-  console.log('🚢 CreateListing - Current shippingCost:', shippingCost, typeof shippingCost);
-
-  // Auto-save draft whenever listingData changes (debounced)
-  useEffect(() => {
-    if (!listingData || isAnalyzing || isSaving || isAutoSaving) return;
-    
-    const autoSaveTimer = setTimeout(async () => {
-      setIsAutoSaving(true);
-      console.log('Auto-saving draft with current data:', listingData);
-      console.log('🚢 Auto-saving with shippingCost:', shippingCost, typeof shippingCost);
-      
-      try {
-        const saveResult = await saveListing(listingData, shippingCost, 'draft', draftId || undefined);
-        if (saveResult.success && saveResult.listingId && !draftId) {
-          setDraftId(saveResult.listingId);
-          console.log('Draft auto-saved with ID:', saveResult.listingId);
-        }
-      } catch (error) {
-        console.error('Auto-save failed:', error);
-      } finally {
-        setIsAutoSaving(false);
-      }
-    }, 2000); // Auto-save after 2 seconds of no changes
-
-    return () => clearTimeout(autoSaveTimer);
-  }, [listingData, shippingCost, draftId, isAnalyzing, isSaving, isAutoSaving, saveListing]);
-
-  const handlePhotosChange = (newPhotos: File[]) => {
-    setPhotos(newPhotos);
-  };
-
-  const handleAnalyze = async () => {
-    if (photos.length === 0) return;
-    
-    const result = await analyzePhotos(photos);
-    if (result) {
-      // Preserve any existing sourcing data when merging analysis results
-      const enrichedResult = {
-        ...result,
-        // Preserve existing sourcing data if it exists
-        is_consignment: listingData?.is_consignment || false,
-        consignment_percentage: listingData?.consignment_percentage,
-        consignor_name: listingData?.consignor_name,
-        consignor_contact: listingData?.consignor_contact,
-        purchase_price: listingData?.purchase_price,
-        purchase_date: listingData?.purchase_date,
-        source_location: listingData?.source_location,
-        source_type: listingData?.source_type
-      };
-      
-      console.log('Analysis complete, preserving existing data:', enrichedResult);
-      setListingData(enrichedResult);
-      setCurrentStep('preview');
-    }
-  };
-
-  const handleListingDataChange = (updates: Partial<ListingData>) => {
-    console.log('Updating listing data:', updates);
-    setListingData(prev => prev ? { ...prev, ...updates } : null);
-  };
+  const {
+    handleAnalyze,
+    handleExport,
+    isAnalyzing,
+    isSaving
+  } = useCreateListingActions({
+    photos,
+    listingData,
+    shippingCost,
+    draftId,
+    isAutoSaving,
+    setListingData,
+    setDraftId,
+    setIsAutoSaving,
+    setCurrentStep,
+    onViewListings
+  });
 
   const handleEdit = () => {
     setCurrentStep('preview');
-  };
-
-  const handleExport = async () => {
-    if (!listingData) return;
-    
-    if (currentStep === 'preview') {
-      setCurrentStep('shipping');
-      return;
-    }
-    
-    try {
-      console.log('🚢 Final export with shippingCost:', shippingCost, typeof shippingCost);
-      // Update the existing draft to active status instead of creating new listing
-      const success = await saveListing(listingData, shippingCost, 'active', draftId || undefined);
-      if (success.success) {
-        console.log('Listing published successfully');
-        onViewListings();
-      } else {
-        console.error('Failed to publish listing');
-      }
-    } catch (error) {
-      console.error('Error publishing listing:', error);
-      // Show error to user but don't navigate away
-    }
   };
 
   const handleBack = () => {
@@ -124,13 +64,6 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
     } else {
       onBack();
     }
-  };
-
-  const handleShippingSelect = (option: any) => {
-    console.log('🚢 Shipping option selected:', option);
-    const newCost = option.cost || 0;
-    console.log('🚢 Setting shippingCost to:', newCost, typeof newCost);
-    setShippingCost(newCost);
   };
 
   const getWeight = (): number => {
@@ -189,7 +122,7 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
           isAnalyzing={isAnalyzing}
           listingData={listingData}
           shippingCost={shippingCost}
-          isSaving={isSaving || isAutoSaving}
+          isSaving={isSaving}
           onPhotosChange={handlePhotosChange}
           onAnalyze={handleAnalyze}
           onEdit={handleEdit}
