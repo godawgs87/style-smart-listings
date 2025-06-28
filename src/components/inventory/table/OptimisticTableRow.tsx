@@ -5,6 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import ListingImagePreview from '@/components/ListingImagePreview';
 import EditableTableCell from './EditableTableCell';
 import TableCellActions from './TableCellActions';
+import { useOptimizedListingDetailsLoader } from '@/hooks/useOptimizedListingDetailsLoader';
 import type { Listing } from '@/types/Listing';
 
 interface OptimisticTableRowProps {
@@ -36,6 +37,24 @@ const OptimisticTableRow = ({
 }: OptimisticTableRowProps) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editData, setEditData] = useState<Partial<Listing>>({});
+
+  // Use optimized loading for images and other details
+  const { detailedListing: loadedListing, isLoading } = useOptimizedListingDetailsLoader(listing, {
+    image: visibleColumns.image,
+    measurements: false,
+    keywords: false,
+    description: false,
+    purchasePrice: false,
+    netProfit: false,
+    profitMargin: false,
+    purchaseDate: false,
+    consignmentStatus: false,
+    sourceType: false,
+    sourceLocation: false,
+    costBasis: false,
+    daysToSell: false,
+    performanceNotes: false,
+  });
 
   const isEditing = editingId === listing.id;
 
@@ -93,12 +112,16 @@ const OptimisticTableRow = ({
       
       {visibleColumns.image && (
         <TableCell>
-          <ListingImagePreview 
-            photos={detailedListing.photos} 
-            title={detailedListing.title}
-            listingId={detailedListing.id}
-            className="w-12 h-12"
-          />
+          {isLoading ? (
+            <div className="w-12 h-12 bg-gray-200 animate-pulse rounded" />
+          ) : (
+            <ListingImagePreview 
+              photos={loadedListing.photos || listing.photos} 
+              title={listing.title}
+              listingId={listing.id}
+              className="w-12 h-12"
+            />
+          )}
         </TableCell>
       )}
       

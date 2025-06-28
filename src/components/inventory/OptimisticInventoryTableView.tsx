@@ -1,9 +1,8 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import OptimisticTableRow from './table/OptimisticTableRow';
-import { useListingDetails } from '@/hooks/useListingDetails';
 import type { Listing } from '@/types/Listing';
 
 interface OptimisticInventoryTableViewProps {
@@ -33,41 +32,6 @@ const OptimisticInventoryTableView = ({
   onEditListing,
   onDuplicateListing
 }: OptimisticInventoryTableViewProps) => {
-  const [detailedListings, setDetailedListings] = useState<Map<string, Listing>>(new Map());
-  const loadedListingsRef = useRef<Set<string>>(new Set());
-  const { loadDetails, isLoadingDetails } = useListingDetails();
-
-  // Load detailed data for all listings to get photos
-  useEffect(() => {
-    const loadAllDetails = async () => {
-      const updatedDetails = new Map(detailedListings);
-      let hasUpdates = false;
-      
-      for (const listing of listings) {
-        if (!loadedListingsRef.current.has(listing.id) && !isLoadingDetails(listing.id)) {
-          loadedListingsRef.current.add(listing.id);
-          const details = await loadDetails(listing.id);
-          if (details) {
-            const mergedListing = { ...listing, ...details };
-            updatedDetails.set(listing.id, mergedListing);
-            hasUpdates = true;
-          }
-        }
-      }
-      
-      if (hasUpdates) {
-        setDetailedListings(updatedDetails);
-      }
-    };
-
-    loadAllDetails();
-  }, [listings, loadDetails, isLoadingDetails]);
-
-  const getListingWithDetails = (listing: Listing): Listing => {
-    const detailed = detailedListings.get(listing.id);
-    return detailed || listing;
-  };
-
   return (
     <div className="overflow-x-auto">
       <Table>
@@ -91,7 +55,6 @@ const OptimisticInventoryTableView = ({
         </TableHeader>
         <TableBody>
           {listings.map((listing) => {
-            const detailedListing = getListingWithDetails(listing);
             const isUpdating = optimisticUpdates.get(listing.id) === 'updating';
             const isSelected = selectedListings.includes(listing.id);
             
@@ -99,7 +62,7 @@ const OptimisticInventoryTableView = ({
               <OptimisticTableRow
                 key={listing.id}
                 listing={listing}
-                detailedListing={detailedListing}
+                detailedListing={listing} // We'll let OptimisticTableRow handle selective loading
                 isSelected={isSelected}
                 isUpdating={isUpdating}
                 visibleColumns={visibleColumns}
