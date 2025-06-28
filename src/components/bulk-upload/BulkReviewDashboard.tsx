@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -53,39 +54,45 @@ const BulkReviewDashboard = ({
   };
 
   const handleMergeGroups = (groupIds: string[]) => {
-    if (groupIds.length < 2) return;
+    if (groupIds.length < 2 || !onUpdateGroup) return;
+    
+    console.log('Merging groups:', groupIds);
     
     // Find all groups to merge
     const groupsToMerge = photoGroups.filter(g => groupIds.includes(g.id));
     if (groupsToMerge.length < 2) return;
     
-    // Create merged group
+    // Create merged group using the first group as base
+    const baseGroup = groupsToMerge[0];
+    const allPhotos = groupsToMerge.flatMap(g => g.photos);
+    
     const mergedGroup: PhotoGroup = {
-      ...groupsToMerge[0],
-      id: groupsToMerge[0].id,
-      photos: groupsToMerge.flatMap(g => g.photos),
-      name: groupsToMerge[0].name.replace(' (1 photo)', ` (${groupsToMerge.flatMap(g => g.photos).length} photos)`),
-      confidence: 'medium' as const
+      ...baseGroup,
+      photos: allPhotos,
+      name: `${baseGroup.name.replace(' (1 photo)', '')} (${allPhotos.length} photos)`,
+      confidence: 'medium' as const,
+      status: 'pending' as const,
+      aiSuggestion: `Merged from ${groupsToMerge.length} groups`
     };
     
-    // Update groups - remove old ones and add merged one
-    if (onUpdateGroup) {
-      // First remove the groups being merged (except the first one which becomes the merged group)
-      groupIds.slice(1).forEach(id => {
-        // This would need to be implemented in parent to actually remove groups
-      });
-      
-      // Update the first group to be the merged group
-      onUpdateGroup(mergedGroup);
-    }
+    console.log('Created merged group:', mergedGroup);
+    
+    // Update the first group to be the merged group and remove the others
+    onUpdateGroup(mergedGroup);
+    
+    // Note: We can't actually remove groups from the parent state here
+    // This would need to be implemented in the parent component
+    // For now, we just update the first group with merged data
   };
 
   const handleSplitGroup = (groupId: string) => {
+    console.log('Split group requested for:', groupId);
     // This would split a group back into individual photos
-    console.log('Split group:', groupId);
+    // Implementation would depend on parent component support
   };
 
   const handleReviewGrouping = () => {
+    console.log('Review grouping requested');
     onReviewAll();
   };
 
@@ -105,11 +112,11 @@ const BulkReviewDashboard = ({
           }
         }}
         onApprove={(updatedGroup: PhotoGroup) => {
-          const groupIndex = photoGroups.findIndex(g => g.id === updatedGroup.id);
-          if (groupIndex >= 0) {
-            if (quickReviewIndex < photoGroups.length - 1) {
-              setQuickReviewIndex(quickReviewIndex + 1);
-            }
+          if (onUpdateGroup) {
+            onUpdateGroup(updatedGroup);
+          }
+          if (quickReviewIndex < photoGroups.length - 1) {
+            setQuickReviewIndex(quickReviewIndex + 1);
           }
         }}
         onReject={() => {
@@ -118,7 +125,9 @@ const BulkReviewDashboard = ({
           }
         }}
         onSaveDraft={(updatedGroup: PhotoGroup) => {
-          // Draft saving handled by parent component
+          if (onUpdateGroup) {
+            onUpdateGroup(updatedGroup);
+          }
         }}
         onReturn={() => setViewMode('dashboard')}
       />
@@ -134,6 +143,7 @@ const BulkReviewDashboard = ({
         onReviewAll={onReviewAll}
       />
       
+      {/* Show GroupingActions prominently at the top */}
       <GroupingActions
         groups={photoGroups}
         onMergeGroups={handleMergeGroups}

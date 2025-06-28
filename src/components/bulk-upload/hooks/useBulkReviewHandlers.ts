@@ -64,40 +64,60 @@ export const useBulkReviewHandlers = (
 
   const handlePostItem = async (groupId: string) => {
     const groupToPost = photoGroups.find(g => g.id === groupId);
-    if (groupToPost && groupToPost.status === 'completed' && groupToPost.selectedShipping && groupToPost.listingData) {
-      
-      try {
-        const listingData = ensureListingData(groupToPost.listingData);
-        const result = await saveListing(
-          listingData,
-          groupToPost.selectedShipping.cost,
-          'active'
-        );
+    if (!groupToPost) {
+      toast({
+        title: "Error",
+        description: "Item not found.",
+        variant: "destructive"
+      });
+      return;
+    }
 
-        if (result.success) {
-          setPhotoGroups(prev => prev.map(g => 
-            g.id === groupId 
-              ? { ...g, isPosted: true, listingId: result.listingId }
-              : g
-          ));
-          
-          toast({
-            title: "Success!",
-            description: `${groupToPost.listingData?.title || groupToPost.name} posted successfully!`,
-          });
-        }
-      } catch (error) {
-        console.error('Failed to post item:', error);
-        toast({
-          title: "Error",
-          description: "Failed to post item. Please try again.",
-          variant: "destructive"
-        });
-      }
-    } else {
+    if (!groupToPost.listingData?.title || !groupToPost.listingData?.price) {
       toast({
         title: "Cannot post item",
-        description: "Missing required information: title, price, or shipping option.",
+        description: "Missing required information: title and price are required.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!groupToPost.selectedShipping) {
+      toast({
+        title: "Cannot post item",
+        description: "Please select a shipping option.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      console.log('Posting single item:', groupToPost.listingData.title);
+      const listingData = ensureListingData(groupToPost.listingData);
+      
+      const result = await saveListing(
+        listingData,
+        groupToPost.selectedShipping.cost,
+        'active'
+      );
+
+      if (result.success) {
+        setPhotoGroups(prev => prev.map(g => 
+          g.id === groupId 
+            ? { ...g, isPosted: true, listingId: result.listingId }
+            : g
+        ));
+        
+        toast({
+          title: "Success!",
+          description: `${groupToPost.listingData?.title || groupToPost.name} posted successfully!`,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to post item:', error);
+      toast({
+        title: "Error",
+        description: "Failed to post item. Please try again.",
         variant: "destructive"
       });
     }
@@ -112,10 +132,13 @@ export const useBulkReviewHandlers = (
       g.listingData?.price
     );
     
+    console.log('Ready items for posting:', readyItems.length);
+    console.log('Ready items:', readyItems.map(i => ({ title: i.listingData?.title, price: i.listingData?.price, shipping: i.selectedShipping })));
+    
     if (readyItems.length === 0) {
       toast({
-        title: "No items ready",
-        description: "Please complete all required fields for at least one item.",
+        title: "No items ready to post",
+        description: "Please complete required fields (title, price, shipping) for at least one item.",
         variant: "destructive"
       });
       return;
@@ -150,11 +173,15 @@ export const useBulkReviewHandlers = (
               ? { ...g, isPosted: true, listingId: result.listingId }
               : g
           ));
+        } else {
+          console.error('Failed to save listing (no success):', item.listingData?.title);
         }
       } catch (error) {
         console.error(`Failed to save ${item.listingData?.title || item.name}:`, error);
       }
     }
+
+    console.log('Bulk save complete. Success count:', successCount);
 
     if (successCount > 0) {
       toast({
@@ -162,15 +189,16 @@ export const useBulkReviewHandlers = (
         description: `Successfully created ${successCount} listing${successCount > 1 ? 's' : ''}!`,
       });
       
-      onComplete(savedListings);
-      
+      // Navigate to inventory after successful completion
       setTimeout(() => {
         window.location.href = '/inventory';
       }, 2000);
+      
+      onComplete(savedListings);
     } else {
       toast({
         title: "Upload failed",
-        description: "Failed to create any listings. Please try again.",
+        description: "Failed to create any listings. Please check your data and try again.",
         variant: "destructive"
       });
     }
@@ -184,13 +212,15 @@ export const useBulkReviewHandlers = (
   const handleSaveDraft = async () => {
     const draftItems = photoGroups.filter(g => 
       g.listingData?.title && 
-      g.listingData?.price
+      !g.isPosted
     );
+    
+    console.log('Draft items:', draftItems.length);
     
     if (draftItems.length === 0) {
       toast({
         title: "No items to save",
-        description: "Please complete at least title and price for items to save as drafts.",
+        description: "Please complete at least the title for items to save as drafts.",
         variant: "destructive"
       });
       return;

@@ -42,6 +42,7 @@ const IndividualItemReview = ({
   }, [group]);
 
   const handleListingDataUpdate = (updates: Partial<ListingData>) => {
+    console.log('Updating listing data:', updates);
     setEditedGroup(prev => ({
       ...prev,
       listingData: {
@@ -52,6 +53,7 @@ const IndividualItemReview = ({
   };
 
   const handleConsignmentUpdate = (field: string, value: any) => {
+    console.log('Updating consignment field:', field, value);
     setEditedGroup(prev => ({
       ...prev,
       listingData: {
@@ -62,18 +64,20 @@ const IndividualItemReview = ({
   };
 
   const handleShippingSelect = (option: any) => {
+    console.log('Shipping option selected:', option);
     setEditedGroup(prev => ({
       ...prev,
       selectedShipping: {
         id: option.id,
         name: option.name,
         cost: option.cost,
-        estimatedDays: option.estimatedDays || option.days || '3-5 business days'
+        estimatedDays: option.days || option.estimatedDays || 'TBD'
       }
     }));
   };
 
   const handleApprove = () => {
+    console.log('Approving item with data:', editedGroup);
     if (!editedGroup.listingData?.title || !editedGroup.listingData?.price || !editedGroup.selectedShipping) {
       toast({
         title: "Missing required fields",
@@ -86,6 +90,7 @@ const IndividualItemReview = ({
   };
 
   const handleSaveDraft = () => {
+    console.log('Saving draft with data:', editedGroup);
     if (!editedGroup.listingData?.title) {
       toast({
         title: "Title required",

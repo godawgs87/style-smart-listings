@@ -42,16 +42,15 @@ const BulkShippingOptions = ({
       return [
         { 
           id: 'local-pickup',
-          name: 'Local Pickup', 
+          name: 'Local Pickup Only', 
           cost: 0, 
-          days: '0-1', 
-          description: 'Free local pickup' 
+          days: 'Same day', 
+          description: 'Buyer picks up item locally - no shipping required' 
         }
       ];
     }
 
     const baseRate = 9.95;
-    const weightMultiplier = Math.max(1, Math.ceil(weight));
     const volumeWeight = (dimensions.length * dimensions.width * dimensions.height) / 166;
     const billableWeight = Math.max(weight, volumeWeight);
     
@@ -59,23 +58,23 @@ const BulkShippingOptions = ({
       { 
         id: 'usps-ground',
         name: 'USPS Ground Advantage', 
-        cost: baseRate + (billableWeight * 0.5), 
-        days: '2-5',
-        description: 'Most economical option'
+        cost: Math.round((baseRate + (billableWeight * 0.5)) * 100) / 100, 
+        days: '2-5 business days',
+        description: 'Most economical shipping option'
       },
       { 
         id: 'usps-priority',
         name: 'USPS Priority Mail', 
-        cost: baseRate + (billableWeight * 1.2), 
-        days: '1-3',
-        description: 'Faster delivery with tracking'
+        cost: Math.round((baseRate + (billableWeight * 1.2)) * 100) / 100, 
+        days: '1-3 business days',
+        description: 'Faster delivery with tracking included'
       },
       { 
         id: 'ups-ground',
         name: 'UPS Ground', 
-        cost: baseRate + (billableWeight * 0.8), 
-        days: '1-5',
-        description: 'Reliable ground shipping'
+        cost: Math.round((baseRate + (billableWeight * 0.8)) * 100) / 100, 
+        days: '1-5 business days',
+        description: 'Reliable ground shipping service'
       }
     ];
   };
@@ -84,6 +83,21 @@ const BulkShippingOptions = ({
 
   const handleSelectOption = (option: ShippingOption) => {
     onShippingSelect(option);
+  };
+
+  const handleLocalPickupToggle = (checked: boolean) => {
+    setIsLocalPickup(checked);
+    if (checked) {
+      // Auto-select local pickup when toggled on
+      const localOption = { 
+        id: 'local-pickup',
+        name: 'Local Pickup Only', 
+        cost: 0, 
+        days: 'Same day', 
+        description: 'Buyer picks up item locally - no shipping required' 
+      };
+      handleSelectOption(localOption);
+    }
   };
 
   return (
@@ -95,18 +109,18 @@ const BulkShippingOptions = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Pickup Option */}
+        {/* Local Pickup Toggle */}
         <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
           <Checkbox 
             id="local-pickup"
             checked={isLocalPickup}
-            onCheckedChange={(checked) => setIsLocalPickup(checked as boolean)}
+            onCheckedChange={handleLocalPickupToggle}
           />
           <div>
             <Label htmlFor="local-pickup" className="text-sm font-medium">
               Local Pickup Only (Free)
             </Label>
-            <p className="text-xs text-gray-600">Buyer picks up item locally</p>
+            <p className="text-xs text-gray-600">Buyer picks up item locally - no shipping required</p>
           </div>
         </div>
 
@@ -114,7 +128,7 @@ const BulkShippingOptions = ({
           <>
             <Separator />
             
-            {/* Item Details */}
+            {/* Item Specifications */}
             <div className="space-y-3">
               <h4 className="font-medium text-gray-900 text-sm">Item Specifications</h4>
               
@@ -182,7 +196,7 @@ const BulkShippingOptions = ({
         {/* Shipping Options */}
         <div className="space-y-3">
           <h4 className="font-medium text-gray-900 text-sm">
-            {isLocalPickup ? 'Pickup Option' : 'Shipping Options'}
+            {isLocalPickup ? 'Pickup Option' : 'Available Shipping Options'}
           </h4>
           
           <RadioGroup
@@ -218,7 +232,9 @@ const BulkShippingOptions = ({
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="font-semibold text-sm">${option.cost.toFixed(2)}</div>
+                      <div className="font-semibold text-sm">
+                        {option.cost === 0 ? 'FREE' : `$${option.cost.toFixed(2)}`}
+                      </div>
                     </div>
                   </div>
                 </Label>
@@ -230,7 +246,7 @@ const BulkShippingOptions = ({
         {selectedOption && (
           <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
             <p className="text-xs text-green-700">
-              ✓ Selected: <strong>{selectedOption.name}</strong> - ${selectedOption.cost.toFixed(2)}
+              ✓ Selected: <strong>{selectedOption.name}</strong> - {selectedOption.cost === 0 ? 'FREE' : `$${selectedOption.cost.toFixed(2)}`}
             </p>
           </div>
         )}

@@ -39,6 +39,7 @@ export const useBulkIndividualReviewHandlers = (
   };
 
   const handleIndividualReviewApprove = (updatedGroup: PhotoGroup) => {
+    // Validate required fields
     if (!updatedGroup.listingData?.title || !updatedGroup.listingData?.price) {
       toast({
         title: "Missing required fields",
@@ -47,19 +48,25 @@ export const useBulkIndividualReviewHandlers = (
       });
       return;
     }
+
+    // Validate shipping selection (unless local pickup)
+    if (!updatedGroup.selectedShipping) {
+      toast({
+        title: "Missing shipping option",
+        description: "Please select a shipping option before approving.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    console.log('Approving group with data:', updatedGroup);
     
     setPhotoGroups(prev => {
       return prev.map(g => 
         g.id === updatedGroup.id 
           ? { 
-              ...g,
               ...updatedGroup,
-              status: 'completed' as const,
-              listingData: {
-                ...g.listingData,
-                ...updatedGroup.listingData
-              },
-              selectedShipping: updatedGroup.selectedShipping
+              status: 'completed' as const
             }
           : g
       );
@@ -99,16 +106,13 @@ export const useBulkIndividualReviewHandlers = (
       return;
     }
 
+    console.log('Saving draft with data:', updatedGroup);
+
     setPhotoGroups(prev => prev.map(g => 
       g.id === updatedGroup.id 
         ? {
-            ...g,
             ...updatedGroup,
-            listingData: {
-              ...g.listingData,
-              ...updatedGroup.listingData
-            },
-            selectedShipping: updatedGroup.selectedShipping || g.selectedShipping
+            status: 'completed' as const  // Mark as completed even for drafts
           }
         : g
     ));
