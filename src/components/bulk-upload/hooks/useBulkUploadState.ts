@@ -2,8 +2,10 @@
 import { useState } from 'react';
 import type { PhotoGroup } from '../BulkUploadManager';
 
+type StepType = 'upload' | 'grouping' | 'processing' | 'shipping' | 'review' | 'individual-review';
+
 export const useBulkUploadState = () => {
-  const [currentStep, setCurrentStep] = useState<'upload' | 'grouping' | 'processing' | 'shipping' | 'review' | 'individual-review'>('upload');
+  const [currentStep, setCurrentStep] = useState<StepType>('upload');
   const [photos, setPhotos] = useState<File[]>([]);
   const [photoGroups, setPhotoGroups] = useState<PhotoGroup[]>([]);
   const [isGrouping, setIsGrouping] = useState(false);

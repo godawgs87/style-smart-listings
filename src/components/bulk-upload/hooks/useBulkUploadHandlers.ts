@@ -3,11 +3,13 @@ import { simulateAIGrouping, generateListingData } from '../utils/aiSimulation';
 import { generateShippingOptions } from '../utils/shippingCalculator';
 import type { PhotoGroup } from '../BulkUploadManager';
 
+type StepType = 'upload' | 'grouping' | 'processing' | 'shipping' | 'review' | 'individual-review';
+
 export const useBulkUploadHandlers = (
   photos: File[],
   photoGroups: PhotoGroup[],
   setIsGrouping: (loading: boolean) => void,
-  setCurrentStep: (step: string) => void,
+  setCurrentStep: (step: StepType) => void,
   setPhotoGroups: (groups: PhotoGroup[] | ((prev: PhotoGroup[]) => PhotoGroup[])) => void,
   setProcessingResults: (results: any[]) => void,
   setCurrentReviewIndex: (index: number) => void,
