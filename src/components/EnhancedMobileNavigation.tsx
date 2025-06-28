@@ -26,9 +26,9 @@ const EnhancedMobileNavigation = ({
   loading,
   notifications
 }: EnhancedMobileNavigationProps) => {
-  const handleAdminClick = () => {
+  const handleSettingsClick = () => {
     if (loading) return;
-    window.location.href = '/admin';
+    window.location.href = '/settings';
   };
 
   if (showBack && onBack) {
@@ -53,7 +53,7 @@ const EnhancedMobileNavigation = ({
         <Button
           variant="ghost"
           size="sm"
-          onClick={handleAdminClick}
+          onClick={handleSettingsClick}
           disabled={loading}
           className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700"
         >
@@ -134,7 +134,7 @@ const EnhancedMobileNavigation = ({
         <Button
           variant="ghost"
           size="sm"
-          onClick={handleAdminClick}
+          onClick={handleSettingsClick}
           disabled={loading}
           className="flex flex-col items-center p-2 min-h-14 min-w-12"
         >

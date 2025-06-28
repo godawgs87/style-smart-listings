@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -14,7 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const Index = () => {
-  const [currentView, setCurrentView] = useState<'dashboard' | 'create' | 'inventory' | 'active-listings'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'create' | 'inventory' | 'active-listings' | 'data-management'>('dashboard');
   const [pageLoading, setPageLoading] = useState(false);
   const { user, loading } = useAuth();
   const isMobile = useIsMobile();
@@ -22,8 +21,8 @@ const Index = () => {
   // Handle URL-based navigation
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const view = urlParams.get('view') as 'dashboard' | 'create' | 'inventory' | 'active-listings';
-    if (view && ['dashboard', 'create', 'inventory', 'active-listings'].includes(view)) {
+    const view = urlParams.get('view') as 'dashboard' | 'create' | 'inventory' | 'active-listings' | 'data-management';
+    if (view && ['dashboard', 'create', 'inventory', 'active-listings', 'data-management'].includes(view)) {
       setCurrentView(view);
       // Clean up URL
       window.history.replaceState({}, '', '/');
@@ -40,11 +39,18 @@ const Index = () => {
     window.location.href = '/active-listings';
   };
 
-  const handleNavigation = (view: 'dashboard' | 'create' | 'inventory' | 'active-listings') => {
+  const handleDataManagementClick = () => {
+    setPageLoading(true);
+    window.location.href = '/data-management';
+  };
+
+  const handleNavigation = (view: 'dashboard' | 'create' | 'inventory' | 'active-listings' | 'data-management') => {
     if (view === 'inventory') {
       handleInventoryClick();
     } else if (view === 'active-listings') {
       handleActiveListingsClick();
+    } else if (view === 'data-management') {
+      handleDataManagementClick();
     } else {
       setPageLoading(true);
       setTimeout(() => {
@@ -83,6 +89,11 @@ const Index = () => {
   if (currentView === 'active-listings') {
     handleActiveListingsClick();
     return <LoadingState message="Loading sales operations..." fullPage />;
+  }
+
+  if (currentView === 'data-management') {
+    handleDataManagementClick();
+    return <LoadingState message="Loading data management..." fullPage />;
   }
 
   return (
