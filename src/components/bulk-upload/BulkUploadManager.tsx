@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import BulkUploadStep from './components/BulkUploadStep';
 import BulkUploadStepIndicator from './components/BulkUploadStepIndicator';
 import PhotoGroupingInterface from './PhotoGroupingInterface';
@@ -70,7 +70,18 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
     onComplete
   );
 
+  // Debug logging for state changes
+  useEffect(() => {
+    console.log('🔍 BulkUploadManager State Debug:');
+    console.log('Current step:', currentStep);
+    console.log('Photos count:', photos.length);
+    console.log('Photo groups count:', photoGroups.length);
+    console.log('Photo groups:', photoGroups);
+    console.log('Is grouping:', isGrouping);
+  }, [currentStep, photos.length, photoGroups.length, isGrouping]);
+
   const handlePhotosUploaded = (uploadedPhotos: File[]) => {
+    console.log('📸 Photos uploaded in BulkUploadManager:', uploadedPhotos.length);
     setPhotos(uploadedPhotos);
   };
 

@@ -52,133 +52,74 @@ export const useBulkGroupingHandlers = (
   };
 
   const handleStartGrouping = async () => {
+    console.log('=== GROUPING FUNCTION CALLED ===');
+    console.log('Photos received:', photos);
+    console.log('Photos length:', photos.length);
+    
     if (photos.length === 0) {
-      console.log('No photos to group');
+      console.log('❌ No photos to group - returning early');
       return;
     }
     
-    console.log('=== GROUPING START ===');
-    console.log('Starting grouping with', photos.length, 'photos');
+    console.log('✅ Starting grouping process...');
     
     setIsGrouping(true);
     setCurrentStep('grouping');
     
     try {
-      // Create groups of 3-4 photos each with better logic
+      console.log('📝 Creating groups...');
+      
+      // Create simple groups - each photo gets its own group for now to test
       const groups: PhotoGroup[] = [];
-      let currentIndex = 0;
-      let groupIndex = 1;
-
-      // Analyze photos first
-      const photoAnalyses = await Promise.all(
-        photos.map(async (photo, index) => ({
-          photo,
-          index,
-          analysis: await analyzePhotoSimilarity(photo)
-        }))
-      );
-
-      console.log('Photo analyses completed:', photoAnalyses.length, 'photos analyzed');
-
-      while (currentIndex < photos.length) {
-        const groupSize = Math.min(3, photos.length - currentIndex);
-        const groupPhotos = photos.slice(currentIndex, currentIndex + groupSize);
+      
+      for (let i = 0; i < photos.length; i++) {
+        const photo = photos[i];
+        console.log(`Creating group ${i + 1} for photo:`, photo.name);
         
-        console.log(`Creating group ${groupIndex} with ${groupSize} photos`);
-        
-        // Try to find common characteristics for naming
-        const groupAnalyses = photoAnalyses.slice(currentIndex, currentIndex + groupSize);
-        const categories = groupAnalyses.map(item => item.analysis.category);
-        
-        // Generate group name based on most common category
-        let groupName = `Item ${groupIndex}`;
-        const categoryCount = categories.reduce((acc, cat) => {
-          acc[cat] = (acc[cat] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>);
-        
-        const mostCommonCategory = Object.entries(categoryCount)
-          .sort(([,a], [,b]) => b - a)[0]?.[0];
-        
-        if (mostCommonCategory && mostCommonCategory !== 'general') {
-          groupName = mostCommonCategory.charAt(0).toUpperCase() + mostCommonCategory.slice(1);
-        }
-
-        // Determine confidence - make it more realistic
-        let confidence: 'high' | 'medium' | 'low' = 'high';
-        if (groupSize === 1) {
-          confidence = 'high'; // Single items are always high confidence
-        } else if (mostCommonCategory && mostCommonCategory !== 'general') {
-          confidence = 'high'; // Items with matching categories
-        } else {
-          confidence = 'medium'; // Mixed items get medium confidence
-        }
-
-        // Generate AI suggestion
-        let aiSuggestion = `Single item ready for processing`;
-        if (groupSize > 1) {
-          if (mostCommonCategory && mostCommonCategory !== 'general') {
-            aiSuggestion = `${groupSize} ${mostCommonCategory} items grouped together - good match!`;
-          } else {
-            aiSuggestion = `${groupSize} mixed items - consider splitting if they're very different`;
-          }
-        }
-
         const newGroup: PhotoGroup = {
-          id: `group-${groupIndex}`,
-          photos: groupPhotos,
-          name: groupName,
-          confidence,
+          id: `group-${i + 1}`,
+          photos: [photo],
+          name: `Item ${i + 1}`,
+          confidence: 'high',
           status: 'pending',
-          aiSuggestion
+          aiSuggestion: `Single item: ${photo.name}`
         };
-
+        
         groups.push(newGroup);
-        console.log(`Group ${groupIndex} created:`, newGroup);
-
-        currentIndex += groupSize;
-        groupIndex++;
+        console.log(`✅ Created group ${i + 1}:`, newGroup);
       }
 
-      console.log('=== GROUPING COMPLETE ===');
-      console.log('Total groups created:', groups.length);
-      console.log('Groups:', groups);
+      console.log('🎉 ALL GROUPS CREATED:');
+      console.log('Total groups:', groups.length);
+      console.log('Groups array:', groups);
       
-      // Set the groups - this should trigger the UI update
+      console.log('🔧 Setting photo groups...');
       setPhotoGroups(groups);
+      console.log('✅ Photo groups set successfully');
       
     } catch (error) {
-      console.error('Grouping failed:', error);
+      console.error('❌ Grouping failed with error:', error);
       
-      // Fallback: create simple groups
-      const fallbackGroups: PhotoGroup[] = [];
-      let currentIndex = 0;
+      // Create fallback single groups
+      const fallbackGroups: PhotoGroup[] = photos.map((photo, index) => ({
+        id: `fallback-group-${index + 1}`,
+        photos: [photo],
+        name: `Item ${index + 1}`,
+        confidence: 'medium',
+        status: 'pending',
+        aiSuggestion: `Fallback group for ${photo.name}`
+      }));
       
-      while (currentIndex < photos.length) {
-        const groupSize = Math.min(3, photos.length - currentIndex);
-        const groupPhotos = photos.slice(currentIndex, currentIndex + groupSize);
-        
-        fallbackGroups.push({
-          id: `group-${fallbackGroups.length + 1}`,
-          photos: groupPhotos,
-          name: `Item ${fallbackGroups.length + 1}`,
-          confidence: 'medium',
-          status: 'pending',
-          aiSuggestion: `Group of ${groupSize} item${groupSize > 1 ? 's' : ''}`
-        });
-        
-        currentIndex += groupSize;
-      }
-      
-      console.log('Fallback groups created:', fallbackGroups.length);
+      console.log('🔄 Created fallback groups:', fallbackGroups.length);
       setPhotoGroups(fallbackGroups);
     } finally {
+      console.log('🏁 Grouping process finished');
       setIsGrouping(false);
     }
   };
 
   const handleGroupsConfirmed = (confirmedGroups: PhotoGroup[]) => {
-    console.log('Groups confirmed:', confirmedGroups.length, 'groups');
+    console.log('✅ Groups confirmed by user:', confirmedGroups.length, 'groups');
     setPhotoGroups(confirmedGroups);
     setCurrentStep('processing');
   };
