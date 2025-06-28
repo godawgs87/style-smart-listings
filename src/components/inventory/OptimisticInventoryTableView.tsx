@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -9,6 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ListingImagePreview from '../ListingImagePreview';
+import { useListingDetails } from '@/hooks/useListingDetails';
 import type { Listing } from '@/types/Listing';
 
 interface OptimisticInventoryTableViewProps {
@@ -40,6 +40,38 @@ const OptimisticInventoryTableView = ({
 }: OptimisticInventoryTableViewProps) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editData, setEditData] = useState<Partial<Listing>>({});
+  const [detailedListings, setDetailedListings] = useState<Map<string, Listing>>(new Map());
+  const { loadDetails, isLoadingDetails } = useListingDetails();
+
+  // Load detailed data for all listings to get photos
+  useEffect(() => {
+    const loadAllDetails = async () => {
+      const updatedDetails = new Map(detailedListings);
+      
+      for (const listing of listings) {
+        if (!detailedListings.has(listing.id) && !isLoadingDetails(listing.id)) {
+          console.log('🔍 Loading details for listing:', listing.id);
+          const details = await loadDetails(listing.id);
+          if (details) {
+            const mergedListing = { ...listing, ...details };
+            console.log('📸 Merged listing photos:', mergedListing.photos);
+            updatedDetails.set(listing.id, mergedListing);
+          }
+        }
+      }
+      
+      if (updatedDetails.size !== detailedListings.size) {
+        setDetailedListings(updatedDetails);
+      }
+    };
+
+    loadAllDetails();
+  }, [listings, loadDetails, isLoadingDetails, detailedListings]);
+
+  const getListingWithDetails = (listing: Listing): Listing => {
+    const detailed = detailedListings.get(listing.id);
+    return detailed || listing;
+  };
 
   const getStatusBadgeVariant = (status: string | null) => {
     switch (status) {
@@ -114,9 +146,12 @@ const OptimisticInventoryTableView = ({
         </TableHeader>
         <TableBody>
           {listings.map((listing) => {
+            const detailedListing = getListingWithDetails(listing);
             const isUpdating = optimisticUpdates.get(listing.id) === 'updating';
             const isSelected = selectedListings.includes(listing.id);
             const isEditing = editingId === listing.id;
+            
+            console.log('🎯 Rendering listing:', listing.id, 'with photos:', detailedListing.photos);
             
             return (
               <TableRow 
@@ -133,9 +168,9 @@ const OptimisticInventoryTableView = ({
                 {visibleColumns.image && (
                   <TableCell>
                     <ListingImagePreview 
-                      photos={listing.photos} 
-                      title={listing.title}
-                      listingId={listing.id}
+                      photos={detailedListing.photos} 
+                      title={detailedListing.title}
+                      listingId={detailedListing.id}
                       className="w-12 h-12"
                     />
                   </TableCell>
