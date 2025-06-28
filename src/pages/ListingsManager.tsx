@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
@@ -141,14 +140,27 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
         onBack={onBack}
       />
 
-      <div className="max-w-7xl mx-auto p-4 space-y-4">
-        <ListingsManagerHeader
-          usingFallback={usingFallback}
-          onRefetch={refetch}
-        />
-
-        {/* Compact Stats Row */}
-        <div className="bg-white rounded-lg p-4 shadow-sm">
+      <div className="max-w-7xl mx-auto p-4 space-y-3">
+        {/* Compact Header and Stats Row */}
+        <div className="flex items-center justify-between bg-white rounded-lg p-3 shadow-sm">
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl font-bold">Manage Listings</h1>
+            <PageInfoDialog pageName="Manage Listings" />
+            {usingFallback && (
+              <div className="flex items-center gap-2">
+                <div className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs font-medium">
+                  Offline
+                </div>
+                <Button
+                  onClick={refetch}
+                  size="sm"
+                  className="bg-blue-500 text-white hover:bg-blue-600 h-7 text-xs"
+                >
+                  Reconnect
+                </Button>
+              </div>
+            )}
+          </div>
           <InventoryStats listings={filteredListings} />
         </div>
 
