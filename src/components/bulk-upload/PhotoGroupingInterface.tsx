@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, AlertTriangle, XCircle, Plus, Merge, Split, Grid3X3 } from 'lucide-react';
+import { CheckCircle, AlertTriangle, XCircle, Plus, Merge, Split, Grid3X3, Move } from 'lucide-react';
 import type { PhotoGroup } from './BulkUploadManager';
 
 interface PhotoGroupingInterfaceProps {
@@ -17,6 +17,7 @@ const PhotoGroupingInterface = ({ photoGroups, onGroupsConfirmed, onBack }: Phot
   const [groups, setGroups] = useState<PhotoGroup[]>(photoGroups);
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
   const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set());
+  const [draggedPhoto, setDraggedPhoto] = useState<{ photo: File; fromGroupId: string; photoIndex: number } | null>(null);
 
   const getConfidenceIcon = (confidence: 'high' | 'medium' | 'low') => {
     switch (confidence) {
@@ -110,6 +111,65 @@ const PhotoGroupingInterface = ({ photoGroups, onGroupsConfirmed, onBack }: Phot
     });
   };
 
+  const handleDragStart = (photo: File, fromGroupId: string, photoIndex: number) => {
+    setDraggedPhoto({ photo, fromGroupId, photoIndex });
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent, toGroupId: string) => {
+    e.preventDefault();
+    if (!draggedPhoto) return;
+
+    const { photo, fromGroupId, photoIndex } = draggedPhoto;
+    
+    if (fromGroupId === toGroupId) {
+      setDraggedPhoto(null);
+      return;
+    }
+
+    setGroups(prev => prev.map(group => {
+      if (group.id === fromGroupId) {
+        // Remove photo from source group
+        return {
+          ...group,
+          photos: group.photos.filter((_, index) => index !== photoIndex)
+        };
+      } else if (group.id === toGroupId) {
+        // Add photo to target group
+        return {
+          ...group,
+          photos: [...group.photos, photo],
+          confidence: 'medium' // Lower confidence when manually moved
+        };
+      }
+      return group;
+    }));
+
+    setDraggedPhoto(null);
+  };
+
+  const movePhotoToNewGroup = (photo: File, fromGroupId: string, photoIndex: number) => {
+    const newGroup: PhotoGroup = {
+      id: `group-${Date.now()}`,
+      photos: [photo],
+      name: `Item ${groups.length + 1}`,
+      confidence: 'high',
+      status: 'pending'
+    };
+
+    setGroups(prev => [
+      ...prev.map(group => 
+        group.id === fromGroupId 
+          ? { ...group, photos: group.photos.filter((_, index) => index !== photoIndex) }
+          : group
+      ),
+      newGroup
+    ]);
+  };
+
   const getHighConfidenceCount = () => groups.filter(g => g.confidence === 'high').length;
   const getNeedsReviewCount = () => groups.filter(g => g.confidence !== 'high').length;
 
@@ -120,7 +180,7 @@ const PhotoGroupingInterface = ({ photoGroups, onGroupsConfirmed, onBack }: Phot
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Grid3X3 className="w-5 h-5" />
-              Review AI Grouping
+              Review & Adjust AI Grouping
             </div>
             <div className="flex gap-2 text-sm">
               <Badge variant="outline" className="bg-green-50 text-green-700">
@@ -133,6 +193,9 @@ const PhotoGroupingInterface = ({ photoGroups, onGroupsConfirmed, onBack }: Phot
               )}
             </div>
           </CardTitle>
+          <p className="text-sm text-gray-600">
+            💡 Tip: Drag photos between groups to fix grouping errors. Click on a photo and select "Move to New Group" to separate it.
+          </p>
         </CardHeader>
         <CardContent>
           <div className="flex gap-2 mb-4">
@@ -155,7 +218,12 @@ const PhotoGroupingInterface = ({ photoGroups, onGroupsConfirmed, onBack }: Phot
 
           <div className="space-y-4">
             {groups.map((group) => (
-              <Card key={group.id} className={`${selectedGroups.has(group.id) ? 'ring-2 ring-blue-500' : ''}`}>
+              <Card 
+                key={group.id} 
+                className={`transition-all duration-200 ${selectedGroups.has(group.id) ? 'ring-2 ring-blue-500' : ''}`}
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDrop(e, group.id)}
+              >
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -200,17 +268,35 @@ const PhotoGroupingInterface = ({ photoGroups, onGroupsConfirmed, onBack }: Phot
                 <CardContent>
                   <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-2">
                     {group.photos.map((photo, photoIndex) => (
-                      <div key={photoIndex} className="aspect-square bg-gray-100 rounded overflow-hidden">
+                      <div 
+                        key={photoIndex} 
+                        className="aspect-square bg-gray-100 rounded overflow-hidden relative group cursor-move"
+                        draggable
+                        onDragStart={() => handleDragStart(photo, group.id, photoIndex)}
+                      >
                         <img
                           src={URL.createObjectURL(photo)}
                           alt={`${group.name} photo ${photoIndex + 1}`}
                           className="w-full h-full object-cover"
                         />
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <div className="flex flex-col gap-1">
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              className="h-6 text-xs"
+                              onClick={() => movePhotoToNewGroup(photo, group.id, photoIndex)}
+                            >
+                              <Move className="w-3 h-3 mr-1" />
+                              New Group
+                            </Button>
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
                   <div className="mt-2 text-sm text-gray-600">
-                    {group.photos.length} photos
+                    {group.photos.length} photos • Drag photos between groups to reorganize
                   </div>
                 </CardContent>
               </Card>
