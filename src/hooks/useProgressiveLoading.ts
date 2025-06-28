@@ -9,8 +9,11 @@ interface ProgressiveLoadingOptions {
 }
 
 export const useProgressiveLoading = (options: ProgressiveLoadingOptions) => {
-  // Start with a more reasonable initial limit
-  const [currentLimit, setCurrentLimit] = useState(Math.max(options.initialLimit, 12));
+  // Use a conservative maximum of 10 items to prevent scaling issues
+  const safeMaxLimit = Math.min(options.maxLimit, 10);
+  const safeInitialLimit = Math.min(options.initialLimit, 10);
+  
+  const [currentLimit, setCurrentLimit] = useState(safeInitialLimit);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const lastLoadTimeRef = useRef<number>(0);
   const { toast } = useToast();
@@ -24,10 +27,10 @@ export const useProgressiveLoading = (options: ProgressiveLoadingOptions) => {
       return false;
     }
     
-    if (currentLimit >= options.maxLimit) {
+    if (currentLimit >= safeMaxLimit) {
       toast({
         title: "Maximum items loaded",
-        description: "Use filters to find specific items or try the database connection again.",
+        description: "Use filters to find specific items or try refreshing for better performance.",
         variant: "default"
       });
       return false;
@@ -35,10 +38,10 @@ export const useProgressiveLoading = (options: ProgressiveLoadingOptions) => {
 
     setIsLoadingMore(true);
     lastLoadTimeRef.current = now;
-    const newLimit = Math.min(currentLimit + options.incrementSize, options.maxLimit);
+    const newLimit = Math.min(currentLimit + options.incrementSize, safeMaxLimit);
     
     try {
-      console.log(`🔽 Loading more: ${currentLimit} -> ${newLimit}`);
+      console.log(`🔽 Loading more: ${currentLimit} -> ${newLimit} (max: ${safeMaxLimit})`);
       setCurrentLimit(newLimit);
       return true;
     } catch (error) {
@@ -52,17 +55,16 @@ export const useProgressiveLoading = (options: ProgressiveLoadingOptions) => {
     } finally {
       setIsLoadingMore(false);
     }
-  }, [currentLimit, options, toast]);
+  }, [currentLimit, options.incrementSize, safeMaxLimit, toast]);
 
   const reset = useCallback(() => {
-    const newInitialLimit = Math.max(options.initialLimit, 12);
-    console.log('🔄 Resetting progressive loading to initial limit:', newInitialLimit);
-    setCurrentLimit(newInitialLimit);
+    console.log('🔄 Resetting progressive loading to initial limit:', safeInitialLimit);
+    setCurrentLimit(safeInitialLimit);
     setIsLoadingMore(false);
     lastLoadTimeRef.current = 0;
-  }, [options.initialLimit]);
+  }, [safeInitialLimit]);
 
-  const canLoadMore = currentLimit < options.maxLimit;
+  const canLoadMore = currentLimit < safeMaxLimit;
 
   return {
     currentLimit,
