@@ -11,6 +11,7 @@ import ListingsLoadingState from '@/components/ListingsLoadingState';
 import ListingsManagerFilters from '@/components/listings-manager/ListingsManagerFilters';
 import ListingsManagerContent from '@/components/listings-manager/ListingsManagerContent';
 import CompactListingsHeader from '@/components/listings-manager/CompactListingsHeader';
+import DataManagementSection from '@/components/listings-manager/DataManagementSection';
 
 interface ListingsManagerProps {
   onBack: () => void;
@@ -145,6 +146,11 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
           usingFallback={usingFallback}
           onRefetch={refetch}
           filteredListings={filteredListings}
+        />
+
+        <DataManagementSection 
+          listings={filteredListings}
+          onDataUpdate={refetch}
         />
 
         <ListingsManagerControls
