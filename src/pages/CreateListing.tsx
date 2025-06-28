@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
@@ -28,6 +27,8 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
   const { analyzePhotos, isAnalyzing } = usePhotoAnalysis();
   const { saveListing, isSaving } = useListingSave();
 
+  console.log('🚢 CreateListing - Current shippingCost:', shippingCost, typeof shippingCost);
+
   // Auto-save draft whenever listingData changes (debounced)
   useEffect(() => {
     if (!listingData || isAnalyzing || isSaving || isAutoSaving) return;
@@ -35,6 +36,7 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
     const autoSaveTimer = setTimeout(async () => {
       setIsAutoSaving(true);
       console.log('Auto-saving draft with current data:', listingData);
+      console.log('🚢 Auto-saving with shippingCost:', shippingCost, typeof shippingCost);
       
       try {
         const saveResult = await saveListing(listingData, shippingCost, 'draft', draftId || undefined);
@@ -99,6 +101,7 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
     }
     
     try {
+      console.log('🚢 Final export with shippingCost:', shippingCost, typeof shippingCost);
       // Update the existing draft to active status instead of creating new listing
       const success = await saveListing(listingData, shippingCost, 'active', draftId || undefined);
       if (success.success) {
@@ -124,7 +127,10 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
   };
 
   const handleShippingSelect = (option: any) => {
-    setShippingCost(option.cost || 0);
+    console.log('🚢 Shipping option selected:', option);
+    const newCost = option.cost || 0;
+    console.log('🚢 Setting shippingCost to:', newCost, typeof newCost);
+    setShippingCost(newCost);
   };
 
   const getWeight = (): number => {

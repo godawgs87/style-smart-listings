@@ -34,6 +34,8 @@ const EditableListingForm = ({
     onUpdate({ [field]: value });
   };
 
+  console.log('🔍 EditableListingForm - Current listing data:', listingData);
+
   return (
     <div className="space-y-6">
       <Card className="p-6">

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { TableCell } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
@@ -84,12 +83,16 @@ const ListingsTableRowEdit = ({ listing, visibleColumns, onSave, onCancel }: Lis
     category: listing.category || '',
     condition: listing.condition || '',
     status: listing.status || 'draft',
-    shipping_cost: listing.shipping_cost || 0,
+    shipping_cost: listing.shipping_cost !== null ? listing.shipping_cost : 9.95,
     purchase_price: listing.purchase_price || 0,
     source_type: listing.source_type || '',
     source_location: listing.source_location || '',
     measurements: listing.measurements || { length: '', width: '', height: '', weight: '' }
   });
+  const [isSaving, setIsSaving] = useState(false);
+
+  console.log('✏️ Edit row - listing shipping_cost:', listing.shipping_cost);
+  console.log('✏️ Edit row - editData shipping_cost:', editData.shipping_cost);
 
   useEffect(() => {
     const loadListingDetails = async () => {
@@ -103,6 +106,7 @@ const ListingsTableRowEdit = ({ listing, visibleColumns, onSave, onCancel }: Lis
         // Update edit data with loaded details
         setEditData(prev => ({
           ...prev,
+          shipping_cost: details.shipping_cost !== null ? details.shipping_cost : 9.95,
           measurements: details.measurements || { length: '', width: '', height: '', weight: '' }
         }));
       }
@@ -118,16 +122,22 @@ const ListingsTableRowEdit = ({ listing, visibleColumns, onSave, onCancel }: Lis
     }));
   };
 
-  const handleSave = () => {
-    const updates = { ...editData };
-    // Ensure measurements is properly structured
-    if (editData.measurements) {
-      updates.measurements = editData.measurements;
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const updates = { ...editData };
+      // Ensure measurements is properly structured
+      if (editData.measurements) {
+        updates.measurements = editData.measurements;
+      }
+      console.log('✏️ Saving updates:', updates);
+      await onSave(updates);
+    } finally {
+      setIsSaving(false);
     }
-    onSave(updates);
   };
 
-  const isLoading = isLoadingDetails(listing.id);
+  const isLoadingData = isLoadingDetails(listing.id);
 
   return (
     <>
@@ -228,7 +238,7 @@ const ListingsTableRowEdit = ({ listing, visibleColumns, onSave, onCancel }: Lis
 
       {visibleColumns.measurements && (
         <TableCell>
-          {isLoading ? (
+          {isLoadingData ? (
             <div className="flex items-center justify-center">
               <Loader2 className="w-4 h-4 animate-spin" />
             </div>
@@ -334,10 +344,15 @@ const ListingsTableRowEdit = ({ listing, visibleColumns, onSave, onCancel }: Lis
 
       <TableCell className="sticky right-0 bg-white z-10 border-l">
         <div className="flex space-x-1">
-          <Button size="sm" onClick={handleSave} className="bg-green-600 hover:bg-green-700" disabled={isLoading}>
-            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+          <Button 
+            size="sm" 
+            onClick={handleSave} 
+            className="bg-green-600 hover:bg-green-700" 
+            disabled={isSaving || isLoadingData}
+          >
+            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
           </Button>
-          <Button size="sm" variant="outline" onClick={onCancel}>
+          <Button size="sm" variant="outline" onClick={onCancel} disabled={isSaving}>
             <X className="w-4 h-4" />
           </Button>
         </div>

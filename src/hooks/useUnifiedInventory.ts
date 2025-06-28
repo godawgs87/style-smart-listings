@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -50,40 +49,44 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
       throw error;
     }
 
-    return (data || []).map(item => ({
-      id: item.id || '',
-      title: item.title || 'Untitled',
-      price: Number(item.price) || 0,
-      status: item.status || 'draft',
-      category: item.category || null,
-      condition: item.condition || null,
-      created_at: item.created_at || new Date().toISOString(),
-      updated_at: item.created_at || new Date().toISOString(),
-      measurements: {},
-      keywords: [],
-      photos: [],
-      user_id: user.id,
-      description: null,
-      purchase_date: null,
-      cost_basis: null,
-      sold_price: null,
-      sold_date: null,
-      price_research: null,
-      consignment_percentage: null,
-      consignor_name: null,
-      consignor_contact: null,
-      source_location: null,
-      source_type: null,
-      fees_paid: null,
-      listed_date: null,
-      days_to_sell: null,
-      performance_notes: null,
-      is_consignment: false,
-      shipping_cost: item.shipping_cost ? Number(item.shipping_cost) : null,
-      purchase_price: null,
-      net_profit: null,
-      profit_margin: null
-    }));
+    return (data || []).map(item => {
+      console.log('🔍 Raw item from DB:', item.title, 'shipping_cost:', item.shipping_cost, typeof item.shipping_cost);
+      
+      return {
+        id: item.id || '',
+        title: item.title || 'Untitled',
+        price: Number(item.price) || 0,
+        status: item.status || 'draft',
+        category: item.category || null,
+        condition: item.condition || null,
+        created_at: item.created_at || new Date().toISOString(),
+        updated_at: item.created_at || new Date().toISOString(),
+        measurements: {},
+        keywords: [],
+        photos: [],
+        user_id: user.id,
+        description: null,
+        purchase_date: null,
+        cost_basis: null,
+        sold_price: null,
+        sold_date: null,
+        price_research: null,
+        consignment_percentage: null,
+        consignor_name: null,
+        consignor_contact: null,
+        source_location: null,
+        source_type: null,
+        fees_paid: null,
+        listed_date: null,
+        days_to_sell: null,
+        performance_notes: null,
+        is_consignment: false,
+        shipping_cost: item.shipping_cost !== null ? Number(item.shipping_cost) : null,
+        purchase_price: null,
+        net_profit: null,
+        profit_margin: null
+      };
+    });
   }, []);
 
   const loadData = useCallback(async () => {

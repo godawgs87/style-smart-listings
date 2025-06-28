@@ -30,6 +30,8 @@ export const useListingDetails = () => {
         return { details: null, error: error.message };
       }
 
+      console.log('🔍 Raw details from DB - shipping_cost:', data.shipping_cost, typeof data.shipping_cost);
+
       // Transform to match Listing interface
       const transformedDetails: Listing = {
         ...data,
@@ -39,10 +41,11 @@ export const useListingDetails = () => {
           : {},
         keywords: Array.isArray(data.keywords) ? data.keywords : [],
         photos: Array.isArray(data.photos) ? data.photos : [],
-        shipping_cost: data.shipping_cost ? Number(data.shipping_cost) : null,
+        shipping_cost: data.shipping_cost !== null ? Number(data.shipping_cost) : null,
       };
 
       console.log('✅ Successfully fetched selective listing details');
+      console.log('🔍 Transformed shipping_cost:', transformedDetails.shipping_cost, typeof transformedDetails.shipping_cost);
       return { details: transformedDetails };
 
     } catch (error: any) {
