@@ -38,22 +38,22 @@ const OptimisticTableRow = ({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editData, setEditData] = useState<Partial<Listing>>({});
 
-  // Use optimized loading for images and other details
+  // Use optimized loading for images and other details only when needed
   const { detailedListing: loadedListing, isLoading } = useOptimizedListingDetailsLoader(listing, {
     image: visibleColumns.image,
-    measurements: false,
-    keywords: false,
-    description: false,
-    purchasePrice: false,
-    netProfit: false,
-    profitMargin: false,
-    purchaseDate: false,
-    consignmentStatus: false,
-    sourceType: false,
-    sourceLocation: false,
-    costBasis: false,
-    daysToSell: false,
-    performanceNotes: false,
+    measurements: visibleColumns.measurements,
+    keywords: visibleColumns.keywords,
+    description: visibleColumns.description,
+    purchasePrice: visibleColumns.purchasePrice,
+    netProfit: visibleColumns.netProfit,
+    profitMargin: visibleColumns.profitMargin,
+    purchaseDate: visibleColumns.purchaseDate,
+    consignmentStatus: visibleColumns.consignmentStatus,
+    sourceType: visibleColumns.sourceType,
+    sourceLocation: visibleColumns.sourceLocation,
+    costBasis: visibleColumns.costBasis,
+    daysToSell: visibleColumns.daysToSell,
+    performanceNotes: visibleColumns.performanceNotes,
   });
 
   const isEditing = editingId === listing.id;

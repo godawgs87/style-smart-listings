@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Eye, Edit, Trash2, Copy, MoreVertical } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import ListingImagePreview from '../ListingImagePreview';
+import { useOptimizedListingDetailsLoader } from '@/hooks/useOptimizedListingDetailsLoader';
 import type { Listing } from '@/types/Listing';
 
 interface OptimisticInventoryGridItemProps {
@@ -30,6 +31,24 @@ const OptimisticInventoryGridItem = ({
   onEditListing,
   onDuplicateListing
 }: OptimisticInventoryGridItemProps) => {
+  // Load actual photos for grid items
+  const { detailedListing, isLoading } = useOptimizedListingDetailsLoader(listing, {
+    image: true,
+    measurements: false,
+    keywords: false,
+    description: false,
+    purchasePrice: false,
+    netProfit: false,
+    profitMargin: false,
+    purchaseDate: false,
+    consignmentStatus: false,
+    sourceType: false,
+    sourceLocation: false,
+    costBasis: false,
+    daysToSell: false,
+    performanceNotes: false,
+  });
+
   const getStatusBadgeVariant = (status: string | null) => {
     switch (status) {
       case 'active': return 'default';
@@ -92,14 +111,18 @@ const OptimisticInventoryGridItem = ({
           </DropdownMenu>
         </div>
         
-        {/* Image */}
+        {/* Image with loading state */}
         <div className="aspect-square">
-          <ListingImagePreview 
-            photos={listing.photos} 
-            title={listing.title}
-            listingId={listing.id}
-            className="w-full h-full"
-          />
+          {isLoading ? (
+            <div className="w-full h-full bg-gray-200 animate-pulse rounded" />
+          ) : (
+            <ListingImagePreview 
+              photos={detailedListing.photos || listing.photos} 
+              title={listing.title}
+              listingId={listing.id}
+              className="w-full h-full"
+            />
+          )}
         </div>
         
         {/* Content */}
