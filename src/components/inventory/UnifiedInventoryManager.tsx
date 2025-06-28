@@ -7,13 +7,10 @@ import { useUnifiedInventory } from '@/hooks/useUnifiedInventory';
 import { useListingOperations } from '@/hooks/useListingOperations';
 import { useInventoryFilters } from '@/hooks/useInventoryFilters';
 import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { RefreshCw, Plus, Search } from 'lucide-react';
-import ListingsTable from '@/components/ListingsTable';
 import ListingDetailView from './ListingDetailView';
 import InventoryErrorBoundary from './InventoryErrorBoundary';
+import OptimisticInventoryTable from './OptimisticInventoryTable';
+import ImprovedInventoryControls from './ImprovedInventoryControls';
 
 interface UnifiedInventoryManagerProps {
   onCreateListing: () => void;
@@ -55,14 +52,21 @@ const UnifiedInventoryManager = ({ onCreateListing, onBack }: UnifiedInventoryMa
   };
 
   const handleUpdateListing = async (listingId: string, updates: any) => {
-    await updateListing(listingId, updates);
-    refetch();
+    const success = await updateListing(listingId, updates);
+    if (success) {
+      // Only refetch if we need fresh data, otherwise rely on optimistic updates
+      setTimeout(() => refetch(), 500);
+    }
   };
 
   const handleDeleteListing = async (listingId: string) => {
-    await deleteListing(listingId);
-    setSelectedItems(prev => prev.filter(id => id !== listingId));
-    refetch();
+    const success = await deleteListing(listingId);
+    if (success) {
+      setSelectedItems(prev => prev.filter(id => id !== listingId));
+      // Delayed refetch to sync with server
+      setTimeout(() => refetch(), 1000);
+    }
+    return success;
   };
 
   const handlePreviewListing = (listing: any) => {
@@ -100,79 +104,46 @@ const UnifiedInventoryManager = ({ onCreateListing, onBack }: UnifiedInventoryMa
       <div className="max-w-7xl mx-auto p-4 space-y-6">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="p-4">
+          <Card className="p-4 bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
             <div className="text-2xl font-bold text-blue-600">{stats.totalItems}</div>
-            <div className="text-sm text-gray-600">Total Items</div>
+            <div className="text-sm text-blue-700">Total Items</div>
           </Card>
-          <Card className="p-4">
+          <Card className="p-4 bg-gradient-to-r from-green-50 to-green-100 border-green-200">
             <div className="text-2xl font-bold text-green-600">${stats.totalValue.toFixed(2)}</div>
-            <div className="text-sm text-gray-600">Total Value</div>
+            <div className="text-sm text-green-700">Total Value</div>
           </Card>
-          <Card className="p-4">
+          <Card className="p-4 bg-gradient-to-r from-purple-50 to-purple-100 border-purple-200">
             <div className="text-2xl font-bold text-purple-600">{stats.activeItems}</div>
-            <div className="text-sm text-gray-600">Active</div>
+            <div className="text-sm text-purple-700">Active</div>
           </Card>
-          <Card className="p-4">
+          <Card className="p-4 bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200">
             <div className="text-2xl font-bold text-orange-600">{stats.draftItems}</div>
-            <div className="text-sm text-gray-600">Drafts</div>
+            <div className="text-sm text-orange-700">Drafts</div>
           </Card>
         </div>
 
         {/* Controls */}
-        <Card className="p-4">
-          <div className="flex flex-col md:flex-row gap-4 items-center">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                placeholder="Search listings..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="sold">Sold</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {categories.map(category => (
-                  <SelectItem key={category} value={category}>{category}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Button onClick={refetch} variant="outline" size="sm">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Refresh
-            </Button>
-
-            <Button onClick={onCreateListing}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Item
-            </Button>
-          </div>
-        </Card>
+        <ImprovedInventoryControls
+          searchTerm={searchTerm}
+          statusFilter={statusFilter}
+          categoryFilter={categoryFilter}
+          categories={categories}
+          loading={loading}
+          selectedCount={selectedItems.length}
+          onSearchChange={setSearchTerm}
+          onStatusChange={setStatusFilter}
+          onCategoryChange={setCategoryFilter}
+          onClearFilters={handleClearFilters}
+          onRefresh={refetch}
+          onCreateListing={onCreateListing}
+        />
 
         {/* Status Messages */}
         {usingFallback && (
           <Card className="p-4 border-yellow-200 bg-yellow-50">
-            <div className="text-yellow-800">
-              Using cached data due to connection issues.
-              <Button onClick={refetch} variant="link" className="ml-2 p-0 h-auto">
+            <div className="text-yellow-800 flex items-center justify-between">
+              <span>Using cached data due to connection issues.</span>
+              <Button onClick={refetch} variant="link" className="ml-2 p-0 h-auto text-yellow-600">
                 Try again
               </Button>
             </div>
@@ -190,7 +161,7 @@ const UnifiedInventoryManager = ({ onCreateListing, onBack }: UnifiedInventoryMa
 
         {/* Table */}
         {!loading && !error && (
-          <ListingsTable
+          <OptimisticInventoryTable
             listings={listings}
             selectedListings={selectedItems}
             onSelectListing={handleSelectListing}
@@ -204,7 +175,10 @@ const UnifiedInventoryManager = ({ onCreateListing, onBack }: UnifiedInventoryMa
 
         {loading && (
           <Card className="p-8 text-center">
-            <div className="text-gray-500">Loading inventory...</div>
+            <div className="flex items-center justify-center space-x-2">
+              <div className="animate-spin w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+              <div className="text-gray-500">Loading inventory...</div>
+            </div>
           </Card>
         )}
       </div>
