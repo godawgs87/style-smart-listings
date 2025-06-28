@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -105,7 +104,7 @@ const ListingDetailView = ({ listingId, onBack, onDuplicated, onDeleted }: Listi
             condition: listing.condition || '',
             measurements: listing.measurements || {},
             keywords: listing.keywords || [],
-            shippingCost: listing.shipping_cost || 0, // Fixed to use camelCase
+            shipping_cost: listing.shipping_cost || 0, // Keep database property name
             photos: listing.photos || [],
             priceResearch: listing.price_research || ''
           }}

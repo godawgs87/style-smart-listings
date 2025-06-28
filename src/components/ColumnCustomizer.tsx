@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -13,18 +12,19 @@ interface VisibleColumns {
   category: boolean;
   condition: boolean;
   shipping: boolean;
+  description: boolean;
+  // Financial tracking columns - keep only the most essential ones
+  purchasePrice: boolean;
+  netProfit: boolean;
+  profitMargin: boolean;
+  // Remove detailed tracking columns - these can be handled via filters instead
   measurements: boolean;
   keywords: boolean;
-  description: boolean;
-  // New financial tracking columns
-  purchasePrice: boolean;
   purchaseDate: boolean;
   consignmentStatus: boolean;
   sourceType: boolean;
   sourceLocation: boolean;
   costBasis: boolean;
-  netProfit: boolean;
-  profitMargin: boolean;
   daysToSell: boolean;
   performanceNotes: boolean;
 }
@@ -37,7 +37,7 @@ interface ColumnCustomizerProps {
 const ColumnCustomizer = ({ visibleColumns, onColumnToggle }: ColumnCustomizerProps) => {
   const columnGroups = [
     {
-      title: 'Basic Info',
+      title: 'Essential Info',
       columns: [
         { key: 'image' as const, label: 'Image' },
         { key: 'title' as const, label: 'Product Details' },
@@ -48,32 +48,18 @@ const ColumnCustomizer = ({ visibleColumns, onColumnToggle }: ColumnCustomizerPr
       ]
     },
     {
-      title: 'Shipping & Details',
+      title: 'Additional Details',
       columns: [
         { key: 'shipping' as const, label: 'Shipping' },
-        { key: 'measurements' as const, label: 'Measurements' },
-        { key: 'keywords' as const, label: 'Keywords' },
         { key: 'description' as const, label: 'Description' },
-      ]
-    },
-    {
-      title: 'Purchase & Source',
-      columns: [
-        { key: 'purchasePrice' as const, label: 'Purchase Price' },
-        { key: 'purchaseDate' as const, label: 'Purchase Date' },
-        { key: 'sourceType' as const, label: 'Source Type' },
-        { key: 'sourceLocation' as const, label: 'Source Location' },
-        { key: 'consignmentStatus' as const, label: 'Consignment' },
       ]
     },
     {
       title: 'Financial Metrics',
       columns: [
-        { key: 'costBasis' as const, label: 'Cost Basis' },
+        { key: 'purchasePrice' as const, label: 'Purchase Price' },
         { key: 'netProfit' as const, label: 'Net Profit' },
         { key: 'profitMargin' as const, label: 'Profit Margin' },
-        { key: 'daysToSell' as const, label: 'Days to Sell' },
-        { key: 'performanceNotes' as const, label: 'Performance Notes' },
       ]
     }
   ];
@@ -111,6 +97,12 @@ const ColumnCustomizer = ({ visibleColumns, onColumnToggle }: ColumnCustomizerPr
               </div>
             </div>
           ))}
+          
+          <div className="pt-2 border-t">
+            <p className="text-xs text-gray-500">
+              Use filters above to search by source type, measurements, keywords, etc.
+            </p>
+          </div>
         </div>
       </PopoverContent>
     </Popover>

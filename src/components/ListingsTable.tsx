@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Table, TableBody } from '@/components/ui/table';
 import ListingsTableHeader from './listings/table/ListingsTableHeader';
@@ -62,19 +61,21 @@ const ListingsTable = ({
     price: true,
     status: true,
     category: true,
-    condition: true,
-    shipping: true,
+    condition: false,
+    shipping: false,
+    description: false,
+    // Financial columns - keep these available but hidden by default
+    purchasePrice: false,
+    netProfit: false,
+    profitMargin: false,
+    // Remove unnecessary columns
     measurements: false,
     keywords: false,
-    description: false,
-    purchasePrice: false,
     purchaseDate: false,
     consignmentStatus: false,
     sourceType: false,
     sourceLocation: false,
     costBasis: false,
-    netProfit: false,
-    profitMargin: false,
     daysToSell: false,
     performanceNotes: false,
   });
