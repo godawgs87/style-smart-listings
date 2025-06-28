@@ -15,23 +15,23 @@ const InventoryStats = ({ listings }: InventoryStatsProps) => {
   };
 
   return (
-    <div className="flex items-center gap-4 text-xs">
-      <div className="flex items-center gap-1">
+    <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-4 text-xs">
+      <div className="flex items-center gap-1 p-2 bg-blue-50 rounded">
         <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
         <span className="font-semibold text-blue-600">{stats.totalItems}</span>
         <span className="text-gray-600">Items</span>
       </div>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 p-2 bg-green-50 rounded">
         <div className="w-2 h-2 bg-green-500 rounded-full"></div>
         <span className="font-semibold text-green-600">${stats.totalValue.toFixed(0)}</span>
         <span className="text-gray-600">Value</span>
       </div>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 p-2 bg-purple-50 rounded">
         <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
         <span className="font-semibold text-purple-600">{stats.activeItems}</span>
         <span className="text-gray-600">Active</span>
       </div>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 p-2 bg-orange-50 rounded">
         <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
         <span className="font-semibold text-orange-600">{stats.draftItems}</span>
         <span className="text-gray-600">Drafts</span>
