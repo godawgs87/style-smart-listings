@@ -1,3 +1,4 @@
+
 # Welcome to your Lovable project
 
 ## Project info
@@ -71,3 +72,31 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+## Database Performance & Troubleshooting
+
+This project uses Supabase as the backend. If you experience slow loading or timeout issues:
+
+### Quick Performance Fixes
+1. **Check your queries** - Use minimal field selection instead of `SELECT *`
+2. **Set timeouts** - Implement 3-second timeouts with fallback to cached data
+3. **Limit results** - Start with 10 items or fewer per query
+4. **Simplify searches** - Use single-field searches instead of complex OR operations
+
+### Common Issues
+- **Database timeouts**: Check `docs/DATABASE_OPTIMIZATION_GUIDE.md`
+- **Slow inventory loading**: Queries are optimized to fetch minimal data
+- **Connection issues**: App uses cached data as fallback
+
+### Key Files for Database Queries
+- `src/hooks/useUnifiedInventory.ts` - Main inventory data fetching
+- `src/hooks/useListingOperations.ts` - CRUD operations
+- `docs/DATABASE_OPTIMIZATION_GUIDE.md` - Detailed optimization strategies
+
+### Performance Monitoring
+The app includes built-in performance monitoring:
+- Query timeouts are logged to console
+- Fallback mechanisms activate automatically
+- User feedback is provided for connection issues
+
+For detailed troubleshooting, see `docs/TROUBLESHOOTING.md`.
