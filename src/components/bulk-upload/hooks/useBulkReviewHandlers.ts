@@ -2,6 +2,7 @@
 import { useToast } from '@/hooks/use-toast';
 import { useListingSave } from '@/hooks/useListingSave';
 import type { PhotoGroup } from '../BulkUploadManager';
+import type { ListingData } from '@/types/CreateListing';
 
 type StepType = 'upload' | 'grouping' | 'processing' | 'shipping' | 'review' | 'individual-review';
 
@@ -14,6 +15,40 @@ export const useBulkReviewHandlers = (
 ) => {
   const { toast } = useToast();
   const { saveListing } = useListingSave();
+
+  // Helper function to ensure ListingData has required fields
+  const ensureListingData = (listingData?: PhotoGroup['listingData']): ListingData => {
+    return {
+      title: listingData?.title || 'Untitled Item',
+      description: listingData?.description || '',
+      price: listingData?.price || 0,
+      category: listingData?.category || '',
+      condition: listingData?.condition || '',
+      measurements: {
+        length: listingData?.measurements?.length ? String(listingData.measurements.length) : '',
+        width: listingData?.measurements?.width ? String(listingData.measurements.width) : '',
+        height: listingData?.measurements?.height ? String(listingData.measurements.height) : '',
+        weight: listingData?.measurements?.weight ? String(listingData.measurements.weight) : ''
+      },
+      photos: listingData?.photos || [],
+      keywords: listingData?.keywords,
+      purchase_price: listingData?.purchase_price,
+      purchase_date: listingData?.purchase_date,
+      source_location: listingData?.source_location,
+      source_type: listingData?.source_type,
+      is_consignment: listingData?.is_consignment,
+      consignment_percentage: listingData?.consignment_percentage,
+      consignor_name: listingData?.consignor_name,
+      consignor_contact: listingData?.consignor_contact,
+      clothing_size: listingData?.clothing_size,
+      shoe_size: listingData?.shoe_size,
+      gender: listingData?.gender,
+      age_group: listingData?.age_group,
+      features: listingData?.features,
+      includes: listingData?.includes,
+      defects: listingData?.defects
+    };
+  };
 
   const handleEditItem = (groupId: string) => {
     const groupIndex = photoGroups.findIndex(g => g.id === groupId);
@@ -32,8 +67,9 @@ export const useBulkReviewHandlers = (
     if (groupToPost && groupToPost.status === 'completed' && groupToPost.selectedShipping && groupToPost.listingData) {
       
       try {
+        const listingData = ensureListingData(groupToPost.listingData);
         const result = await saveListing(
-          groupToPost.listingData,
+          listingData,
           groupToPost.selectedShipping.cost,
           'active'
         );
@@ -89,8 +125,9 @@ export const useBulkReviewHandlers = (
 
     for (const item of readyItems) {
       try {
+        const listingData = ensureListingData(item.listingData);
         const result = await saveListing(
-          item.listingData!,
+          listingData,
           item.selectedShipping!.cost,
           'active'
         );
@@ -116,10 +153,8 @@ export const useBulkReviewHandlers = (
         description: `Successfully created ${successCount} listing${successCount > 1 ? 's' : ''}!`,
       });
       
-      // Complete the workflow
       onComplete(savedListings);
       
-      // Navigate to inventory after a short delay
       setTimeout(() => {
         window.location.href = '/inventory';
       }, 1500);
@@ -156,8 +191,9 @@ export const useBulkReviewHandlers = (
 
     for (const item of draftItems) {
       try {
+        const listingData = ensureListingData(item.listingData);
         const result = await saveListing(
-          item.listingData!,
+          listingData,
           item.selectedShipping?.cost || 0,
           'draft'
         );
@@ -191,16 +227,12 @@ export const useBulkReviewHandlers = (
   };
 
   const handleRetryAnalysis = (groupId: string) => {
-    // Clear any existing toasts
-    toast({ title: "", description: "", variant: "default" });
-
     setPhotoGroups(prev => prev.map(g => 
       g.id === groupId 
         ? { ...g, status: 'processing' as const }
         : g
     ));
     
-    // Simulate retry analysis
     setTimeout(() => {
       setPhotoGroups(prev => prev.map(g => 
         g.id === groupId 
@@ -209,7 +241,7 @@ export const useBulkReviewHandlers = (
               status: 'completed' as const,
               listingData: {
                 ...g.listingData,
-                title: g.listingData?.title || `${g.name} - Retry Analysis Complete`,
+                title: g.listingData?.title || `${g.name} - Analysis Complete`,
                 price: g.listingData?.price || 25,
                 condition: g.listingData?.condition || 'Good',
                 measurements: g.listingData?.measurements || {
