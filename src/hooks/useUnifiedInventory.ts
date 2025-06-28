@@ -30,7 +30,7 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
 
     console.log('🔍 Fetching inventory for user:', user.id);
 
-    // Start with a lightweight query with proper limits
+    // Use a much more lightweight query to avoid timeouts
     let query = supabase
       .from('listings')
       .select(`
@@ -42,28 +42,7 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
         category,
         condition,
         status,
-        shipping_cost,
-        purchase_price,
-        purchase_date,
-        cost_basis,
-        fees_paid,
-        net_profit,
-        profit_margin,
-        sold_price,
-        consignment_percentage,
-        is_consignment,
-        consignor_name,
-        consignor_contact,
-        source_type,
-        source_location,
-        listed_date,
-        sold_date,
-        days_to_sell,
-        performance_notes,
-        measurements,
-        keywords,
         photos,
-        price_research,
         created_at,
         updated_at
       `)
@@ -83,8 +62,8 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
       query = query.or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
     }
 
-    // Apply strict limits to prevent timeouts
-    const limit = Math.min(options.limit || 25, 50); // Cap at 50 items max
+    // Use very conservative limits
+    const limit = Math.min(options.limit || 15, 20);
     
     const { data, error } = await query
       .order('created_at', { ascending: false })
@@ -97,7 +76,7 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
 
     console.log('✅ Fetched listings:', data?.length || 0);
 
-    // Transform data with safe type handling
+    // Transform data with minimal processing
     return (data || []).map(item => ({
       id: item.id,
       user_id: item.user_id,
@@ -107,30 +86,28 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
       category: item.category || '',
       condition: item.condition || '',
       status: item.status || 'draft',
-      shipping_cost: item.shipping_cost !== null ? Number(item.shipping_cost) : null,
-      purchase_price: item.purchase_price !== null ? Number(item.purchase_price) : null,
-      purchase_date: item.purchase_date,
-      cost_basis: item.cost_basis !== null ? Number(item.cost_basis) : null,
-      fees_paid: item.fees_paid !== null ? Number(item.fees_paid) : null,
-      net_profit: item.net_profit !== null ? Number(item.net_profit) : null,
-      profit_margin: item.profit_margin !== null ? Number(item.profit_margin) : null,
-      sold_price: item.sold_price !== null ? Number(item.sold_price) : null,
-      consignment_percentage: item.consignment_percentage !== null ? Number(item.consignment_percentage) : null,
-      is_consignment: item.is_consignment || false,
-      consignor_name: item.consignor_name || '',
-      consignor_contact: item.consignor_contact || '',
-      source_type: item.source_type || '',
-      source_location: item.source_location || '',
-      listed_date: item.listed_date,
-      sold_date: item.sold_date,
-      days_to_sell: item.days_to_sell,
-      performance_notes: item.performance_notes || '',
-      measurements: (item.measurements && typeof item.measurements === 'object' && !Array.isArray(item.measurements)) 
-        ? item.measurements as { length?: string; width?: string; height?: string; weight?: string; }
-        : {},
-      keywords: Array.isArray(item.keywords) ? item.keywords : [],
+      shipping_cost: null,
+      purchase_price: null,
+      purchase_date: null,
+      cost_basis: null,
+      fees_paid: null,
+      net_profit: null,
+      profit_margin: null,
+      sold_price: null,
+      consignment_percentage: null,
+      is_consignment: false,
+      consignor_name: '',
+      consignor_contact: '',
+      source_type: '',
+      source_location: '',
+      listed_date: null,
+      sold_date: null,
+      days_to_sell: null,
+      performance_notes: '',
+      measurements: {},
+      keywords: Array.isArray(item.photos) ? [] : [],
       photos: Array.isArray(item.photos) ? item.photos : [],
-      price_research: item.price_research || '',
+      price_research: '',
       created_at: item.created_at,
       updated_at: item.updated_at
     }));
@@ -145,7 +122,7 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
     try {
       const data = await fetchInventory({
         ...options,
-        limit: options.limit || 25 // Default to 25 items to prevent timeouts
+        limit: Math.min(options.limit || 15, 20) // Conservative limit
       });
       
       if (!mountedRef.current) return;
@@ -160,29 +137,23 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
       
       console.error('❌ Failed to fetch inventory:', err);
       
-      // Handle timeout errors specifically
-      if (err.message?.includes('timeout') || err.code === '57014') {
-        setError('Query timed out. Try using filters to reduce the data load.');
-        
-        if (cachedListings.length > 0) {
-          setListings(cachedListings);
-          setUsingFallback(true);
-          toast({
-            title: "Using Cached Data",
-            description: "Query timed out, showing cached data. Try using filters.",
-            variant: "default"
-          });
-        }
-      } else if (cachedListings.length > 0) {
+      // Always try cached data first on any error
+      if (cachedListings.length > 0) {
         setListings(cachedListings);
         setUsingFallback(true);
         toast({
           title: "Using Cached Data",
-          description: "Connection issues, showing cached data.",
+          description: "Having trouble loading fresh data, showing cached listings.",
           variant: "default"
         });
       } else {
         setError(err.message || 'Failed to load inventory');
+        // Show a helpful error message
+        toast({
+          title: "Unable to Load Listings", 
+          description: "Please check your connection and try again.",
+          variant: "destructive"
+        });
       }
     } finally {
       if (mountedRef.current) {

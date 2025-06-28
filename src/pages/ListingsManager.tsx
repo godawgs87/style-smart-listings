@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
@@ -38,7 +37,7 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
     searchTerm: searchTerm.trim() || undefined,
     statusFilter: 'all',
     categoryFilter: categoryFilter === 'all' ? undefined : categoryFilter,
-    limit: 25 // Reduced limit to prevent timeouts
+    limit: 15 // Reduced even further to prevent timeouts
   });
 
   const { deleteListing, updateListing } = useListingOperations();
