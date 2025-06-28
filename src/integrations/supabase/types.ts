@@ -55,8 +55,10 @@ export type Database = {
       }
       listings: {
         Row: {
+          age_group: string | null
           category: string | null
           category_id: string | null
+          clothing_size: string | null
           condition: string | null
           consignment_percentage: number | null
           consignor_contact: string | null
@@ -66,6 +68,7 @@ export type Database = {
           days_to_sell: number | null
           description: string | null
           fees_paid: number | null
+          gender: string | null
           id: string
           is_consignment: boolean | null
           keywords: string[] | null
@@ -80,6 +83,7 @@ export type Database = {
           purchase_date: string | null
           purchase_price: number | null
           shipping_cost: number | null
+          shoe_size: string | null
           sold_date: string | null
           sold_price: number | null
           source_location: string | null
@@ -90,8 +94,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          age_group?: string | null
           category?: string | null
           category_id?: string | null
+          clothing_size?: string | null
           condition?: string | null
           consignment_percentage?: number | null
           consignor_contact?: string | null
@@ -101,6 +107,7 @@ export type Database = {
           days_to_sell?: number | null
           description?: string | null
           fees_paid?: number | null
+          gender?: string | null
           id?: string
           is_consignment?: boolean | null
           keywords?: string[] | null
@@ -115,6 +122,7 @@ export type Database = {
           purchase_date?: string | null
           purchase_price?: number | null
           shipping_cost?: number | null
+          shoe_size?: string | null
           sold_date?: string | null
           sold_price?: number | null
           source_location?: string | null
@@ -125,8 +133,10 @@ export type Database = {
           user_id: string
         }
         Update: {
+          age_group?: string | null
           category?: string | null
           category_id?: string | null
+          clothing_size?: string | null
           condition?: string | null
           consignment_percentage?: number | null
           consignor_contact?: string | null
@@ -136,6 +146,7 @@ export type Database = {
           days_to_sell?: number | null
           description?: string | null
           fees_paid?: number | null
+          gender?: string | null
           id?: string
           is_consignment?: boolean | null
           keywords?: string[] | null
@@ -150,6 +161,7 @@ export type Database = {
           purchase_date?: string | null
           purchase_price?: number | null
           shipping_cost?: number | null
+          shoe_size?: string | null
           sold_date?: string | null
           sold_price?: number | null
           source_location?: string | null

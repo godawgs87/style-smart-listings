@@ -53,12 +53,22 @@ export const useBulkOperations = (
 
     for (const item of readyItems) {
       try {
-        const listingData = sanitizeListingData(ensureListingData(item.listingData));
-        console.log('Saving listing:', listingData.title, 'with shipping cost:', item.selectedShipping?.cost || 0);
+        // Ensure all required data is present
+        const completeListingData = ensureListingData(item.listingData);
+        
+        // Make sure weight is properly set (required for shipping)
+        if (!completeListingData.measurements.weight) {
+          completeListingData.measurements.weight = '1'; // Default weight if missing
+        }
+        
+        const listingData = sanitizeListingData(completeListingData);
+        const shippingCost = item.selectedShipping?.cost || 0;
+        
+        console.log('Saving listing:', listingData.title, 'with shipping cost:', shippingCost);
         
         const result = await saveListing(
           listingData,
-          item.selectedShipping?.cost || 0,
+          shippingCost,
           'active'
         );
 
@@ -76,6 +86,11 @@ export const useBulkOperations = (
         }
       } catch (error) {
         console.error(`Failed to save ${item.listingData?.title || item.name}:`, error);
+        toast({
+          title: "Error saving item",
+          description: `Failed to save "${item.listingData?.title || item.name}": ${error.message}`,
+          variant: "destructive"
+        });
       }
     }
 
@@ -123,7 +138,8 @@ export const useBulkOperations = (
 
     for (const item of draftItems) {
       try {
-        const listingData = sanitizeListingData(ensureListingData(item.listingData));
+        const completeListingData = ensureListingData(item.listingData);
+        const listingData = sanitizeListingData(completeListingData);
         const result = await saveListing(
           listingData,
           item.selectedShipping?.cost || 0,

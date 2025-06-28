@@ -29,7 +29,7 @@ export const useBulkProcessingHandlers = (
       // Simulate AI processing delay
       await new Promise(resolve => setTimeout(resolve, 1500));
 
-      // Generate mock AI analysis results
+      // Generate mock AI analysis results with all required fields
       const mockListingData = {
         title: `${group.name} - Analyzed Item`,
         description: `High-quality item analyzed from uploaded photos. This appears to be a well-maintained piece with good resale potential.`,
@@ -39,9 +39,9 @@ export const useBulkProcessingHandlers = (
         condition: 'Good',
         measurements: {
           length: '12',
-          width: '8',
+          width: '8', 
           height: '4',
-          weight: '1'
+          weight: (Math.random() * 2 + 0.5).toFixed(1) // Random weight between 0.5-2.5 lbs
         },
         keywords: ['vintage', 'quality', 'fashion'],
         photos: [],
@@ -64,7 +64,8 @@ export const useBulkProcessingHandlers = (
       };
 
       // Generate shipping options based on weight
-      const shippingOptions = generateShippingOptions(mockListingData.measurements.weight);
+      const weight = parseFloat(mockListingData.measurements.weight);
+      const shippingOptions = generateShippingOptions(weight);
 
       // Update group with AI results
       setPhotoGroups(prev => prev.map(g => 

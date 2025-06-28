@@ -3,7 +3,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useListingSave } from '@/hooks/useListingSave';
 import type { PhotoGroup } from '../../BulkUploadManager';
 import type { ListingData } from '@/types/CreateListing';
-import { validateListingData, sanitizeListingData } from '@/utils/listingDataValidator';
+import { sanitizeListingData } from '@/utils/listingDataValidator';
 import { useBulkValidation } from '../validation/useBulkValidation';
 
 type StepType = 'upload' | 'grouping' | 'processing' | 'shipping' | 'review' | 'individual-review';
@@ -32,7 +32,7 @@ export const useBulkItemActions = (
         length: baseData.measurements?.length ? String(baseData.measurements.length) : '',
         width: baseData.measurements?.width ? String(baseData.measurements.width) : '',
         height: baseData.measurements?.height ? String(baseData.measurements.height) : '',
-        weight: baseData.measurements?.weight ? String(baseData.measurements.weight) : ''
+        weight: baseData.measurements?.weight ? String(baseData.measurements.weight) : '1' // Default weight
       },
       photos: baseData.photos || [],
       keywords: baseData.keywords || [],
@@ -90,7 +90,8 @@ export const useBulkItemActions = (
 
     try {
       console.log('Posting single item:', groupToPost.listingData?.title);
-      const listingData = sanitizeListingData(ensureListingData(groupToPost.listingData));
+      const completeListingData = ensureListingData(groupToPost.listingData);
+      const listingData = sanitizeListingData(completeListingData);
       
       const result = await saveListing(
         listingData,
@@ -114,7 +115,7 @@ export const useBulkItemActions = (
       console.error('Failed to post item:', error);
       toast({
         title: "Error",
-        description: "Failed to post item. Please try again.",
+        description: `Failed to post item: ${error.message}`,
         variant: "destructive"
       });
     }

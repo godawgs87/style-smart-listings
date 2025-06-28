@@ -14,7 +14,7 @@ export const useBulkValidation = () => {
       errors.push('Valid price is required');
     }
     
-    if (!group.selectedShipping && group.listingData?.price) {
+    if (!group.selectedShipping) {
       errors.push('Shipping option is required');
     }
     
@@ -26,8 +26,10 @@ export const useBulkValidation = () => {
       errors.push('Condition is required');
     }
 
-    // Ensure measurements exist (required for shipping calculation)
-    if (!group.listingData?.measurements?.weight) {
+    // Ensure measurements exist - weight is critical for shipping
+    if (!group.listingData?.measurements?.weight || 
+        (typeof group.listingData.measurements.weight === 'string' && !group.listingData.measurements.weight.trim()) ||
+        (typeof group.listingData.measurements.weight === 'number' && group.listingData.measurements.weight <= 0)) {
       errors.push('Weight measurement is required');
     }
 
