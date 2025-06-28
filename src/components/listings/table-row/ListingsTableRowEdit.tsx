@@ -99,8 +99,8 @@ const ListingsTableRowEdit = ({ listing, visibleColumns, onSave, onCancel }: Lis
     consignment_percentage: listing.consignment_percentage || 0,
     clothing_size: listing.clothing_size || '',
     shoe_size: listing.shoe_size || '',
-    gender: listing.gender || '',
-    age_group: listing.age_group || '',
+    gender: listing.gender || '' as '' | 'Men' | 'Women' | 'Kids' | 'Unisex',
+    age_group: listing.age_group || '' as '' | 'Adult' | 'Youth' | 'Toddler' | 'Baby',
     performance_notes: listing.performance_notes || '',
     measurements: listing.measurements || { length: '', width: '', height: '', weight: '' }
   });
@@ -146,10 +146,26 @@ const ListingsTableRowEdit = ({ listing, visibleColumns, onSave, onCancel }: Lis
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const updates = { ...editData };
+      const updates: Partial<Listing> = { ...editData };
+      
+      // Handle gender field - convert empty string to null for type safety
+      if (editData.gender === '') {
+        updates.gender = null;
+      } else {
+        updates.gender = editData.gender as 'Men' | 'Women' | 'Kids' | 'Unisex';
+      }
+      
+      // Handle age_group field - convert empty string to null for type safety
+      if (editData.age_group === '') {
+        updates.age_group = null;
+      } else {
+        updates.age_group = editData.age_group as 'Adult' | 'Youth' | 'Toddler' | 'Baby';
+      }
+      
       if (editData.measurements) {
         updates.measurements = editData.measurements;
       }
+      
       await onSave(updates);
     } finally {
       setIsSaving(false);

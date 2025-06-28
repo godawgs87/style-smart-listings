@@ -1,399 +1,330 @@
 
-import React, { useState } from 'react';
-import { Card } from '@/components/ui/card';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Edit, ArrowLeft, Copy, Trash2 } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { Edit, X, DollarSign, Package, Calendar, User, MapPin, TrendingUp, Clock, FileText } from 'lucide-react';
 import { useListingDetails } from '@/hooks/useListingDetails';
 import { useListingOperations } from '@/hooks/useListingOperations';
-import ListingEditor from '@/components/ListingEditor';
-import ConfirmationDialog from '@/components/ConfirmationDialog';
+import ListingImagePreview from '@/components/ListingImagePreview';
 import type { Listing } from '@/types/Listing';
 
 interface ListingDetailViewProps {
-  listingId: string;
-  onBack: () => void;
-  onDuplicated?: () => void;
-  onDeleted?: () => void;
+  listing: Listing;
+  onClose: () => void;
+  onEdit?: () => void;
 }
 
-const ListingDetailView = ({ listingId, onBack, onDuplicated, onDeleted }: ListingDetailViewProps) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
-  const [isDuplicating, setIsDuplicating] = useState(false);
-  
+const ListingDetailView = ({ listing, onClose, onEdit }: ListingDetailViewProps) => {
   const { loadDetails, isLoadingDetails } = useListingDetails();
-  const { deleteListing, duplicateListing, updateListing } = useListingOperations();
-  
-  const [listing, setListing] = useState<Listing | null>(null);
+  const { updateListing } = useListingOperations();
+  const [detailedListing, setDetailedListing] = useState<Listing>(listing);
 
-  React.useEffect(() => {
-    const loadListingData = async () => {
-      const details = await loadDetails(listingId);
+  useEffect(() => {
+    const loadListingDetails = async () => {
+      const details = await loadDetails(listing.id);
       if (details) {
-        setListing(details as Listing);
+        setDetailedListing({ ...listing, ...details });
       }
     };
-    loadListingData();
-  }, [listingId, loadDetails]);
 
-  const handleEdit = () => setIsEditing(true);
-  const handleCancelEdit = () => setIsEditing(false);
+    loadListingDetails();
+  }, [listing.id, loadDetails]);
 
-  const handleSaveEdit = async (updatedData: any) => {
-    if (listing) {
-      const success = await updateListing(listing.id, updatedData);
-      if (success) {
-        setListing({ ...listing, ...updatedData });
-        setIsEditing(false);
-      }
-    }
-  };
+  const renderSizeInfo = () => {
+    const sizeFields = [
+      { label: 'Gender', value: detailedListing.gender, color: 'blue' },
+      { label: 'Age Group', value: detailedListing.age_group, color: 'purple' },
+      { label: 'Clothing Size', value: detailedListing.clothing_size, color: 'green' },
+      { label: 'Shoe Size', value: detailedListing.shoe_size, color: 'orange' }
+    ].filter(field => field.value);
 
-  const handleDelete = async () => {
-    if (listing) {
-      const success = await deleteListing(listing.id);
-      if (success) {
-        onDeleted?.();
-        onBack();
-      }
-    }
-    setShowDeleteDialog(false);
-  };
+    if (sizeFields.length === 0) return null;
 
-  const handleDuplicate = async () => {
-    if (listing && !isDuplicating) {
-      setIsDuplicating(true);
-      try {
-        const duplicated = await duplicateListing(listing);
-        if (duplicated) {
-          onDuplicated?.();
-        }
-      } finally {
-        setIsDuplicating(false);
-        setShowDuplicateDialog(false);
-      }
-    }
-  };
-
-  if (isLoadingDetails(listingId) || !listing) {
     return (
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
-          <div className="h-64 bg-gray-200 rounded mb-4"></div>
-          <div className="space-y-3">
-            <div className="h-4 bg-gray-200 rounded w-full"></div>
-            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-          </div>
+      <div className="space-y-3">
+        <h3 className="font-semibold text-gray-900">Size Information</h3>
+        <div className="flex flex-wrap gap-2">
+          {sizeFields.map((field, index) => (
+            <Badge key={index} variant="outline" className={`bg-${field.color}-50 text-${field.color}-700`}>
+              {field.label}: {field.value}
+            </Badge>
+          ))}
         </div>
       </div>
     );
-  }
+  };
 
-  if (isEditing) {
+  const renderMeasurements = () => {
+    if (!detailedListing.measurements || Object.keys(detailedListing.measurements).length === 0) {
+      return null;
+    }
+
+    const measurements = detailedListing.measurements;
+    const validMeasurements = Object.entries(measurements).filter(([_, value]) => value && value.toString().trim() !== '');
+
+    if (validMeasurements.length === 0) return null;
+
     return (
-      <div className="max-w-4xl mx-auto p-6">
-        <ListingEditor
-          listing={{
-            title: listing.title,
-            description: listing.description || '',
-            price: listing.price,
-            category: listing.category || '',
-            condition: listing.condition || '',
-            measurements: listing.measurements || {},
-            keywords: listing.keywords || [],
-            photos: listing.photos || [],
-            priceResearch: listing.price_research || '',
-            clothing_size: listing.clothing_size || '',
-            shoe_size: listing.shoe_size || '',
-            gender: listing.gender || '',
-            age_group: listing.age_group || ''
-          }}
-          onSave={handleSaveEdit}
-          onCancel={handleCancelEdit}
-        />
+      <div className="space-y-3">
+        <h3 className="font-semibold text-gray-900">Measurements</h3>
+        <div className="grid grid-cols-2 gap-3">
+          {validMeasurements.map(([key, value]) => (
+            <div key={key} className="bg-gray-50 p-2 rounded">
+              <span className="text-sm font-medium capitalize">{key}:</span>
+              <span className="ml-2 text-sm">{value}"</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderFinancialInfo = () => {
+    const financialData = [
+      { icon: DollarSign, label: 'Purchase Price', value: detailedListing.purchase_price ? `$${detailedListing.purchase_price}` : null },
+      { icon: TrendingUp, label: 'Net Profit', value: detailedListing.net_profit ? `$${detailedListing.net_profit}` : null },
+      { icon: TrendingUp, label: 'Profit Margin', value: detailedListing.profit_margin ? `${detailedListing.profit_margin}%` : null },
+      { icon: DollarSign, label: 'Cost Basis', value: detailedListing.cost_basis ? `$${detailedListing.cost_basis}` : null },
+      { icon: DollarSign, label: 'Fees Paid', value: detailedListing.fees_paid ? `$${detailedListing.fees_paid}` : null }
+    ].filter(item => item.value);
+
+    if (financialData.length === 0) return null;
+
+    return (
+      <div className="space-y-3">
+        <h3 className="font-semibold text-gray-900">Financial Information</h3>
+        <div className="grid grid-cols-2 gap-3">
+          {financialData.map((item, index) => {
+            const Icon = item.icon;
+            return (
+              <div key={index} className="flex items-center space-x-2 bg-green-50 p-2 rounded">
+                <Icon className="w-4 h-4 text-green-600" />
+                <span className="text-sm font-medium">{item.label}:</span>
+                <span className="text-sm">{item.value}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  const renderConsignmentInfo = () => {
+    if (!detailedListing.is_consignment) return null;
+
+    return (
+      <div className="space-y-3">
+        <h3 className="font-semibold text-gray-900">Consignment Information</h3>
+        <div className="bg-blue-50 p-3 rounded space-y-2">
+          <Badge variant="outline" className="bg-blue-100 text-blue-800">Consignment Item</Badge>
+          {detailedListing.consignor_name && (
+            <div className="flex items-center space-x-2">
+              <User className="w-4 h-4 text-blue-600" />
+              <span className="text-sm font-medium">Consignor:</span>
+              <span className="text-sm">{detailedListing.consignor_name}</span>
+            </div>
+          )}
+          {detailedListing.consignor_contact && (
+            <div className="text-sm text-gray-600">
+              Contact: {detailedListing.consignor_contact}
+            </div>
+          )}
+          {detailedListing.consignment_percentage && (
+            <div className="text-sm">
+              <span className="font-medium">Commission:</span> {detailedListing.consignment_percentage}%
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderSourceInfo = () => {
+    const sourceData = [
+      { icon: MapPin, label: 'Source Type', value: detailedListing.source_type },
+      { icon: MapPin, label: 'Source Location', value: detailedListing.source_location },
+      { icon: Calendar, label: 'Purchase Date', value: detailedListing.purchase_date }
+    ].filter(item => item.value);
+
+    if (sourceData.length === 0) return null;
+
+    return (
+      <div className="space-y-3">
+        <h3 className="font-semibold text-gray-900">Source Information</h3>
+        <div className="space-y-2">
+          {sourceData.map((item, index) => {
+            const Icon = item.icon;
+            return (
+              <div key={index} className="flex items-center space-x-2 text-sm">
+                <Icon className="w-4 h-4 text-gray-500" />
+                <span className="font-medium">{item.label}:</span>
+                <span>{item.value}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  const renderPerformanceInfo = () => {
+    const performanceData = [
+      { icon: Calendar, label: 'Listed Date', value: detailedListing.listed_date },
+      { icon: Calendar, label: 'Sold Date', value: detailedListing.sold_date },
+      { icon: DollarSign, label: 'Sold Price', value: detailedListing.sold_price ? `$${detailedListing.sold_price}` : null },
+      { icon: Clock, label: 'Days to Sell', value: detailedListing.days_to_sell ? `${detailedListing.days_to_sell} days` : null },
+      { icon: FileText, label: 'Performance Notes', value: detailedListing.performance_notes }
+    ].filter(item => item.value);
+
+    if (performanceData.length === 0) return null;
+
+    return (
+      <div className="space-y-3">
+        <h3 className="font-semibold text-gray-900">Performance Tracking</h3>
+        <div className="space-y-2">
+          {performanceData.map((item, index) => {
+            const Icon = item.icon;
+            return (
+              <div key={index} className="flex items-center space-x-2 text-sm">
+                <Icon className="w-4 h-4 text-gray-500" />
+                <span className="font-medium">{item.label}:</span>
+                <span>{item.value}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  if (isLoadingDetails(listing.id)) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4">
+          <CardContent className="p-6">
+            <div className="animate-pulse space-y-4">
+              <div className="h-6 bg-gray-200 rounded w-3/4"></div>
+              <div className="h-32 bg-gray-200 rounded"></div>
+              <div className="space-y-2">
+                <div className="h-4 bg-gray-200 rounded"></div>
+                <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={onBack} className="flex items-center gap-2">
-          <ArrowLeft className="w-4 h-4" />
-          Back to Inventory
-        </Button>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setShowDuplicateDialog(true)}>
-            <Copy className="w-4 h-4 mr-2" />
-            Duplicate
-          </Button>
-          <Button variant="outline" onClick={handleEdit}>
-            <Edit className="w-4 h-4 mr-2" />
-            Edit
-          </Button>
-          <Button variant="destructive" onClick={() => setShowDeleteDialog(true)}>
-            <Trash2 className="w-4 h-4 mr-2" />
-            Delete
-          </Button>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Images */}
-        <div className="lg:col-span-1">
-          <Card className="p-4">
-            <h3 className="font-semibold mb-3">Photos</h3>
-            {listing.photos && listing.photos.length > 0 ? (
-              <div className="grid grid-cols-2 gap-2">
-                {listing.photos.slice(0, 6).map((photo, index) => (
-                  <img
-                    key={index}
-                    src={photo}
-                    alt={`${listing.title} ${index + 1}`}
-                    className="w-full h-24 object-cover rounded"
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="h-32 bg-gray-100 rounded flex items-center justify-center">
-                <p className="text-gray-500">No photos</p>
-              </div>
-            )}
-          </Card>
-        </div>
-
-        {/* Details */}
-        <div className="lg:col-span-2 space-y-4">
-          {/* Basic Info */}
-          <Card className="p-6">
-            <h1 className="text-2xl font-bold mb-4">{listing.title}</h1>
-            
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div>
-                <span className="text-sm text-gray-500">Price</span>
-                <p className="text-2xl font-bold text-green-600">${listing.price}</p>
-              </div>
-              <div>
-                <span className="text-sm text-gray-500">Shipping</span>
-                <p className="text-lg font-semibold">${(listing.shipping_cost || 0).toFixed(2)}</p>
-              </div>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto m-4">
+        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4">
+          <div className="flex-1">
+            <CardTitle className="text-xl font-bold pr-4">{detailedListing.title}</CardTitle>
+            <div className="flex items-center space-x-2 mt-2">
+              <Badge variant={detailedListing.status === 'active' ? 'default' : 'secondary'}>
+                {detailedListing.status}
+              </Badge>
+              <Badge variant="outline">{detailedListing.category}</Badge>
+              <Badge variant="outline">{detailedListing.condition}</Badge>
             </div>
-
-            <div className="flex flex-wrap gap-2 mb-4">
-              <Badge variant="secondary">{listing.status}</Badge>
-              {listing.category && <Badge variant="outline">{listing.category}</Badge>}
-              {listing.condition && <Badge variant="outline">{listing.condition}</Badge>}
-              {listing.is_consignment && <Badge className="bg-purple-100 text-purple-800">Consignment</Badge>}
-            </div>
-
-            {listing.description && (
-              <div>
-                <h3 className="font-medium mb-2">Description</h3>
-                <p className="text-gray-700 leading-relaxed">{listing.description}</p>
-              </div>
+          </div>
+          <div className="flex space-x-2">
+            {onEdit && (
+              <Button variant="outline" size="sm" onClick={onEdit}>
+                <Edit className="w-4 h-4 mr-1" />
+                Edit
+              </Button>
             )}
-          </Card>
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        </CardHeader>
 
-          {/* Size Information */}
-          {(listing.clothing_size || listing.shoe_size || listing.gender || listing.age_group) && (
-            <Card className="p-6">
-              <h3 className="font-medium mb-3">Size Information</h3>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                {listing.gender && (
-                  <div><span className="font-medium">Gender:</span> {listing.gender}</div>
-                )}
-                {listing.age_group && (
-                  <div><span className="font-medium">Age Group:</span> {listing.age_group}</div>
-                )}
-                {listing.clothing_size && (
-                  <div><span className="font-medium">Clothing Size:</span> {listing.clothing_size}</div>
-                )}
-                {listing.shoe_size && (
-                  <div><span className="font-medium">Shoe Size:</span> {listing.shoe_size}</div>
-                )}
+        <CardContent className="space-y-6">
+          {/* Image and Basic Info */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-1">
+              <ListingImagePreview 
+                photos={detailedListing.photos} 
+                title={detailedListing.title}
+                className="w-full h-48"
+              />
+            </div>
+            <div className="md:col-span-2 space-y-4">
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-2">Pricing</h3>
+                <div className="flex items-center space-x-4">
+                  <div className="bg-green-100 px-3 py-2 rounded">
+                    <span className="text-lg font-bold text-green-600">${detailedListing.price}</span>
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    + ${detailedListing.shipping_cost || 9.95} shipping
+                  </div>
+                </div>
               </div>
-            </Card>
-          )}
-
-          {/* Measurements */}
-          {listing.measurements && Object.values(listing.measurements).some(v => v) && (
-            <Card className="p-6">
-              <h3 className="font-medium mb-3">Measurements</h3>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                {listing.measurements.length && (
-                  <div><span className="font-medium">Length:</span> {listing.measurements.length}</div>
-                )}
-                {listing.measurements.width && (
-                  <div><span className="font-medium">Width:</span> {listing.measurements.width}</div>
-                )}
-                {listing.measurements.height && (
-                  <div><span className="font-medium">Height:</span> {listing.measurements.height}</div>
-                )}
-                {listing.measurements.weight && (
-                  <div><span className="font-medium">Weight:</span> {listing.measurements.weight}</div>
-                )}
-              </div>
-            </Card>
-          )}
-
-          {/* Keywords */}
-          {listing.keywords && listing.keywords.length > 0 && (
-            <Card className="p-6">
-              <h3 className="font-medium mb-3">Keywords</h3>
-              <div className="flex flex-wrap gap-2">
-                {listing.keywords.map((keyword, index) => (
-                  <Badge key={index} variant="outline" className="text-xs">{keyword}</Badge>
-                ))}
-              </div>
-            </Card>
-          )}
-
-          {/* Cross-listing Data */}
-          {(listing.purchase_price || listing.source_type || listing.source_location || listing.consignor_name) && (
-            <Card className="p-6">
-              <h3 className="font-medium mb-3">Source & Purchase Information</h3>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                {listing.purchase_price && (
-                  <div>
-                    <span className="text-gray-500">Purchase Price</span>
-                    <p className="font-medium">${listing.purchase_price}</p>
-                  </div>
-                )}
-                {listing.purchase_date && (
-                  <div>
-                    <span className="text-gray-500">Purchase Date</span>
-                    <p className="font-medium">{listing.purchase_date}</p>
-                  </div>
-                )}
-                {listing.source_type && (
-                  <div>
-                    <span className="text-gray-500">Source Type</span>
-                    <p className="font-medium">{listing.source_type}</p>
-                  </div>
-                )}
-                {listing.source_location && (
-                  <div>
-                    <span className="text-gray-500">Source Location</span>
-                    <p className="font-medium">{listing.source_location}</p>
-                  </div>
-                )}
-                {listing.consignor_name && (
-                  <div>
-                    <span className="text-gray-500">Consignor</span>
-                    <p className="font-medium">{listing.consignor_name}</p>
-                  </div>
-                )}
-                {listing.consignor_contact && (
-                  <div>
-                    <span className="text-gray-500">Consignor Contact</span>
-                    <p className="font-medium">{listing.consignor_contact}</p>
-                  </div>
-                )}
-              </div>
-            </Card>
-          )}
-
-          {/* Financial Info */}
-          {(listing.net_profit || listing.profit_margin || listing.cost_basis) && (
-            <Card className="p-6">
-              <h3 className="font-medium mb-3">Financial Details</h3>
-              <div className="grid grid-cols-3 gap-4 text-sm">
-                {listing.cost_basis && (
-                  <div>
-                    <span className="text-gray-500">Cost Basis</span>
-                    <p className="font-medium">${listing.cost_basis}</p>
-                  </div>
-                )}
-                {listing.net_profit && (
-                  <div>
-                    <span className="text-gray-500">Net Profit</span>
-                    <p className="font-medium text-green-600">${listing.net_profit}</p>
-                  </div>
-                )}
-                {listing.profit_margin && (
-                  <div>
-                    <span className="text-gray-500">Profit Margin</span>
-                    <p className="font-medium">{listing.profit_margin}%</p>
-                  </div>
-                )}
-              </div>
-            </Card>
-          )}
-
-          {/* Performance Data */}
-          {(listing.listed_date || listing.sold_date || listing.days_to_sell || listing.performance_notes) && (
-            <Card className="p-6">
-              <h3 className="font-medium mb-3">Performance Data</h3>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                {listing.listed_date && (
-                  <div>
-                    <span className="text-gray-500">Listed Date</span>
-                    <p className="font-medium">{listing.listed_date}</p>
-                  </div>
-                )}
-                {listing.sold_date && (
-                  <div>
-                    <span className="text-gray-500">Sold Date</span>
-                    <p className="font-medium">{listing.sold_date}</p>
-                  </div>
-                )}
-                {listing.sold_price && (
-                  <div>
-                    <span className="text-gray-500">Sold Price</span>
-                    <p className="font-medium text-green-600">${listing.sold_price}</p>
-                  </div>
-                )}
-                {listing.days_to_sell && (
-                  <div>
-                    <span className="text-gray-500">Days to Sell</span>
-                    <p className="font-medium">{listing.days_to_sell} days</p>
-                  </div>
-                )}
-              </div>
-              {listing.performance_notes && (
-                <div className="mt-3">
-                  <span className="text-gray-500 text-sm">Performance Notes</span>
-                  <p className="text-sm mt-1">{listing.performance_notes}</p>
+              
+              {detailedListing.description && (
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-2">Description</h3>
+                  <p className="text-sm text-gray-700 leading-relaxed">{detailedListing.description}</p>
                 </div>
               )}
-            </Card>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Size Information */}
+          {renderSizeInfo()}
+          
+          {renderSizeInfo() && <Separator />}
+
+          {/* Measurements */}
+          {renderMeasurements()}
+          
+          {renderMeasurements() && <Separator />}
+
+          {/* Financial Information */}
+          {renderFinancialInfo()}
+          
+          {renderFinancialInfo() && <Separator />}
+
+          {/* Consignment Information */}
+          {renderConsignmentInfo()}
+          
+          {renderConsignmentInfo() && <Separator />}
+
+          {/* Source Information */}
+          {renderSourceInfo()}
+          
+          {renderSourceInfo() && <Separator />}
+
+          {/* Performance Information */}
+          {renderPerformanceInfo()}
+
+          {/* Keywords */}
+          {detailedListing.keywords && detailedListing.keywords.length > 0 && (
+            <>
+              <Separator />
+              <div className="space-y-3">
+                <h3 className="font-semibold text-gray-900">Keywords</h3>
+                <div className="flex flex-wrap gap-2">
+                  {detailedListing.keywords.map((keyword, index) => (
+                    <Badge key={index} variant="secondary" className="text-xs">
+                      {keyword}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </>
           )}
-
-          {/* Research Notes */}
-          {listing.price_research && (
-            <Card className="p-6">
-              <h3 className="font-medium mb-3">Price Research</h3>
-              <p className="text-gray-700 text-sm leading-relaxed">{listing.price_research}</p>
-            </Card>
-          )}
-        </div>
-      </div>
-
-      {/* Confirmation Dialogs */}
-      <ConfirmationDialog
-        open={showDeleteDialog}
-        onOpenChange={setShowDeleteDialog}
-        title="Delete Listing"
-        description={`Are you sure you want to delete "${listing.title}"? This action cannot be undone.`}
-        confirmText="Delete"
-        onConfirm={handleDelete}
-        variant="destructive"
-      />
-
-      <ConfirmationDialog
-        open={showDuplicateDialog}
-        onOpenChange={setShowDuplicateDialog}
-        title="Duplicate Listing"
-        description={`Create a copy of "${listing.title}"? This will create a new draft listing.`}
-        confirmText={isDuplicating ? "Duplicating..." : "Duplicate"}
-        onConfirm={handleDuplicate}
-      />
+        </CardContent>
+      </Card>
     </div>
   );
 };
