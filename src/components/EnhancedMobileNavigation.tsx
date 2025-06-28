@@ -2,11 +2,11 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Camera, Settings, ArrowLeft, Package, Home, Plus, Loader2, BarChart3 } from 'lucide-react';
+import { Camera, Settings, ArrowLeft, Package, Home, Plus, Loader2, BarChart3, Database } from 'lucide-react';
 
 interface EnhancedMobileNavigationProps {
   currentView: string;
-  onNavigate: (view: 'dashboard' | 'create' | 'inventory' | 'active-listings') => void;
+  onNavigate: (view: 'dashboard' | 'create' | 'inventory' | 'active-listings' | 'data-management') => void;
   showBack?: boolean;
   onBack?: () => void;
   title?: string;
@@ -89,6 +89,12 @@ const EnhancedMobileNavigation = ({
       label: 'Inventory',
       action: () => onNavigate('inventory'),
       notification: notifications?.inventory
+    },
+    {
+      view: 'data-management',
+      icon: Database,
+      label: 'Data',
+      action: () => onNavigate('data-management')
     }
   ];
 
@@ -102,7 +108,7 @@ const EnhancedMobileNavigation = ({
               size="sm"
               onClick={action}
               disabled={loading}
-              className={`flex flex-col items-center p-2 min-h-14 min-w-14 ${
+              className={`flex flex-col items-center p-2 min-h-14 min-w-12 ${
                 primary ? 'bg-blue-600 hover:bg-blue-700 text-white' : ''
               }`}
             >
@@ -130,7 +136,7 @@ const EnhancedMobileNavigation = ({
           size="sm"
           onClick={handleAdminClick}
           disabled={loading}
-          className="flex flex-col items-center p-2 min-h-14 min-w-14"
+          className="flex flex-col items-center p-2 min-h-14 min-w-12"
         >
           <Settings className="w-4 h-4 mb-1" />
           <span className="text-xs">Settings</span>

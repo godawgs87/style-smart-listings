@@ -1,63 +1,77 @@
-
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { useState } from "react";
-import { ThemeProvider } from "@/components/ThemeProvider";
-import SafeErrorBoundary from "@/components/SafeErrorBoundary";
-import Index from "./pages/Index";
-import AdminDashboard from "./pages/AdminDashboard";
-import ListingsManager from "./pages/ListingsManager";
-import SimpleInventoryPage from "./pages/SimpleInventoryPage";
-import ActiveListingsPage from "./pages/ActiveListingsPage";
-import QATestPage from "./pages/QATestPage";
-import UserSettings from "./pages/UserSettings";
-import NotFound from "./pages/NotFound";
+import React, { useState, useEffect } from 'react';
+import { Toaster } from '@/components/ui/toaster';
+import { useAuth } from '@/hooks/useAuth';
+import Dashboard from '@/pages/Dashboard';
+import CreateListing from '@/pages/CreateListing';
+import DataManagement from '@/pages/DataManagement';
+import AuthForm from '@/components/AuthForm';
 
 const App = () => {
-  const [queryClient] = useState(() => new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: 2,
-        staleTime: 5 * 60 * 1000, // 5 minutes
-        refetchOnWindowFocus: false,
-      },
-    },
-  }));
+  const [currentView, setCurrentView] = useState<'dashboard' | 'create' | 'data-management'>('dashboard');
+  const { isAuthenticated, isLoading } = useAuth();
+
+  const handleNavigate = (view: 'dashboard' | 'create' | 'listings' | 'inventory' | 'active-listings' | 'data-management') => {
+    switch (view) {
+      case 'dashboard':
+        setCurrentView('dashboard');
+        break;
+      case 'create':
+        setCurrentView('create');
+        break;
+      case 'listings':
+        window.location.href = '/listings';
+        break;
+      case 'inventory':
+        window.location.href = '/inventory';
+        break;
+      case 'active-listings':
+        window.location.href = '/active-listings';
+        break;
+      case 'data-management':
+        setCurrentView('data-management');
+        break;
+    }
+  };
+
+  useEffect(() => {
+    if (window.location.pathname === '/create') {
+      setCurrentView('create');
+    } else {
+      setCurrentView('dashboard');
+    }
+  }, []);
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-100">
+        <AuthForm />
+        <Toaster />
+      </div>
+    );
+  }
 
   return (
-    <SafeErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/admin" element={<AdminDashboard />} />
-                <Route path="/settings" element={<UserSettings />} />
-                <Route path="/inventory" element={<SimpleInventoryPage />} />
-                <Route path="/active-listings" element={
-                  <ActiveListingsPage 
-                    onBack={() => window.history.back()} 
-                  />
-                } />
-                <Route path="/manage-listings" element={
-                  <ListingsManager 
-                    onBack={() => window.history.back()} 
-                  />
-                } />
-                <Route path="/qa-tests" element={<QATestPage />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </TooltipProvider>
-        </ThemeProvider>
-      </QueryClientProvider>
-    </SafeErrorBoundary>
+    <div className="min-h-screen bg-gray-50">
+      {currentView === 'dashboard' && (
+        <Dashboard onNavigate={handleNavigate} />
+      )}
+      {currentView === 'create' && (
+        <CreateListing 
+          onBack={() => setCurrentView('dashboard')}
+          onViewListings={() => window.location.href = '/inventory'}
+        />
+      )}
+      {currentView === 'data-management' && (
+        <DataManagement 
+          onBack={() => setCurrentView('dashboard')}
+          onNavigate={handleNavigate}
+        />
+      )}
+    </div>
   );
 };
 
