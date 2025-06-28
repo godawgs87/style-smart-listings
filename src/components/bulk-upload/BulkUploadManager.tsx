@@ -1,14 +1,15 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Upload, Grid3X3, CheckCircle, AlertTriangle, XCircle, Loader2, Truck } from 'lucide-react';
+import { Upload, Grid3X3, CheckCircle, AlertTriangle, XCircle, Loader2, Truck, BarChart } from 'lucide-react';
 import BulkPhotoUpload from './BulkPhotoUpload';
 import PhotoGroupingInterface from './PhotoGroupingInterface';
 import BulkProcessingStatus from './BulkProcessingStatus';
 import BulkShippingReview from './BulkShippingReview';
+import BulkReviewDashboard from './BulkReviewDashboard';
+import IndividualItemReview from './IndividualItemReview';
 
 export interface PhotoGroup {
   id: string;
@@ -28,11 +29,12 @@ interface BulkUploadManagerProps {
 }
 
 const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
-  const [currentStep, setCurrentStep] = useState<'upload' | 'grouping' | 'processing' | 'shipping'>('upload');
+  const [currentStep, setCurrentStep] = useState<'upload' | 'grouping' | 'processing' | 'shipping' | 'review' | 'individual-review'>('upload');
   const [photos, setPhotos] = useState<File[]>([]);
   const [photoGroups, setPhotoGroups] = useState<PhotoGroup[]>([]);
   const [isGrouping, setIsGrouping] = useState(false);
   const [processingResults, setProcessingResults] = useState<any[]>([]);
+  const [currentReviewIndex, setCurrentReviewIndex] = useState(0);
 
   const handlePhotosUploaded = (uploadedPhotos: File[]) => {
     setPhotos(uploadedPhotos);
@@ -45,7 +47,6 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
     setCurrentStep('grouping');
     
     try {
-      // Simulate AI grouping logic
       const groups = await simulateAIGrouping(photos);
       setPhotoGroups(groups);
     } catch (error) {
@@ -56,10 +57,8 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
   };
 
   const simulateAIGrouping = async (photos: File[]): Promise<PhotoGroup[]> => {
-    // Simulate processing time
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    // Create mock groups based on photo count
     const groups: PhotoGroup[] = [];
     let currentIndex = 0;
     
@@ -106,16 +105,13 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
     const results: any[] = [];
     
     for (const group of groups) {
-      // Update group status
       setPhotoGroups(prev => prev.map(g => 
         g.id === group.id ? { ...g, status: 'processing' } : g
       ));
       
       try {
-        // Simulate processing each group
         await new Promise(resolve => setTimeout(resolve, 3000));
         
-        // Generate mock listing data with shipping options
         const listingData = {
           title: group.name,
           category: 'Clothing',
@@ -129,7 +125,6 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
           }
         };
 
-        // Generate shipping options based on weight
         const weight = listingData.measurements.weight;
         const shippingOptions = generateShippingOptions(weight);
         
@@ -143,7 +138,6 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
         
         results.push(result);
         
-        // Update group with listing data and shipping options
         setPhotoGroups(prev => prev.map(g => 
           g.id === group.id ? { 
             ...g, 
@@ -154,7 +148,6 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
         ));
         
       } catch (error) {
-        // Update group status to error
         setPhotoGroups(prev => prev.map(g => 
           g.id === group.id ? { ...g, status: 'error' } : g
         ));
@@ -162,8 +155,7 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
     }
     
     setProcessingResults(results);
-    // Automatically move to shipping review after processing
-    setTimeout(() => setCurrentStep('shipping'), 1000);
+    setTimeout(() => setCurrentStep('review'), 1000);
   };
 
   const generateShippingOptions = (weight: string) => {
@@ -210,17 +202,83 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
     }
   };
 
+  // New review dashboard handlers
+  const handleEditItem = (groupId: string) => {
+    const groupIndex = photoGroups.findIndex(g => g.id === groupId);
+    setCurrentReviewIndex(groupIndex);
+    setCurrentStep('individual-review');
+  };
+
+  const handlePreviewItem = (groupId: string) => {
+    console.log('Preview item:', groupId);
+    // Implement preview functionality
+  };
+
+  const handlePostItem = (groupId: string) => {
+    console.log('Post item:', groupId);
+    // Implement individual posting
+  };
+
+  const handlePostAll = () => {
+    const readyItems = photoGroups.filter(g => g.status === 'completed' && g.selectedShipping);
+    console.log('Posting all ready items:', readyItems);
+    onComplete(readyItems);
+  };
+
+  const handleReviewAll = () => {
+    setCurrentReviewIndex(0);
+    setCurrentStep('individual-review');
+  };
+
+  const handleSaveDraft = () => {
+    console.log('Saving draft...');
+    // Implement draft saving
+  };
+
+  // Individual review handlers
+  const handleIndividualReviewNext = () => {
+    if (currentReviewIndex < photoGroups.length - 1) {
+      setCurrentReviewIndex(currentReviewIndex + 1);
+    } else {
+      setCurrentStep('review');
+    }
+  };
+
+  const handleIndividualReviewBack = () => {
+    if (currentReviewIndex > 0) {
+      setCurrentReviewIndex(currentReviewIndex - 1);
+    } else {
+      setCurrentStep('review');
+    }
+  };
+
+  const handleIndividualReviewSkip = () => {
+    handleIndividualReviewNext();
+  };
+
+  const handleIndividualReviewApprove = (updatedGroup: PhotoGroup) => {
+    setPhotoGroups(prev => prev.map(g => 
+      g.id === updatedGroup.id ? updatedGroup : g
+    ));
+    handleIndividualReviewNext();
+  };
+
+  const handleIndividualReviewReject = () => {
+    setPhotoGroups(prev => prev.map(g => 
+      g.id === photoGroups[currentReviewIndex].id ? { ...g, status: 'error' } : g
+    ));
+    handleIndividualReviewNext();
+  };
+
+  const handleIndividualSaveDraft = (updatedGroup: PhotoGroup) => {
+    setPhotoGroups(prev => prev.map(g => 
+      g.id === updatedGroup.id ? updatedGroup : g
+    ));
+  };
+
   const handleShippingComplete = (groupsWithShipping: PhotoGroup[]) => {
     setPhotoGroups(groupsWithShipping);
-    // Process final listings with shipping data
-    const finalResults = groupsWithShipping.map(group => ({
-      ...group,
-      finalListingData: {
-        ...group.listingData,
-        shipping_cost: group.selectedShipping?.cost || 0
-      }
-    }));
-    onComplete(finalResults);
+    setCurrentStep('review');
   };
 
   const getStepIcon = (step: string) => {
@@ -229,6 +287,7 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
       case 'grouping': return Grid3X3;
       case 'processing': return CheckCircle;
       case 'shipping': return Truck;
+      case 'review': return BarChart;
       default: return Upload;
     }
   };
@@ -238,14 +297,14 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
       { key: 'upload', label: 'Upload Photos', completed: photos.length > 0 },
       { key: 'grouping', label: 'Group Items', completed: photoGroups.length > 0 },
       { key: 'processing', label: 'Process Groups', completed: processingResults.length > 0 },
-      { key: 'shipping', label: 'Review Shipping', completed: photoGroups.every(g => g.selectedShipping) }
+      { key: 'review', label: 'Review & Post', completed: photoGroups.every(g => g.selectedShipping) }
     ];
 
     return (
       <div className="flex items-center justify-center space-x-4 mb-8 overflow-x-auto">
         {steps.map((step, index) => {
           const Icon = getStepIcon(step.key);
-          const isActive = currentStep === step.key;
+          const isActive = currentStep === step.key || (currentStep === 'individual-review' && step.key === 'review');
           const isCompleted = step.completed;
           
           return (
@@ -338,7 +397,7 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
         <BulkProcessingStatus
           photoGroups={photoGroups}
           results={processingResults}
-          onComplete={() => setCurrentStep('shipping')}
+          onComplete={() => setCurrentStep('review')}
           onBack={() => setCurrentStep('grouping')}
         />
       )}
@@ -348,6 +407,32 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
           photoGroups={photoGroups}
           onComplete={handleShippingComplete}
           onBack={() => setCurrentStep('processing')}
+        />
+      )}
+
+      {currentStep === 'review' && (
+        <BulkReviewDashboard
+          photoGroups={photoGroups}
+          onEditItem={handleEditItem}
+          onPreviewItem={handlePreviewItem}
+          onPostItem={handlePostItem}
+          onPostAll={handlePostAll}
+          onReviewAll={handleReviewAll}
+          onSaveDraft={handleSaveDraft}
+        />
+      )}
+
+      {currentStep === 'individual-review' && photoGroups[currentReviewIndex] && (
+        <IndividualItemReview
+          group={photoGroups[currentReviewIndex]}
+          currentIndex={currentReviewIndex}
+          totalItems={photoGroups.length}
+          onBack={handleIndividualReviewBack}
+          onNext={handleIndividualReviewNext}
+          onSkip={handleIndividualReviewSkip}
+          onApprove={handleIndividualReviewApprove}
+          onReject={handleIndividualReviewReject}
+          onSaveDraft={handleIndividualSaveDraft}
         />
       )}
     </div>
