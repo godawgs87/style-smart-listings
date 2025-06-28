@@ -52,18 +52,11 @@ interface ListingsTableRowDisplayProps {
 const ListingsTableRowDisplay = ({ listing, index, visibleColumns }: ListingsTableRowDisplayProps) => {
   const { detailedListing, isLoading } = useOptimizedListingDetailsLoader(listing, visibleColumns);
 
-  console.log('📋 ListingsTableRowDisplay - Base listing photos:', listing.photos);
-  console.log('📋 ListingsTableRowDisplay - Detailed listing photos:', detailedListing?.photos);
-  
-  // Always prioritize detailed listing photos, but fallback to base listing photos
-  const photosToUse = detailedListing?.photos || listing.photos;
-  console.log('📋 ListingsTableRowDisplay - Photos to use:', photosToUse);
-
   return (
     <>
       {visibleColumns.image && (
         <ImageCell 
-          photos={photosToUse}
+          photos={detailedListing?.photos || listing.photos}
           title={listing.title}
           listingId={listing.id}
         />
