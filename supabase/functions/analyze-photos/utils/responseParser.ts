@@ -1,4 +1,3 @@
-
 export function parseOpenAIResponse(content: string) {
   console.log('Raw OpenAI content:', content);
 
@@ -40,7 +39,29 @@ export function parseOpenAIResponse(content: string) {
     listingData.defects = listingData.defects || [];
     listingData.includes = listingData.includes || [];
     
-    console.log('Successfully parsed enhanced listing data');
+    // Handle size information
+    if (listingData.gender && ['Men', 'Women', 'Kids', 'Unisex'].includes(listingData.gender)) {
+      // Keep the gender as is
+    } else {
+      delete listingData.gender;
+    }
+    
+    if (listingData.age_group && ['Youth', 'Toddler', 'Baby'].includes(listingData.age_group)) {
+      // Keep the age_group as is
+    } else {
+      delete listingData.age_group;
+    }
+    
+    // Clean up size fields if they contain placeholder text
+    if (listingData.clothing_size && listingData.clothing_size.toLowerCase().includes('not visible')) {
+      delete listingData.clothing_size;
+    }
+    
+    if (listingData.shoe_size && listingData.shoe_size.toLowerCase().includes('not visible')) {
+      delete listingData.shoe_size;
+    }
+    
+    console.log('Successfully parsed enhanced listing data with size information');
     return listingData;
 
   } catch (parseError) {

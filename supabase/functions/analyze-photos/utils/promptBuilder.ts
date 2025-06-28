@@ -13,6 +13,14 @@ CRITICAL INSTRUCTIONS:
 - Research current market prices for similar items
 - Write compelling, detailed descriptions that highlight key features and condition
 
+SIZE DETECTION GUIDELINES:
+- For clothing: Look for size tags, labels, or any visible size markings (S, M, L, XL, numeric sizes like 32, 34, etc.)
+- For shoes: Look for size markings on the sole, inside tag, or box (US sizes like 8, 8.5, 9, etc.)
+- Determine gender target based on style, color, cut, and design (Men's, Women's, Kids, or Unisex)
+- For kids items, try to determine age group (Youth 6-14, Toddler 2-5, Baby 0-2)
+- If you can see size information clearly, include it in the response
+- If size is unclear, suggest "Size not visible - please check tags" in the appropriate field
+
 MEASUREMENT GUIDELINES:
 - If you identify a specific product, provide realistic measurements based on typical specifications
 - For pool cleaners, typical weights range from 8-15 lbs
@@ -41,9 +49,13 @@ Response format (exactly this structure):
   "model": "Model Number/Name",
   "features": ["Feature 1", "Feature 2", "Feature 3"],
   "defects": ["Any visible wear", "Missing parts", "Damage noted"],
-  "includes": ["What's included in sale"]
+  "includes": ["What's included in sale"],
+  "gender": "Men/Women/Kids/Unisex (if applicable)",
+  "clothing_size": "Size from tag or label (if clothing)",
+  "shoe_size": "Size from sole or tag (if shoes)",
+  "age_group": "Youth/Toddler/Baby (if kids clothing/shoes)"
 }`,
-    user: 'Analyze these photos in extreme detail. Look for any text, labels, model numbers, measurements, brand markings, or identifying features. If you identify a specific product (brand + model), research typical specifications for realistic measurements. Create a professional eBay listing with accurate pricing research. Respond with ONLY the JSON object.'
+    user: 'Analyze these photos in extreme detail. Look for any text, labels, model numbers, measurements, brand markings, size tags, or identifying features. If you identify clothing or shoes, pay special attention to size tags and gender styling. If you identify a specific product (brand + model), research typical specifications for realistic measurements. Create a professional eBay listing with accurate pricing research. Respond with ONLY the JSON object.'
   };
 }
 

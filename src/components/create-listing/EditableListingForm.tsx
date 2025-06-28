@@ -7,6 +7,7 @@ import BasicInformationSection from './sections/BasicInformationSection';
 import MeasurementsSection from './sections/MeasurementsSection';
 import KeywordsSection from './sections/KeywordsSection';
 import FeaturesSection from './sections/FeaturesSection';
+import SizeInformationSection from './sections/SizeInformationSection';
 import PurchaseConsignmentSection from '@/components/create-listing/PurchaseConsignmentSection';
 import { ListingData } from '@/types/CreateListing';
 
@@ -56,6 +57,11 @@ const EditableListingForm = ({
 
         <div className="space-y-8">
           <BasicInformationSection
+            listingData={listingData}
+            onUpdate={onUpdate}
+          />
+
+          <SizeInformationSection
             listingData={listingData}
             onUpdate={onUpdate}
           />

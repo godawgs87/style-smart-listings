@@ -36,6 +36,11 @@ export interface ListingData {
   features?: string[];
   includes?: string[];
   defects?: string[];
+  // New size fields
+  clothing_size?: string;
+  shoe_size?: string;
+  gender?: 'Men' | 'Women' | 'Kids' | 'Unisex';
+  age_group?: 'Adult' | 'Youth' | 'Toddler' | 'Baby';
 }
 
 export interface CreateListingState {
