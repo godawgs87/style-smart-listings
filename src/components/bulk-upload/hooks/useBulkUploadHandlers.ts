@@ -1,4 +1,3 @@
-
 import { useBulkGroupingHandlers } from './useBulkGroupingHandlers';
 import { useBulkProcessingHandlers } from './useBulkProcessingHandlers';
 import { useBulkReviewHandlers } from './useBulkReviewHandlers';
@@ -34,14 +33,16 @@ export const useBulkUploadHandlers = (
     setCurrentStep
   );
 
-  // Review handlers
+  // Review handlers with enhanced functionality
   const {
     handleEditItem,
     handlePreviewItem,
     handlePostItem,
     handlePostAll,
     handleReviewAll,
-    handleSaveDraft
+    handleSaveDraft,
+    handleUpdateGroup,
+    handleRetryAnalysis
   } = useBulkReviewHandlers(
     photoGroups,
     setCurrentStep,
@@ -93,6 +94,8 @@ export const useBulkUploadHandlers = (
     handleIndividualReviewApprove,
     handleIndividualReviewReject,
     handleIndividualSaveDraft,
-    handleShippingComplete
+    handleShippingComplete,
+    handleUpdateGroup,
+    handleRetryAnalysis
   };
 };

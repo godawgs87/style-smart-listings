@@ -19,29 +19,8 @@ export const useBulkReviewHandlers = (
   };
 
   const handlePreviewItem = (groupId: string) => {
-    const group = photoGroups.find(g => g.id === groupId);
-    if (group) {
-      const previewData = {
-        name: group.name,
-        photos: group.photos?.length || 0,
-        title: group.listingData?.title || 'Not set',
-        price: group.listingData?.price ? `$${group.listingData.price}` : 'Not set',
-        condition: group.listingData?.condition || 'Not set',
-        shipping: group.selectedShipping ? `${group.selectedShipping.name} - $${group.selectedShipping.cost}` : 'Not selected',
-        category: group.listingData?.category || 'Not set'
-      };
-      
-      const previewText = `Preview: ${previewData.name}
-      
-Photos: ${previewData.photos}
-Title: ${previewData.title}
-Price: ${previewData.price}
-Condition: ${previewData.condition}
-Shipping: ${previewData.shipping}
-Category: ${previewData.category}`;
-      
-      alert(previewText);
-    }
+    // This is now handled by the enhanced preview dialog
+    return groupId;
   };
 
   const handlePostItem = (groupId: string) => {
@@ -53,9 +32,9 @@ Category: ${previewData.category}`;
           : g
       ));
       
-      alert(`Successfully posted: ${groupToPost.name}`);
+      console.log(`Successfully posted: ${groupToPost.name}`);
     } else {
-      alert('Cannot post item. Please ensure all required fields are filled and item is completed.');
+      console.warn('Cannot post item. Missing requirements.');
     }
   };
 
@@ -75,10 +54,10 @@ Category: ${previewData.category}`;
           : g
       ));
       
-      alert(`Successfully posted ${readyItems.length} items!`);
+      console.log(`Successfully posted ${readyItems.length} items!`);
       onComplete(readyItems);
     } else {
-      alert('No items ready to post. Please complete the review process for your items.');
+      console.warn('No items ready to post.');
     }
   };
 
@@ -95,7 +74,45 @@ Category: ${previewData.category}`;
       groups: photoGroups
     };
     
-    alert('Draft saved successfully!');
+    console.log('Draft saved successfully!', draftData);
+  };
+
+  const handleUpdateGroup = (updatedGroup: PhotoGroup) => {
+    setPhotoGroups(prev => prev.map(g => 
+      g.id === updatedGroup.id ? updatedGroup : g
+    ));
+  };
+
+  const handleRetryAnalysis = (groupId: string) => {
+    setPhotoGroups(prev => prev.map(g => 
+      g.id === groupId 
+        ? { ...g, status: 'processing' as const }
+        : g
+    ));
+    
+    // Simulate retry after delay
+    setTimeout(() => {
+      setPhotoGroups(prev => prev.map(g => 
+        g.id === groupId 
+          ? { 
+              ...g, 
+              status: 'completed' as const,
+              listingData: {
+                ...g.listingData,
+                title: g.listingData?.title || `${g.name} - Manual Entry Required`,
+                price: g.listingData?.price || 0,
+                condition: g.listingData?.condition || 'Good',
+                measurements: g.listingData?.measurements || {
+                  length: '12',
+                  width: '8',
+                  height: '4',
+                  weight: '1'
+                }
+              }
+            }
+          : g
+      ));
+    }, 2000);
   };
 
   return {
@@ -104,6 +121,8 @@ Category: ${previewData.category}`;
     handlePostItem,
     handlePostAll,
     handleReviewAll,
-    handleSaveDraft
+    handleSaveDraft,
+    handleUpdateGroup,
+    handleRetryAnalysis
   };
 };

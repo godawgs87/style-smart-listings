@@ -1,11 +1,11 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Grid, List } from 'lucide-react';
 import ReviewDashboardHeader from './components/ReviewDashboardHeader';
-import ReviewDashboardItem from './components/ReviewDashboardItem';
+import ImprovedReviewDashboardItem from './components/ImprovedReviewDashboardItem';
 import QuickReviewInterface from './components/QuickReviewInterface';
+import EnhancedPreviewDialog from './components/EnhancedPreviewDialog';
 import type { PhotoGroup } from './BulkUploadManager';
 
 interface BulkReviewDashboardProps {
@@ -16,6 +16,8 @@ interface BulkReviewDashboardProps {
   onPostAll: () => void;
   onReviewAll: () => void;
   onSaveDraft: () => void;
+  onUpdateGroup?: (updatedGroup: PhotoGroup) => void;
+  onRetryAnalysis?: (groupId: string) => void;
 }
 
 const BulkReviewDashboard = ({
@@ -25,10 +27,29 @@ const BulkReviewDashboard = ({
   onPostItem,
   onPostAll,
   onReviewAll,
-  onSaveDraft
+  onSaveDraft,
+  onUpdateGroup,
+  onRetryAnalysis
 }: BulkReviewDashboardProps) => {
   const [viewMode, setViewMode] = useState<'dashboard' | 'quick'>('dashboard');
   const [quickReviewIndex, setQuickReviewIndex] = useState(0);
+  const [previewGroup, setPreviewGroup] = useState<PhotoGroup | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
+  const handlePreviewClick = (groupId: string) => {
+    const group = photoGroups.find(g => g.id === groupId);
+    if (group) {
+      setPreviewGroup(group);
+      setIsPreviewOpen(true);
+    }
+  };
+
+  const handlePreviewSave = (updatedGroup: PhotoGroup) => {
+    if (onUpdateGroup) {
+      onUpdateGroup(updatedGroup);
+    }
+    setIsPreviewOpen(false);
+  };
 
   const handleQuickReviewNext = () => {
     if (quickReviewIndex < photoGroups.length - 1) {
@@ -73,7 +94,7 @@ const BulkReviewDashboard = ({
   }
 
   return (
-    <div className="w-full max-w-6xl mx-auto p-3 md:p-6 space-y-4 md:space-y-6">
+    <div className="w-full max-w-6xl mx-auto p-4 space-y-6">
       <ReviewDashboardHeader
         photoGroups={photoGroups}
         onPostAll={onPostAll}
@@ -81,17 +102,18 @@ const BulkReviewDashboard = ({
         onSaveDraft={onSaveDraft}
       />
       
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <ToggleGroup 
           type="single" 
           value={viewMode} 
           onValueChange={(value) => value && setViewMode(value as 'dashboard' | 'quick')}
+          className="w-full sm:w-auto"
         >
-          <ToggleGroupItem value="dashboard">
+          <ToggleGroupItem value="dashboard" className="flex-1 sm:flex-none">
             <Grid className="w-4 h-4 mr-2" />
-            Dashboard View
+            Dashboard
           </ToggleGroupItem>
-          <ToggleGroupItem value="quick">
+          <ToggleGroupItem value="quick" className="flex-1 sm:flex-none">
             <List className="w-4 h-4 mr-2" />
             Quick Review
           </ToggleGroupItem>
@@ -103,23 +125,31 @@ const BulkReviewDashboard = ({
             setViewMode('quick');
             setQuickReviewIndex(0);
           }}
-          className="text-sm"
+          className="w-full sm:w-auto"
         >
           Start Quick Review
         </Button>
       </div>
       
-      <div className="space-y-3 md:space-y-4">
+      <div className="space-y-4">
         {photoGroups.map((group) => (
-          <ReviewDashboardItem
+          <ImprovedReviewDashboardItem
             key={group.id}
             group={group}
             onEditItem={onEditItem}
-            onPreviewItem={onPreviewItem}
+            onPreviewItem={handlePreviewClick}
             onPostItem={onPostItem}
+            onRetryAnalysis={onRetryAnalysis}
           />
         ))}
       </div>
+
+      <EnhancedPreviewDialog
+        group={previewGroup}
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        onSave={handlePreviewSave}
+      />
     </div>
   );
 };

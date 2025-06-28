@@ -93,7 +93,9 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
     handleIndividualReviewApprove,
     handleIndividualReviewReject,
     handleIndividualSaveDraft,
-    handleShippingComplete
+    handleShippingComplete,
+    handleUpdateGroup,
+    handleRetryAnalysis
   } = useBulkUploadHandlers(
     photos,
     photoGroups,
@@ -111,7 +113,7 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto p-3 md:p-6 space-y-4 md:space-y-6">
+    <div className="w-full max-w-6xl mx-auto p-4 space-y-6">
       <div className="text-center">
         <h1 className="text-2xl md:text-3xl font-bold mb-2">Bulk Upload Manager</h1>
         <p className="text-gray-600 text-sm md:text-base">Upload multiple items at once for efficient listing creation</p>
@@ -168,6 +170,8 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
           onPostAll={handlePostAll}
           onReviewAll={handleReviewAll}
           onSaveDraft={handleSaveDraft}
+          onUpdateGroup={handleUpdateGroup}
+          onRetryAnalysis={handleRetryAnalysis}
         />
       )}
 
