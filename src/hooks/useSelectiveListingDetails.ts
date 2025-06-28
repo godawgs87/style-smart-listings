@@ -94,15 +94,22 @@ export const useSelectiveListingDetails = () => {
         return { details: null, error: error.message };
       }
 
-      if (!data) {
+      if (!data || typeof data !== 'object') {
         console.error('❌ No data returned for listing:', listingId);
         return { details: null, error: 'No data found' };
       }
 
       // Transform to match Listing interface with proper type safety
       const transformedDetails: Partial<Listing> = {
-        ...data,
+        id: data.id,
+        title: data.title || '',
         price: typeof data.price === 'number' ? data.price : Number(data.price) || 0,
+        status: data.status || null,
+        category: data.category || null,
+        condition: data.condition || null,
+        created_at: data.created_at || new Date().toISOString(),
+        updated_at: data.updated_at || new Date().toISOString(),
+        user_id: data.user_id || '',
         measurements: data.measurements && typeof data.measurements === 'object' 
           ? data.measurements as { length?: string; width?: string; height?: string; weight?: string; }
           : {},
@@ -111,6 +118,22 @@ export const useSelectiveListingDetails = () => {
         shipping_cost: data.shipping_cost !== null && data.shipping_cost !== undefined 
           ? Number(data.shipping_cost) 
           : null,
+        description: data.description || null,
+        purchase_price: data.purchase_price ? Number(data.purchase_price) : null,
+        net_profit: data.net_profit ? Number(data.net_profit) : null,
+        profit_margin: data.profit_margin ? Number(data.profit_margin) : null,
+        purchase_date: data.purchase_date || null,
+        is_consignment: data.is_consignment || false,
+        consignment_percentage: data.consignment_percentage ? Number(data.consignment_percentage) : null,
+        consignor_name: data.consignor_name || null,
+        consignor_contact: data.consignor_contact || null,
+        source_type: data.source_type || null,
+        source_location: data.source_location || null,
+        cost_basis: data.cost_basis ? Number(data.cost_basis) : null,
+        days_to_sell: data.days_to_sell ? Number(data.days_to_sell) : null,
+        listed_date: data.listed_date || null,
+        sold_date: data.sold_date || null,
+        performance_notes: data.performance_notes || null,
       };
 
       console.log('✅ Successfully fetched selective listing details');
