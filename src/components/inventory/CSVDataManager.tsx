@@ -96,7 +96,7 @@ const CSVDataManager = ({ listings, onImportComplete }: CSVDataManagerProps) => 
         throw new Error('No authenticated user');
       }
 
-      // Import valid rows
+      // Import valid rows in batches
       let successCount = 0;
       const batchSize = 10;
       
@@ -105,8 +105,33 @@ const CSVDataManager = ({ listings, onImportComplete }: CSVDataManagerProps) => 
         const listingsToInsert = batch.map(row => {
           const listing = convertCSVRowToListing(row);
           return {
-            ...listing,
             user_id: user.id,
+            title: listing.title || 'Untitled',
+            price: listing.price || 0,
+            description: listing.description,
+            category: listing.category,
+            condition: listing.condition,
+            status: listing.status || 'draft',
+            purchase_price: listing.purchase_price,
+            purchase_date: listing.purchase_date,
+            cost_basis: listing.cost_basis,
+            net_profit: listing.net_profit,
+            profit_margin: listing.profit_margin,
+            shipping_cost: listing.shipping_cost,
+            is_consignment: listing.is_consignment || false,
+            consignment_percentage: listing.consignment_percentage,
+            consignor_name: listing.consignor_name,
+            consignor_contact: listing.consignor_contact,
+            source_type: listing.source_type,
+            source_location: listing.source_location,
+            listed_date: listing.listed_date,
+            sold_date: listing.sold_date,
+            sold_price: listing.sold_price,
+            days_to_sell: listing.days_to_sell,
+            performance_notes: listing.performance_notes,
+            keywords: listing.keywords,
+            photos: listing.photos,
+            measurements: listing.measurements,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           };
