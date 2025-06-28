@@ -8,6 +8,7 @@ import BulkConsignmentOptions from './components/BulkConsignmentOptions';
 import BulkShippingOptions from './components/BulkShippingOptions';
 import EditableListingForm from '../create-listing/EditableListingForm';
 import type { PhotoGroup } from './BulkUploadManager';
+import type { ListingData } from '@/types/CreateListing';
 
 interface IndividualItemReviewProps {
   group: PhotoGroup;
@@ -39,7 +40,7 @@ const IndividualItemReview = ({
     setEditedGroup(group);
   }, [group]);
 
-  const handleListingDataUpdate = (updates: any) => {
+  const handleListingDataUpdate = (updates: Partial<ListingData>) => {
     console.log('📝 IndividualItemReview - Updating listing data:', updates);
     setEditedGroup(prev => ({
       ...prev,
@@ -69,7 +70,7 @@ const IndividualItemReview = ({
         id: option.id,
         name: option.name,
         cost: option.cost,
-        estimatedDays: option.days
+        estimatedDays: option.estimatedDays || option.days || '3-5 business days'
       }
     }));
   };
@@ -111,6 +112,21 @@ const IndividualItemReview = ({
     };
   };
 
+  // Ensure we have the required ListingData structure
+  const ensureListingData = (): ListingData => {
+    const baseData = editedGroup.listingData || {};
+    return {
+      title: baseData.title || '',
+      description: baseData.description || '',
+      price: baseData.price || 0,
+      category: baseData.category || '',
+      condition: baseData.condition || '',
+      measurements: baseData.measurements || {},
+      photos: baseData.photos || [],
+      ...baseData
+    };
+  };
+
   console.log('🔍 IndividualItemReview - Current group:', editedGroup);
 
   return (
@@ -127,7 +143,7 @@ const IndividualItemReview = ({
           <Card>
             <CardContent className="p-4 md:p-6">
               <EditableListingForm
-                listingData={editedGroup.listingData || {}}
+                listingData={ensureListingData()}
                 onUpdate={handleListingDataUpdate}
                 onEdit={() => {}} // Not used in bulk context
                 onExport={() => {}} // Not used in bulk context
