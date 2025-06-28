@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import Index from '@/pages/Index';
 import CreateListing from '@/pages/CreateListing';
 import DataManagement from '@/pages/DataManagement';
+import SimpleInventoryPage from '@/pages/SimpleInventoryPage';
 import AuthForm from '@/components/AuthForm';
 import LoadingState from '@/components/LoadingState';
 import SafeErrorBoundary from '@/components/SafeErrorBoundary';
@@ -32,6 +33,7 @@ const App = () => {
         <div className="min-h-screen bg-gray-50">
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/inventory" element={<SimpleInventoryPage />} />
             <Route path="/create" element={<CreateListing onBack={() => window.location.href = '/'} onViewListings={() => window.location.href = '/inventory'} />} />
             <Route path="/data-management" element={<DataManagement onBack={() => window.location.href = '/'} onNavigate={(view) => window.location.href = `/${view}`} />} />
             <Route path="*" element={<Index />} />
