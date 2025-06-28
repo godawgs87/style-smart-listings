@@ -28,6 +28,8 @@ export const useListingSave = () => {
         return { success: false, listingId: null };
       }
 
+      console.log('💰 Saving listing with shipping cost:', shippingCost, typeof shippingCost);
+
       // Ensure all required fields have valid values
       const processedData = {
         title: listingData.title?.trim() || 'Untitled Listing',
@@ -47,10 +49,12 @@ export const useListingSave = () => {
         source_location: listingData.source_location?.trim() || null,
         source_type: listingData.source_type || null,
         price_research: listingData.priceResearch?.trim() || null,
-        shipping_cost: Number(shippingCost) || 0,
+        shipping_cost: Number(shippingCost), // Ensure it's always a number, including 0
         status: status,
         user_id: user.id
       };
+
+      console.log('💰 Final shipping_cost being saved:', processedData.shipping_cost, typeof processedData.shipping_cost);
 
       // Calculate financial metrics
       const costBasis = processedData.purchase_price || 0;
