@@ -156,6 +156,7 @@ const OptimisticInventoryTable = ({
           onSelectListing={onSelectListing}
           onSelectAll={onSelectAll}
           onDeleteListing={handleOptimisticDelete}
+          onUpdateListing={onUpdateListing}
           onPreviewListing={onPreviewListing}
           onEditListing={onEditListing}
           onDuplicateListing={onDuplicateListing}
