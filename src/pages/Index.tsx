@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -14,7 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const Index = () => {
-  const [currentView, setCurrentView] = useState<'dashboard' | 'create' | 'listings' | 'inventory' | 'active-listings'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'create' | 'inventory' | 'active-listings'>('dashboard');
   const [pageLoading, setPageLoading] = useState(false);
   const { user, loading } = useAuth();
   const isMobile = useIsMobile();
@@ -22,8 +21,8 @@ const Index = () => {
   // Handle URL-based navigation
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const view = urlParams.get('view') as 'dashboard' | 'create' | 'listings' | 'inventory' | 'active-listings';
-    if (view && ['dashboard', 'create', 'listings', 'inventory', 'active-listings'].includes(view)) {
+    const view = urlParams.get('view') as 'dashboard' | 'create' | 'inventory' | 'active-listings';
+    if (view && ['dashboard', 'create', 'inventory', 'active-listings'].includes(view)) {
       setCurrentView(view);
       // Clean up URL
       window.history.replaceState({}, '', '/');
@@ -40,7 +39,7 @@ const Index = () => {
     window.location.href = '/active-listings';
   };
 
-  const handleNavigation = (view: 'dashboard' | 'create' | 'listings' | 'inventory' | 'active-listings') => {
+  const handleNavigation = (view: 'dashboard' | 'create' | 'inventory' | 'active-listings') => {
     if (view === 'inventory') {
       handleInventoryClick();
     } else if (view === 'active-listings') {
@@ -70,7 +69,7 @@ const Index = () => {
     return (
       <CreateListing 
         onBack={() => handleNavigation('dashboard')}
-        onViewListings={() => handleNavigation('listings')}
+        onViewListings={handleInventoryClick}
       />
     );
   }

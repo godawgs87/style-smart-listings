@@ -34,6 +34,10 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
     handleShippingSelect
   } = useCreateListingState();
 
+  const handleViewInventory = () => {
+    window.location.href = '/inventory';
+  };
+
   const {
     handleAnalyze,
     handleExport,
@@ -49,7 +53,7 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
     setDraftId,
     setIsAutoSaving,
     setCurrentStep,
-    onViewListings
+    onViewListings: handleViewInventory
   });
 
   const handleEdit = () => {
