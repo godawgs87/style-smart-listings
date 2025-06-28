@@ -105,7 +105,7 @@ const ListingDetailView = ({ listingId, onBack, onDuplicated, onDeleted }: Listi
             condition: listing.condition || '',
             measurements: listing.measurements || {},
             keywords: listing.keywords || [],
-            shipping_cost: listing.shipping_cost || 0, // Fixed property name
+            shippingCost: listing.shipping_cost || 0, // Fixed to use camelCase
             photos: listing.photos || [],
             priceResearch: listing.price_research || ''
           }}
