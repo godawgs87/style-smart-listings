@@ -2,11 +2,11 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Camera, List, Settings, ArrowLeft, Package, Home, Plus, Loader2 } from 'lucide-react';
+import { Camera, List, Settings, ArrowLeft, Package, Home, Plus, Loader2, BarChart3 } from 'lucide-react';
 
 interface EnhancedMobileNavigationProps {
   currentView: string;
-  onNavigate: (view: 'dashboard' | 'create' | 'listings' | 'inventory') => void;
+  onNavigate: (view: 'dashboard' | 'create' | 'listings' | 'inventory' | 'active-listings') => void;
   showBack?: boolean;
   onBack?: () => void;
   title?: string;
@@ -78,6 +78,12 @@ const EnhancedMobileNavigation = ({
       primary: true
     },
     {
+      view: 'active-listings',
+      icon: BarChart3,
+      label: 'Sales',
+      action: () => onNavigate('active-listings')
+    },
+    {
       view: 'inventory',
       icon: Package,
       label: 'Inventory',
@@ -103,14 +109,14 @@ const EnhancedMobileNavigation = ({
               size="sm"
               onClick={action}
               disabled={loading}
-              className={`flex flex-col items-center p-3 min-h-16 min-w-16 ${
+              className={`flex flex-col items-center p-2 min-h-14 min-w-14 ${
                 primary ? 'bg-blue-600 hover:bg-blue-700 text-white' : ''
               }`}
             >
               {loading && currentView === view ? (
-                <Loader2 className="w-5 h-5 mb-1 animate-spin" />
+                <Loader2 className="w-4 h-4 mb-1 animate-spin" />
               ) : (
-                <Icon className="w-5 h-5 mb-1" />
+                <Icon className="w-4 h-4 mb-1" />
               )}
               <span className="text-xs">{label}</span>
             </Button>
@@ -118,7 +124,7 @@ const EnhancedMobileNavigation = ({
             {notification && notification > 0 && (
               <Badge 
                 variant="destructive" 
-                className="absolute -top-1 -right-1 px-1 py-0 text-xs h-5 min-w-5 flex items-center justify-center"
+                className="absolute -top-1 -right-1 px-1 py-0 text-xs h-4 min-w-4 flex items-center justify-center"
               >
                 {notification > 99 ? '99+' : notification}
               </Badge>
@@ -131,9 +137,9 @@ const EnhancedMobileNavigation = ({
           size="sm"
           onClick={handleAdminClick}
           disabled={loading}
-          className="flex flex-col items-center p-3 min-h-16 min-w-16"
+          className="flex flex-col items-center p-2 min-h-14 min-w-14"
         >
-          <Settings className="w-5 h-5 mb-1" />
+          <Settings className="w-4 h-4 mb-1" />
           <span className="text-xs">Settings</span>
         </Button>
       </div>
