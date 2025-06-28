@@ -3,14 +3,15 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
 import { useUnifiedInventory } from '@/hooks/useUnifiedInventory';
 import { useListingOperations } from '@/hooks/useListingOperations';
+import { Button } from '@/components/ui/button';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
 import MobileNavigation from '@/components/MobileNavigation';
 import ListingsManagerControls from '@/components/ListingsManagerControls';
 import ListingsLoadingState from '@/components/ListingsLoadingState';
-import ListingsManagerHeader from '@/components/listings-manager/ListingsManagerHeader';
 import ListingsManagerFilters from '@/components/listings-manager/ListingsManagerFilters';
 import ListingsManagerContent from '@/components/listings-manager/ListingsManagerContent';
 import InventoryStats from '@/components/inventory/InventoryStats';
+import PageInfoDialog from '@/components/PageInfoDialog';
 
 interface ListingsManagerProps {
   onBack: () => void;
