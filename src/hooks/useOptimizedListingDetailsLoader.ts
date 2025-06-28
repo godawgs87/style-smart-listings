@@ -28,6 +28,10 @@ export const useOptimizedListingDetailsLoader = (
 
   useEffect(() => {
     const loadListingDetails = async () => {
+      console.log('🔍 useOptimizedListingDetailsLoader - Loading details for:', listing.id);
+      console.log('🔍 Visible columns:', visibleColumns);
+      console.log('🔍 Base listing photos:', listing.photos);
+      
       // Check if we need any additional details beyond what's in the base listing
       const needsDetails = 
         visibleColumns.image || 
@@ -46,12 +50,20 @@ export const useOptimizedListingDetailsLoader = (
         visibleColumns.performanceNotes;
       
       if (needsDetails) {
+        console.log('🔍 Loading additional details...');
         const details = await loadDetails(listing.id);
         
         if (details) {
           const mergedListing = { ...listing, ...details };
+          console.log('🔍 Merged listing photos:', mergedListing.photos);
           setDetailedListing(mergedListing);
+        } else {
+          console.log('🔍 No additional details loaded, using base listing');
+          setDetailedListing(listing);
         }
+      } else {
+        console.log('🔍 No additional details needed, using base listing');
+        setDetailedListing(listing);
       }
     };
 
@@ -84,5 +96,6 @@ export const useOptimizedListingDetailsLoader = (
     // For now, just focusing on the current listing
   }, [prefetchDetails]);
 
+  console.log('🔍 useOptimizedListingDetailsLoader - Returning detailed listing with photos:', detailedListing?.photos);
   return { detailedListing, isLoading };
 };

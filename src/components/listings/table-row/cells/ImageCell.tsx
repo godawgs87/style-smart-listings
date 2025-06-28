@@ -10,6 +10,8 @@ interface ImageCellProps {
 }
 
 const ImageCell = ({ photos, title, listingId }: ImageCellProps) => {
+  console.log('🖼️ ImageCell - Photos:', photos, 'for listing:', listingId);
+  
   return (
     <TableCell className="sticky left-12 bg-white z-10 border-r">
       <ListingImagePreview 

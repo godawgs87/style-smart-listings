@@ -1,8 +1,5 @@
 
 import React from 'react';
-import { TableRow, TableCell } from '@/components/ui/table';
-import { Checkbox } from '@/components/ui/checkbox';
-import ListingImagePreview from '@/components/ListingImagePreview';
 import ImageCell from './cells/ImageCell';
 import TitleCell from './cells/TitleCell';
 import PriceCell from './cells/PriceCell';
@@ -55,11 +52,18 @@ interface ListingsTableRowDisplayProps {
 const ListingsTableRowDisplay = ({ listing, index, visibleColumns }: ListingsTableRowDisplayProps) => {
   const { detailedListing, isLoading } = useOptimizedListingDetailsLoader(listing, visibleColumns);
 
+  console.log('📋 ListingsTableRowDisplay - Base listing photos:', listing.photos);
+  console.log('📋 ListingsTableRowDisplay - Detailed listing photos:', detailedListing?.photos);
+  
+  // Always prioritize detailed listing photos, but fallback to base listing photos
+  const photosToUse = detailedListing?.photos || listing.photos;
+  console.log('📋 ListingsTableRowDisplay - Photos to use:', photosToUse);
+
   return (
     <>
       {visibleColumns.image && (
         <ImageCell 
-          photos={detailedListing.photos || listing.photos}
+          photos={photosToUse}
           title={listing.title}
           listingId={listing.id}
         />
@@ -68,7 +72,7 @@ const ListingsTableRowDisplay = ({ listing, index, visibleColumns }: ListingsTab
       {visibleColumns.title && (
         <TitleCell 
           title={listing.title}
-          description={detailedListing.description || listing.description}
+          description={detailedListing?.description || listing.description}
         />
       )}
 
@@ -96,7 +100,7 @@ const ListingsTableRowDisplay = ({ listing, index, visibleColumns }: ListingsTab
         isLoading ? (
           <LoadingCell />
         ) : (
-          <MeasurementsCell measurements={detailedListing.measurements || listing.measurements} />
+          <MeasurementsCell measurements={detailedListing?.measurements || listing.measurements} />
         )
       )}
 
@@ -104,7 +108,7 @@ const ListingsTableRowDisplay = ({ listing, index, visibleColumns }: ListingsTab
         isLoading ? (
           <LoadingCell />
         ) : (
-          <KeywordsCell keywords={detailedListing.keywords || listing.keywords} />
+          <KeywordsCell keywords={detailedListing?.keywords || listing.keywords} />
         )
       )}
 
@@ -112,7 +116,7 @@ const ListingsTableRowDisplay = ({ listing, index, visibleColumns }: ListingsTab
         isLoading ? (
           <LoadingCell />
         ) : (
-          <DescriptionCell description={detailedListing.description || listing.description} />
+          <DescriptionCell description={detailedListing?.description || listing.description} />
         )
       )}
 
