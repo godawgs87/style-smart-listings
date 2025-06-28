@@ -73,7 +73,11 @@ export const useBulkUploadHandlers = (
         const listingData = await analyzePhotos(group.photos);
         
         if (listingData) {
-          const weight = listingData.measurements?.weight || 1;
+          // Ensure weight is a number for shipping calculation
+          const weight = typeof listingData.measurements?.weight === 'string' 
+            ? parseFloat(listingData.measurements.weight) || 1 
+            : listingData.measurements?.weight || 1;
+          
           const shippingOptions = generateShippingOptions(weight);
           
           const result = {

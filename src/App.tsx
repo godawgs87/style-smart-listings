@@ -34,6 +34,14 @@ const App = () => {
     }
   };
 
+  const handleCreateListing = () => {
+    setCurrentView('create');
+  };
+
+  const handleViewListings = () => {
+    window.location.href = '/inventory';
+  };
+
   useEffect(() => {
     if (window.location.pathname === '/create') {
       setCurrentView('create');
@@ -58,7 +66,10 @@ const App = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {currentView === 'dashboard' && (
-        <Dashboard />
+        <Dashboard 
+          onCreateListing={handleCreateListing}
+          onViewListings={handleViewListings}
+        />
       )}
       {currentView === 'create' && (
         <CreateListing 
