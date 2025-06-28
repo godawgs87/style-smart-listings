@@ -1,4 +1,3 @@
-
 import type { Listing } from '@/types/Listing';
 
 export const exportListingsToCSV = (listings: Listing[]): string => {
@@ -33,6 +32,10 @@ export const exportListingsToCSV = (listings: Listing[]): string => {
     'Measurements Width',
     'Measurements Height',
     'Measurements Weight',
+    'Clothing Size',
+    'Shoe Size',
+    'Gender',
+    'Age Group',
     'Created At',
     'Updated At'
   ];
@@ -71,6 +74,10 @@ export const exportListingsToCSV = (listings: Listing[]): string => {
       listing.measurements?.width || '',
       listing.measurements?.height || '',
       listing.measurements?.weight || '',
+      `"${listing.clothing_size || ''}"`,
+      `"${listing.shoe_size || ''}"`,
+      `"${listing.gender || ''}"`,
+      `"${listing.age_group || ''}"`,
       listing.created_at,
       listing.updated_at
     ];
@@ -173,6 +180,16 @@ export const validateCSVRow = (row: CSVImportRow, rowIndex: number): { isValid: 
     errors.push(`Row ${rowIndex + 1}: Consignment percentage must be between 0 and 100`);
   }
   
+  // Gender validation
+  if (row.Gender && !['Men', 'Women', 'Kids', 'Unisex'].includes(row.Gender)) {
+    errors.push(`Row ${rowIndex + 1}: Gender must be one of: Men, Women, Kids, Unisex`);
+  }
+  
+  // Age Group validation
+  if (row['Age Group'] && !['Adult', 'Youth', 'Toddler', 'Baby'].includes(row['Age Group'])) {
+    errors.push(`Row ${rowIndex + 1}: Age Group must be one of: Adult, Youth, Toddler, Baby`);
+  }
+  
   // Date validation
   if (row['Purchase Date'] && row['Purchase Date'].trim() !== '' && isNaN(Date.parse(row['Purchase Date']))) {
     errors.push(`Row ${rowIndex + 1}: Invalid purchase date format`);
@@ -216,6 +233,10 @@ export const convertCSVRowToListing = (row: CSVImportRow): Partial<Listing> => {
       width: row['Measurements Width']?.trim() || undefined,
       height: row['Measurements Height']?.trim() || undefined,
       weight: row['Measurements Weight']?.trim() || undefined,
-    }
+    },
+    clothing_size: row['Clothing Size']?.trim() || null,
+    shoe_size: row['Shoe Size']?.trim() || null,
+    gender: row.Gender?.trim() as 'Men' | 'Women' | 'Kids' | 'Unisex' || null,
+    age_group: row['Age Group']?.trim() as 'Adult' | 'Youth' | 'Toddler' | 'Baby' || null
   };
 };

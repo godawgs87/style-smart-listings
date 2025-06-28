@@ -10,6 +10,7 @@ import ListingsManagerControls from '@/components/ListingsManagerControls';
 import ListingsLoadingState from '@/components/ListingsLoadingState';
 import ListingsManagerFilters from '@/components/listings-manager/ListingsManagerFilters';
 import ListingsManagerContent from '@/components/listings-manager/ListingsManagerContent';
+import DataManagementSection from '@/components/listings-manager/DataManagementSection';
 
 interface ListingsManagerProps {
   onBack: () => void;
@@ -144,6 +145,11 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
             </p>
           </div>
         )}
+
+        <DataManagementSection 
+          listings={listings}
+          onDataUpdate={refetch}
+        />
 
         <ListingsManagerControls
           searchTerm={searchTerm}

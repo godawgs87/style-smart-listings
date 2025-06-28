@@ -51,7 +51,12 @@ export const useListingSave = () => {
         price_research: listingData.priceResearch?.trim() || null,
         shipping_cost: Number(shippingCost), // Ensure it's always a number, including 0
         status: status,
-        user_id: user.id
+        user_id: user.id,
+        // Add size fields
+        clothing_size: listingData.clothing_size?.trim() || null,
+        shoe_size: listingData.shoe_size?.trim() || null,
+        gender: listingData.gender || null,
+        age_group: listingData.age_group || null
       };
 
       console.log('💰 Final shipping_cost being saved:', processedData.shipping_cost, typeof processedData.shipping_cost);

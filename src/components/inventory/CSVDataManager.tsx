@@ -132,6 +132,10 @@ const CSVDataManager = ({ listings, onImportComplete }: CSVDataManagerProps) => 
             keywords: listing.keywords,
             photos: listing.photos,
             measurements: listing.measurements,
+            clothing_size: listing.clothing_size,
+            shoe_size: listing.shoe_size,
+            gender: listing.gender,
+            age_group: listing.age_group,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           };
@@ -198,7 +202,11 @@ const CSVDataManager = ({ listings, onImportComplete }: CSVDataManagerProps) => 
       'Measurements Length',
       'Measurements Width',
       'Measurements Height',
-      'Measurements Weight'
+      'Measurements Weight',
+      'Clothing Size',
+      'Shoe Size',
+      'Gender',
+      'Age Group'
     ];
     
     const templateRow = [
@@ -222,7 +230,11 @@ const CSVDataManager = ({ listings, onImportComplete }: CSVDataManagerProps) => 
       '10',
       '8',
       '2',
-      '1.5'
+      '1.5',
+      'L',
+      '9.5',
+      'Men',
+      'Adult'
     ];
 
     const csvContent = [templateHeaders.join(','), templateRow.join(',')].join('\n');

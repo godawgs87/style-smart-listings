@@ -14,7 +14,8 @@ import {
   Wrench,
   Laptop,
   Home,
-  Car
+  Car,
+  Shirt
 } from 'lucide-react';
 import { ListingData } from '@/types/CreateListing';
 
@@ -88,6 +89,62 @@ const ListingTemplates = ({ onSelectTemplate, onCreateTemplate }: ListingTemplat
         keywords: ['auto', 'car', 'truck', 'vehicle', 'parts'],
         features: ['Compatible with', 'OEM Quality', 'Easy Installation'],
         includes: ['Part', 'Hardware', 'Instructions']
+      }
+    },
+    {
+      id: '5',
+      name: 'Mens Clothing',
+      category: 'Clothing & Accessories',
+      icon: <Shirt className="w-5 h-5" />,
+      template: {
+        category: 'Clothing & Accessories',
+        condition: 'Like New',
+        gender: 'Men',
+        age_group: 'Adult',
+        keywords: ['clothing', 'mens', 'fashion', 'apparel'],
+        features: ['No stains', 'No tears', 'Like new condition'],
+        includes: ['Garment only'],
+        measurements: {
+          length: 'See size chart',
+          width: 'See size chart'
+        }
+      }
+    },
+    {
+      id: '6',
+      name: 'Womens Clothing',
+      category: 'Clothing & Accessories',
+      icon: <Shirt className="w-5 h-5" />,
+      template: {
+        category: 'Clothing & Accessories',
+        condition: 'Like New',
+        gender: 'Women',
+        age_group: 'Adult',
+        keywords: ['clothing', 'womens', 'fashion', 'apparel'],
+        features: ['No stains', 'No tears', 'Like new condition'],
+        includes: ['Garment only'],
+        measurements: {
+          length: 'See size chart',
+          width: 'See size chart'
+        }
+      }
+    },
+    {
+      id: '7',
+      name: 'Kids Clothing',
+      category: 'Clothing & Accessories',
+      icon: <Shirt className="w-5 h-5" />,
+      template: {
+        category: 'Clothing & Accessories',
+        condition: 'Good',
+        gender: 'Kids',
+        age_group: 'Youth',
+        keywords: ['clothing', 'kids', 'children', 'apparel'],
+        features: ['Gently used', 'No major wear', 'Clean'],
+        includes: ['Garment only'],
+        measurements: {
+          length: 'Age appropriate sizing'
+        }
       }
     }
   ]);
@@ -213,9 +270,21 @@ const ListingTemplates = ({ onSelectTemplate, onCreateTemplate }: ListingTemplat
                   {template.template.features?.slice(0, 2).join(', ')}
                   {(template.template.features?.length || 0) > 2 && '...'}
                 </div>
-                <div>
-                  <span className="font-medium">Condition:</span>{' '}
-                  {template.template.condition}
+                <div className="flex gap-2 text-xs">
+                  <span className="font-medium">Condition:</span>
+                  <Badge variant="outline" className="text-xs">
+                    {template.template.condition}
+                  </Badge>
+                  {template.template.gender && (
+                    <Badge variant="outline" className="text-xs">
+                      {template.template.gender}
+                    </Badge>
+                  )}
+                  {template.template.age_group && (
+                    <Badge variant="outline" className="text-xs">
+                      {template.template.age_group}
+                    </Badge>
+                  )}
                 </div>
               </div>
 
@@ -227,7 +296,7 @@ const ListingTemplates = ({ onSelectTemplate, onCreateTemplate }: ListingTemplat
         </div>
 
         <div className="text-center text-sm text-gray-500 mt-4">
-          Templates help you create consistent listings faster by pre-filling common fields and keywords.
+          Templates help you create consistent listings faster by pre-filling common fields, keywords, and size information.
         </div>
       </div>
     </Card>
