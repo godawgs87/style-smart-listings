@@ -14,6 +14,7 @@ export interface ListingData {
   source_location?: string;
   source_type?: string;
   category: string;
+  category_id?: string | null;
   condition: string;
   measurements: {
     length?: string;
@@ -36,7 +37,7 @@ export interface ListingData {
   features?: string[];
   includes?: string[];
   defects?: string[];
-  // New size fields
+  // Size fields
   clothing_size?: string;
   shoe_size?: string;
   gender?: 'Men' | 'Women' | 'Kids' | 'Unisex';

@@ -2,12 +2,14 @@
 import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import CategorySelector from '@/components/CategorySelector';
 
 interface EditableFieldsProps {
   editData: {
     title: string;
     price: number;
     category: string;
+    category_id?: string | null;
     condition: string;
     status: string;
     shipping_cost: number;
@@ -24,7 +26,8 @@ const EditableFields = ({ editData, onUpdate }: EditableFieldsProps) => {
       <Input
         value={editData.title}
         onChange={(e) => onUpdate('title', e.target.value)}
-        className="w-full"
+        className="w-full mb-2"
+        placeholder="Title"
       />
       
       <Input
@@ -32,11 +35,12 @@ const EditableFields = ({ editData, onUpdate }: EditableFieldsProps) => {
         step="0.01"
         value={editData.price}
         onChange={(e) => onUpdate('price', parseFloat(e.target.value) || 0)}
-        className="w-24"
+        className="w-24 mb-2"
+        placeholder="Price"
       />
 
       <Select value={editData.status} onValueChange={(value) => onUpdate('status', value)}>
-        <SelectTrigger className="w-24">
+        <SelectTrigger className="w-24 mb-2">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -47,15 +51,17 @@ const EditableFields = ({ editData, onUpdate }: EditableFieldsProps) => {
         </SelectContent>
       </Select>
 
-      <Input
-        value={editData.category}
-        onChange={(e) => onUpdate('category', e.target.value)}
-        className="w-32"
-        placeholder="Category"
-      />
+      <div className="mb-2">
+        <CategorySelector
+          value={editData.category_id || null}
+          onChange={(categoryId) => onUpdate('category_id', categoryId)}
+          placeholder="Select category"
+          className="w-48"
+        />
+      </div>
 
       <Select value={editData.condition} onValueChange={(value) => onUpdate('condition', value)}>
-        <SelectTrigger className="w-24">
+        <SelectTrigger className="w-24 mb-2">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -74,6 +80,7 @@ const EditableFields = ({ editData, onUpdate }: EditableFieldsProps) => {
         value={editData.shipping_cost}
         onChange={(e) => onUpdate('shipping_cost', parseFloat(e.target.value) || 0)}
         className="w-24"
+        placeholder="Shipping"
       />
     </>
   );
