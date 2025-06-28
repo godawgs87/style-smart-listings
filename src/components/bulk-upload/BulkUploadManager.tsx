@@ -4,10 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Upload, Grid3X3, CheckCircle, AlertTriangle, XCircle, Loader2 } from 'lucide-react';
+import { Upload, Grid3X3, CheckCircle, AlertTriangle, XCircle, Loader2, Truck } from 'lucide-react';
 import BulkPhotoUpload from './BulkPhotoUpload';
 import PhotoGroupingInterface from './PhotoGroupingInterface';
 import BulkProcessingStatus from './BulkProcessingStatus';
+import BulkShippingReview from './BulkShippingReview';
 
 export interface PhotoGroup {
   id: string;
@@ -16,6 +17,9 @@ export interface PhotoGroup {
   confidence: 'high' | 'medium' | 'low';
   status: 'pending' | 'processing' | 'completed' | 'error';
   aiSuggestion?: string;
+  listingData?: any;
+  shippingOptions?: any[];
+  selectedShipping?: any;
 }
 
 interface BulkUploadManagerProps {
@@ -24,7 +28,7 @@ interface BulkUploadManagerProps {
 }
 
 const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
-  const [currentStep, setCurrentStep] = useState<'upload' | 'grouping' | 'processing'>('upload');
+  const [currentStep, setCurrentStep] = useState<'upload' | 'grouping' | 'processing' | 'shipping'>('upload');
   const [photos, setPhotos] = useState<File[]>([]);
   const [photoGroups, setPhotoGroups] = useState<PhotoGroup[]>([]);
   const [isGrouping, setIsGrouping] = useState(false);
@@ -111,24 +115,42 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
         // Simulate processing each group
         await new Promise(resolve => setTimeout(resolve, 3000));
         
+        // Generate mock listing data with shipping options
+        const listingData = {
+          title: group.name,
+          category: 'Clothing',
+          condition: 'Used',
+          price: Math.floor(Math.random() * 50) + 10,
+          photos: group.photos.map(photo => URL.createObjectURL(photo)),
+          measurements: {
+            weight: Math.random() > 0.5 ? '6oz' : '1.2lb',
+            length: Math.floor(Math.random() * 10) + 20 + '"',
+            width: Math.floor(Math.random() * 8) + 15 + '"'
+          }
+        };
+
+        // Generate shipping options based on weight
+        const weight = listingData.measurements.weight;
+        const shippingOptions = generateShippingOptions(weight);
+        
         const result = {
           groupId: group.id,
           title: group.name,
           status: 'completed',
-          listingData: {
-            title: group.name,
-            category: 'Clothing',
-            condition: 'Used',
-            price: Math.floor(Math.random() * 50) + 10,
-            photos: group.photos.map(photo => URL.createObjectURL(photo))
-          }
+          listingData,
+          shippingOptions
         };
         
         results.push(result);
         
-        // Update group status to completed
+        // Update group with listing data and shipping options
         setPhotoGroups(prev => prev.map(g => 
-          g.id === group.id ? { ...g, status: 'completed' } : g
+          g.id === group.id ? { 
+            ...g, 
+            status: 'completed',
+            listingData,
+            shippingOptions
+          } : g
         ));
         
       } catch (error) {
@@ -140,6 +162,65 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
     }
     
     setProcessingResults(results);
+    // Automatically move to shipping review after processing
+    setTimeout(() => setCurrentStep('shipping'), 1000);
+  };
+
+  const generateShippingOptions = (weight: string) => {
+    const isLight = weight.includes('oz') || parseFloat(weight) < 1;
+    
+    if (isLight) {
+      return [
+        {
+          id: 'first-class',
+          name: 'USPS First Class',
+          cost: 4.50,
+          days: '1-3 business days',
+          recommended: true,
+          packaging: 'Padded envelope'
+        },
+        {
+          id: 'priority',
+          name: 'USPS Priority',
+          cost: 8.95,
+          days: '1-2 business days',
+          recommended: false,
+          packaging: 'Small box'
+        }
+      ];
+    } else {
+      return [
+        {
+          id: 'priority',
+          name: 'USPS Priority',
+          cost: 8.95,
+          days: '1-2 business days',
+          recommended: true,
+          packaging: 'Small box'
+        },
+        {
+          id: 'ups-ground',
+          name: 'UPS Ground',
+          cost: 7.25,
+          days: '2-5 business days',
+          recommended: false,
+          packaging: 'Small box'
+        }
+      ];
+    }
+  };
+
+  const handleShippingComplete = (groupsWithShipping: PhotoGroup[]) => {
+    setPhotoGroups(groupsWithShipping);
+    // Process final listings with shipping data
+    const finalResults = groupsWithShipping.map(group => ({
+      ...group,
+      finalListingData: {
+        ...group.listingData,
+        shipping_cost: group.selectedShipping?.cost || 0
+      }
+    }));
+    onComplete(finalResults);
   };
 
   const getStepIcon = (step: string) => {
@@ -147,6 +228,7 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
       case 'upload': return Upload;
       case 'grouping': return Grid3X3;
       case 'processing': return CheckCircle;
+      case 'shipping': return Truck;
       default: return Upload;
     }
   };
@@ -155,32 +237,33 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
     const steps = [
       { key: 'upload', label: 'Upload Photos', completed: photos.length > 0 },
       { key: 'grouping', label: 'Group Items', completed: photoGroups.length > 0 },
-      { key: 'processing', label: 'Process Groups', completed: processingResults.length > 0 }
+      { key: 'processing', label: 'Process Groups', completed: processingResults.length > 0 },
+      { key: 'shipping', label: 'Review Shipping', completed: photoGroups.every(g => g.selectedShipping) }
     ];
 
     return (
-      <div className="flex items-center justify-center space-x-8 mb-8">
+      <div className="flex items-center justify-center space-x-4 mb-8 overflow-x-auto">
         {steps.map((step, index) => {
           const Icon = getStepIcon(step.key);
           const isActive = currentStep === step.key;
           const isCompleted = step.completed;
           
           return (
-            <div key={step.key} className="flex items-center">
+            <div key={step.key} className="flex items-center flex-shrink-0">
               <div className={`flex items-center space-x-2 ${
                 isActive ? 'text-blue-600' : isCompleted ? 'text-green-600' : 'text-gray-400'
               }`}>
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${
                   isActive ? 'bg-blue-100 border-2 border-blue-600' : 
                   isCompleted ? 'bg-green-100 border-2 border-green-600' : 
                   'bg-gray-100 border-2 border-gray-300'
                 }`}>
-                  <Icon className="w-5 h-5" />
+                  <Icon className="w-4 h-4" />
                 </div>
-                <span className="font-medium">{step.label}</span>
+                <span className="font-medium text-sm">{step.label}</span>
               </div>
               {index < steps.length - 1 && (
-                <div className={`w-16 h-0.5 mx-4 ${
+                <div className={`w-8 h-0.5 mx-2 ${
                   isCompleted ? 'bg-green-600' : 'bg-gray-300'
                 }`} />
               )}
@@ -255,8 +338,16 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
         <BulkProcessingStatus
           photoGroups={photoGroups}
           results={processingResults}
-          onComplete={() => onComplete(processingResults)}
+          onComplete={() => setCurrentStep('shipping')}
           onBack={() => setCurrentStep('grouping')}
+        />
+      )}
+
+      {currentStep === 'shipping' && (
+        <BulkShippingReview
+          photoGroups={photoGroups}
+          onComplete={handleShippingComplete}
+          onBack={() => setCurrentStep('processing')}
         />
       )}
     </div>

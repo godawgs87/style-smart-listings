@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
@@ -22,7 +21,10 @@ const UnifiedInventoryManager = ({ onCreateListing, onBack }: UnifiedInventoryMa
   const isMobile = useIsMobile();
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [viewingListingId, setViewingListingId] = useState<string | null>(null);
-  
+  const [showDetailView, setShowDetailView] = useState(false);
+  const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
+  const [editingListing, setEditingListing] = useState<Listing | null>(null);
+
   const { listings, loading, error, stats, refetch, usingFallback } = useUnifiedInventory({
     limit: 25
   });
@@ -85,6 +87,11 @@ const UnifiedInventoryManager = ({ onCreateListing, onBack }: UnifiedInventoryMa
       refetch();
     }
     return result;
+  };
+
+  const handleViewDetails = (listing: Listing) => {
+    setSelectedListing(listing);
+    setShowDetailView(true);
   };
 
   // If viewing a specific listing, show the detail view
@@ -201,6 +208,17 @@ const UnifiedInventoryManager = ({ onCreateListing, onBack }: UnifiedInventoryMa
           showBack
           onBack={onBack}
           title="Inventory"
+        />
+      )}
+
+      {showDetailView && selectedListing && (
+        <ListingDetailView
+          listing={selectedListing}
+          onClose={() => setShowDetailView(false)}
+          onEdit={() => {
+            setEditingListing(selectedListing);
+            setShowDetailView(false);
+          }}
         />
       )}
     </div>

@@ -162,6 +162,13 @@ const ListingsTableRowEdit = ({ listing, visibleColumns, onSave, onCancel }: Lis
         updates.age_group = editData.age_group as 'Adult' | 'Youth' | 'Toddler' | 'Baby';
       }
       
+      // Remove empty string values for optional fields
+      Object.keys(updates).forEach(key => {
+        if (updates[key] === '') {
+          updates[key] = null;
+        }
+      });
+      
       if (editData.measurements) {
         updates.measurements = editData.measurements;
       }
