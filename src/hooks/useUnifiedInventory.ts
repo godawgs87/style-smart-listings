@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -29,7 +30,6 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
 
     console.log('🔍 Fetching inventory for user:', user.id);
 
-    // Use full query to get all data for the listings manager
     let query = supabase
       .from('listings')
       .select('*')
@@ -58,21 +58,42 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
 
     console.log('✅ Fetched listings:', data?.length || 0);
 
+    // Transform data to match Listing type
     return (data || []).map(item => ({
-      ...item,
+      id: item.id,
+      user_id: item.user_id,
+      title: item.title,
+      description: item.description,
       price: Number(item.price) || 0,
+      category: item.category,
+      condition: item.condition,
+      status: item.status,
       shipping_cost: item.shipping_cost !== null ? Number(item.shipping_cost) : null,
       purchase_price: item.purchase_price !== null ? Number(item.purchase_price) : null,
+      purchase_date: item.purchase_date,
       cost_basis: item.cost_basis !== null ? Number(item.cost_basis) : null,
+      fees_paid: item.fees_paid !== null ? Number(item.fees_paid) : null,
       net_profit: item.net_profit !== null ? Number(item.net_profit) : null,
       profit_margin: item.profit_margin !== null ? Number(item.profit_margin) : null,
       sold_price: item.sold_price !== null ? Number(item.sold_price) : null,
       consignment_percentage: item.consignment_percentage !== null ? Number(item.consignment_percentage) : null,
+      is_consignment: item.is_consignment || false,
+      consignor_name: item.consignor_name,
+      consignor_contact: item.consignor_contact,
+      source_type: item.source_type,
+      source_location: item.source_location,
+      listed_date: item.listed_date,
+      sold_date: item.sold_date,
+      days_to_sell: item.days_to_sell,
+      performance_notes: item.performance_notes,
       measurements: (item.measurements && typeof item.measurements === 'object' && !Array.isArray(item.measurements)) 
         ? item.measurements as { length?: string; width?: string; height?: string; weight?: string; }
         : {},
       keywords: Array.isArray(item.keywords) ? item.keywords : [],
-      photos: Array.isArray(item.photos) ? item.photos : []
+      photos: Array.isArray(item.photos) ? item.photos : [],
+      price_research: item.price_research,
+      created_at: item.created_at,
+      updated_at: item.updated_at
     }));
   }, []);
 
@@ -83,11 +104,7 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
     setError(null);
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-
       const data = await fetchInventory(options);
-      clearTimeout(timeoutId);
       
       if (!mountedRef.current) return;
 
@@ -101,21 +118,7 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
       
       console.error('❌ Failed to fetch inventory:', err);
       
-      if (err.code === '57014' || err.message?.includes('timeout')) {
-        setError('Query timed out. Try using filters to reduce the data size.');
-        
-        if (cachedListings.length > 0) {
-          setListings(cachedListings);
-          setUsingFallback(true);
-          toast({
-            title: "Using Cached Data",
-            description: "Query timed out, showing cached data. Try filtering to reduce load.",
-            variant: "default"
-          });
-        }
-      } else if (err.message?.includes('AbortError')) {
-        setError('Request was canceled. Please try again.');
-      } else if (cachedListings.length > 0) {
+      if (cachedListings.length > 0) {
         setListings(cachedListings);
         setUsingFallback(true);
         toast({

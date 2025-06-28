@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
@@ -27,9 +28,6 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
   const isMobile = useIsMobile();
   const { user } = useAuth();
   
-  console.log('👤 Current user in ListingsManager:', user?.id);
-  console.log('🔍 Search filters:', { searchTerm, categoryFilter, conditionFilter, priceRangeFilter });
-  
   const { 
     listings, 
     loading, 
@@ -43,16 +41,10 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
     limit: 100
   });
 
-  console.log('📊 Listings Manager - Raw listings from hook:', listings.length);
-  console.log('📊 Listings Manager - Loading:', loading);
-  console.log('📊 Listings Manager - Error:', error);
-  console.log('📊 Listings Manager - Sample listing:', listings[0]);
-
   const { deleteListing, updateListing } = useListingOperations();
 
   const categories = useMemo(() => {
     const uniqueCategories = [...new Set(listings.map(l => l.category).filter(Boolean))];
-    console.log('📊 Unique categories found:', uniqueCategories);
     return uniqueCategories as string[];
   }, [listings]);
 
@@ -82,7 +74,6 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
       return matchesSearch && matchesCategory && matchesCondition && matchesPriceRange();
     });
     
-    console.log('📊 Filtered listings count:', filtered.length);
     return filtered;
   }, [listings, searchTerm, categoryFilter, conditionFilter, priceRangeFilter]);
 
@@ -104,7 +95,6 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
   };
 
   const handleDeleteListing = async (listingId: string) => {
-    console.log('Deleting listing:', listingId);
     await deleteListing(listingId);
     setSelectedListings(prev => prev.filter(id => id !== listingId));
     refetch();
