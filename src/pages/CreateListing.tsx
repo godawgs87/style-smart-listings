@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
 import { useCreateListingState } from '@/hooks/useCreateListingState';
@@ -8,6 +8,10 @@ import StreamlinedHeader from '@/components/StreamlinedHeader';
 import MobileNavigation from '@/components/MobileNavigation';
 import CreateListingContent from '@/components/create-listing/CreateListingContent';
 import CreateListingSteps from '@/components/create-listing/CreateListingSteps';
+import BulkUploadManager from '@/components/bulk-upload/BulkUploadManager';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Upload, Camera } from 'lucide-react';
 
 interface CreateListingProps {
   onBack: () => void;
@@ -17,6 +21,7 @@ interface CreateListingProps {
 const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
   const isMobile = useIsMobile();
   const { user } = useAuth();
+  const [uploadMode, setUploadMode] = useState<'single' | 'bulk' | null>(null);
   
   const {
     currentStep,
@@ -57,18 +62,28 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
   });
 
   const handleEdit = () => {
-    // This should navigate to shipping step when called from preview
     setCurrentStep('shipping');
   };
 
   const handleBack = () => {
-    if (currentStep === 'shipping') {
-      setCurrentStep('preview');
-    } else if (currentStep === 'preview') {
-      setCurrentStep('photos');
-    } else {
+    if (uploadMode === null) {
       onBack();
+    } else if (uploadMode === 'single') {
+      if (currentStep === 'shipping') {
+        setCurrentStep('preview');
+      } else if (currentStep === 'preview') {
+        setCurrentStep('photos');
+      } else {
+        setUploadMode(null);
+      }
+    } else {
+      setUploadMode(null);
     }
+  };
+
+  const handleBulkComplete = (results: any[]) => {
+    console.log('Bulk upload completed with results:', results);
+    onViewListings();
   };
 
   const getWeight = (): number => {
@@ -99,46 +114,106 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
   };
 
   const getBackButtonText = () => {
+    if (uploadMode === null) return 'Back to Dashboard';
+    if (uploadMode === 'bulk') return 'Back to Upload Mode';
     if (currentStep === 'shipping') return 'Back to Preview';
     if (currentStep === 'preview') return 'Back to Photos';
-    return 'Back to Dashboard';
+    return 'Back to Upload Mode';
+  };
+
+  const getTitle = () => {
+    if (uploadMode === null) return 'Create New Listing';
+    if (uploadMode === 'bulk') return 'Bulk Upload Manager';
+    return 'Create Single Listing';
   };
 
   return (
     <div className={`min-h-screen bg-gray-50 dark:bg-gray-900 ${isMobile ? 'pb-20' : ''}`}>
       <StreamlinedHeader
-        title="Create New Listing"
+        title={getTitle()}
         showBack
         onBack={handleBack}
       />
       
       <div className="max-w-4xl mx-auto p-4">
-        {!isMobile && (
-          <CreateListingSteps 
-            currentStep={currentStep} 
-            photos={photos}
-            listingData={listingData}
+        {uploadMode === null && (
+          <div className="space-y-6">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold mb-2">Choose Upload Method</h2>
+              <p className="text-gray-600">Select how you'd like to create your listings</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setUploadMode('single')}>
+                <CardHeader className="text-center">
+                  <Camera className="w-12 h-12 mx-auto text-blue-600 mb-4" />
+                  <CardTitle>Single Item Upload</CardTitle>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <p className="text-gray-600 mb-4">
+                    Create one listing at a time with detailed customization and AI assistance.
+                  </p>
+                  <Button className="w-full">
+                    Create Single Listing
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setUploadMode('bulk')}>
+                <CardHeader className="text-center">
+                  <Upload className="w-12 h-12 mx-auto text-green-600 mb-4" />
+                  <CardTitle>Bulk Upload</CardTitle>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <p className="text-gray-600 mb-4">
+                    Upload multiple items at once. AI will group photos and create listings automatically.
+                  </p>
+                  <Button variant="outline" className="w-full">
+                    Start Bulk Upload
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        )}
+
+        {uploadMode === 'single' && (
+          <>
+            {!isMobile && (
+              <CreateListingSteps 
+                currentStep={currentStep} 
+                photos={photos}
+                listingData={listingData}
+              />
+            )}
+            
+            <CreateListingContent
+              currentStep={currentStep}
+              photos={photos}
+              isAnalyzing={isAnalyzing}
+              listingData={listingData}
+              shippingCost={shippingCost}
+              isSaving={isSaving}
+              onPhotosChange={handlePhotosChange}
+              onAnalyze={handleAnalyze}
+              onEdit={handleEdit}
+              onExport={handleExport}
+              onShippingSelect={handleShippingSelect}
+              onListingDataChange={handleListingDataChange}
+              getWeight={getWeight}
+              getDimensions={getDimensions}
+              onBack={handleBack}
+              backButtonText={getBackButtonText()}
+            />
+          </>
+        )}
+
+        {uploadMode === 'bulk' && (
+          <BulkUploadManager
+            onComplete={handleBulkComplete}
+            onBack={() => setUploadMode(null)}
           />
         )}
-        
-        <CreateListingContent
-          currentStep={currentStep}
-          photos={photos}
-          isAnalyzing={isAnalyzing}
-          listingData={listingData}
-          shippingCost={shippingCost}
-          isSaving={isSaving}
-          onPhotosChange={handlePhotosChange}
-          onAnalyze={handleAnalyze}
-          onEdit={handleEdit}
-          onExport={handleExport}
-          onShippingSelect={handleShippingSelect}
-          onListingDataChange={handleListingDataChange}
-          getWeight={getWeight}
-          getDimensions={getDimensions}
-          onBack={handleBack}
-          backButtonText={getBackButtonText()}
-        />
       </div>
 
       {isMobile && (
@@ -147,7 +222,7 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
           onNavigate={() => {}}
           showBack
           onBack={handleBack}
-          title="Create Listing"
+          title={getTitle()}
         />
       )}
     </div>
