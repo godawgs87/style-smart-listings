@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from 'react';
-import { useSelectiveListingDetails } from '@/hooks/useSelectiveListingDetails';
+import { useImprovedListingDetailsCache } from '@/hooks/useImprovedListingDetailsCache';
 
 interface VisibleColumns {
   image: boolean;
@@ -23,7 +23,7 @@ export const useOptimizedListingDetailsLoader = (
   listing: any,
   visibleColumns: VisibleColumns
 ) => {
-  const { loadSelectiveDetails, isLoadingDetails } = useSelectiveListingDetails();
+  const { loadDetails, isLoadingDetails, prefetchDetails } = useImprovedListingDetailsCache();
   const [detailedListing, setDetailedListing] = useState<any>(listing);
 
   useEffect(() => {
@@ -46,7 +46,7 @@ export const useOptimizedListingDetailsLoader = (
         visibleColumns.performanceNotes;
       
       if (needsDetails) {
-        const details = await loadSelectiveDetails(listing.id, visibleColumns);
+        const details = await loadDetails(listing.id);
         
         if (details) {
           const mergedListing = { ...listing, ...details };
@@ -58,7 +58,7 @@ export const useOptimizedListingDetailsLoader = (
     loadListingDetails();
   }, [
     listing.id, 
-    loadSelectiveDetails, 
+    loadDetails, 
     // Include all visible column dependencies
     visibleColumns.image,
     visibleColumns.measurements,
@@ -77,6 +77,12 @@ export const useOptimizedListingDetailsLoader = (
   ]);
 
   const isLoading = isLoadingDetails(listing.id);
+
+  // Prefetch neighboring listings for better performance
+  useEffect(() => {
+    // This would be called from the parent component with surrounding listing IDs
+    // For now, just focusing on the current listing
+  }, [prefetchDetails]);
 
   return { detailedListing, isLoading };
 };

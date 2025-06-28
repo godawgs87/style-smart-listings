@@ -5,6 +5,7 @@ import ListingsTableEmpty from '../listings/table/ListingsTableEmpty';
 import OptimisticInventoryHeader from './OptimisticInventoryHeader';
 import OptimisticInventoryGrid from './OptimisticInventoryGrid';
 import OptimisticInventoryTableView from './OptimisticInventoryTableView';
+import VirtualizedInventoryTable from './VirtualizedInventoryTable';
 import type { Listing } from '@/types/Listing';
 
 interface OptimisticInventoryTableProps {
@@ -17,7 +18,10 @@ interface OptimisticInventoryTableProps {
   onPreviewListing?: (listing: Listing) => void;
   onEditListing?: (listing: Listing) => void;
   onDuplicateListing?: (listing: Listing) => Promise<Listing | null>;
+  useVirtualization?: boolean;
 }
+
+const VIRTUALIZATION_THRESHOLD = 50; // Use virtualization for 50+ items
 
 const OptimisticInventoryTable = ({
   listings,
@@ -28,7 +32,8 @@ const OptimisticInventoryTable = ({
   onDeleteListing,
   onPreviewListing,
   onEditListing,
-  onDuplicateListing
+  onDuplicateListing,
+  useVirtualization
 }: OptimisticInventoryTableProps) => {
   const [optimisticUpdates, setOptimisticUpdates] = useState<Map<string, 'deleting' | 'updating'>>(new Map());
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
@@ -60,6 +65,9 @@ const OptimisticInventoryTable = ({
   const visibleListings = useMemo(() => {
     return listings.filter(listing => !optimisticUpdates.has(listing.id) || optimisticUpdates.get(listing.id) !== 'deleting');
   }, [listings, optimisticUpdates]);
+
+  // Determine if we should use virtualization
+  const shouldUseVirtualization = useVirtualization ?? (visibleListings.length >= VIRTUALIZATION_THRESHOLD);
 
   const handleColumnToggle = (column: keyof typeof visibleColumns) => {
     setVisibleColumns(prev => ({
@@ -121,6 +129,23 @@ const OptimisticInventoryTable = ({
 
   if (visibleListings.length === 0) {
     return <ListingsTableEmpty />;
+  }
+
+  // Use virtualized table for large datasets
+  if (shouldUseVirtualization && viewMode === 'table') {
+    return (
+      <VirtualizedInventoryTable
+        listings={visibleListings}
+        selectedListings={selectedListings}
+        onSelectListing={onSelectListing}
+        onSelectAll={onSelectAll}
+        onUpdateListing={onUpdateListing}
+        onDeleteListing={handleOptimisticDelete}
+        onPreviewListing={onPreviewListing}
+        onEditListing={onEditListing}
+        onDuplicateListing={onDuplicateListing}
+      />
+    );
   }
 
   return (
