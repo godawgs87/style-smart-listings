@@ -3,7 +3,7 @@ import React, { useMemo } from 'react';
 import { FixedSizeList as List } from 'react-window';
 import { TableRow, TableCell } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
-import OptimizedTableRow from './table/OptimizedTableRow';
+import OptimisticTableRow from './table/OptimisticTableRow';
 import type { Listing } from '@/types/Listing';
 
 interface VirtualizedInventoryTableRowsProps {
