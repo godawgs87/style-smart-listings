@@ -94,16 +94,23 @@ export const useSelectiveListingDetails = () => {
         return { details: null, error: error.message };
       }
 
-      // Transform to match Listing interface
+      if (!data) {
+        console.error('❌ No data returned for listing:', listingId);
+        return { details: null, error: 'No data found' };
+      }
+
+      // Transform to match Listing interface with proper type safety
       const transformedDetails: Partial<Listing> = {
         ...data,
-        price: Number(data.price) || 0,
+        price: typeof data.price === 'number' ? data.price : Number(data.price) || 0,
         measurements: data.measurements && typeof data.measurements === 'object' 
           ? data.measurements as { length?: string; width?: string; height?: string; weight?: string; }
           : {},
         keywords: Array.isArray(data.keywords) ? data.keywords : [],
         photos: Array.isArray(data.photos) ? data.photos : [],
-        shipping_cost: data.shipping_cost !== null ? Number(data.shipping_cost) : null,
+        shipping_cost: data.shipping_cost !== null && data.shipping_cost !== undefined 
+          ? Number(data.shipping_cost) 
+          : null,
       };
 
       console.log('✅ Successfully fetched selective listing details');
