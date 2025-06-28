@@ -16,11 +16,12 @@ export const useListingDetails = () => {
     error?: string;
   }> => {
     try {
-      console.log('🔍 Fetching full details for listing:', listingId);
+      console.log('🔍 Fetching selective details for listing:', listingId);
       
+      // Use selective columns instead of * to avoid timeout
       const { data, error } = await supabase
         .from('listings')
-        .select('*')
+        .select('id, title, description, price, status, category, condition, shipping_cost, measurements, keywords, photos, price_research, created_at, updated_at, purchase_price, purchase_date, is_consignment, consignment_percentage, consignor_name, consignor_contact, source_location, source_type, cost_basis, fees_paid, listed_date, days_to_sell, performance_notes, sold_price, sold_date, net_profit, profit_margin, user_id')
         .eq('id', listingId)
         .single();
 
@@ -38,10 +39,10 @@ export const useListingDetails = () => {
           : {},
         keywords: Array.isArray(data.keywords) ? data.keywords : [],
         photos: Array.isArray(data.photos) ? data.photos : [],
-        shipping_cost: data.shipping_cost || null,
+        shipping_cost: data.shipping_cost ? Number(data.shipping_cost) : null,
       };
 
-      console.log('✅ Successfully fetched listing details');
+      console.log('✅ Successfully fetched selective listing details');
       return { details: transformedDetails };
 
     } catch (error: any) {
@@ -66,7 +67,7 @@ export const useListingDetails = () => {
       return null;
     }
 
-    console.log('🚀 Starting fresh load for:', listingId);
+    console.log('🚀 Starting selective load for:', listingId);
     setLoadingDetails(prev => new Set(prev).add(listingId));
 
     try {
@@ -78,7 +79,8 @@ export const useListingDetails = () => {
       }
 
       if (details) {
-        console.log('✅ Successfully loaded details for:', listingId);
+        console.log('✅ Successfully loaded selective details for:', listingId);
+        console.log('💰 Shipping cost in details:', details.shipping_cost);
         
         // Cache the details
         setDetailsCache(prev => new Map(prev).set(listingId, details));
