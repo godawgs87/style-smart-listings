@@ -2,6 +2,8 @@
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import InlineEditableField from './InlineEditableField';
 import CategorySelector from '@/components/CategorySelector';
 import { ListingData } from '@/types/CreateListing';
@@ -18,26 +20,20 @@ const BasicInformationSection = ({ listingData, onUpdate }: BasicInformationSect
       
       <div className="space-y-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Title
-          </label>
           <InlineEditableField
+            label="Title"
             value={listingData.title}
-            onSave={(value) => onUpdate({ title: value })}
+            onSave={(value) => onUpdate({ title: value as string })}
             className="text-lg font-medium"
-            placeholder="Enter listing title"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Description
-          </label>
           <InlineEditableField
+            label="Description"
             value={listingData.description}
-            onSave={(value) => onUpdate({ description: value })}
-            multiline
-            placeholder="Enter detailed description"
+            onSave={(value) => onUpdate({ description: value as string })}
+            type="textarea"
           />
         </div>
 
@@ -77,15 +73,12 @@ const BasicInformationSection = ({ listingData, onUpdate }: BasicInformationSect
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Price ($)
-          </label>
           <InlineEditableField
-            value={listingData.price?.toString() || ''}
-            onSave={(value) => onUpdate({ price: parseFloat(value) || 0 })}
+            label="Price ($)"
+            value={listingData.price || 0}
+            onSave={(value) => onUpdate({ price: parseFloat(value.toString()) || 0 })}
             type="number"
-            placeholder="0.00"
-            className="text-xl font-bold text-green-600"
+            displayClassName="text-xl font-bold text-green-600"
           />
         </div>
       </div>
