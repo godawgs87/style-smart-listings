@@ -4,7 +4,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Eye, Edit, Trash2, Copy } from 'lucide-react';
+import { Eye, Edit, Trash2, Copy, MoreVertical } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import ListingImagePreview from '../ListingImagePreview';
 import type { Listing } from '@/types/Listing';
 
@@ -68,7 +69,7 @@ const OptimisticInventoryTableView = ({
             {visibleColumns.category && <TableHead className="w-32">Category</TableHead>}
             {visibleColumns.condition && <TableHead className="w-24">Condition</TableHead>}
             {visibleColumns.shipping && <TableHead className="w-24">Shipping</TableHead>}
-            <TableHead className="w-32">Actions</TableHead>
+            <TableHead className="w-16">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -147,46 +148,40 @@ const OptimisticInventoryTableView = ({
                 )}
                 
                 <TableCell>
-                  <div className="flex items-center space-x-1">
-                    {onPreviewListing && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onPreviewListing(listing)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Eye className="w-4 h-4" />
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <MoreVertical className="w-4 h-4" />
                       </Button>
-                    )}
-                    {onEditListing && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onEditListing(listing)}
-                        className="h-8 w-8 p-0"
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="bg-white border shadow-lg z-50">
+                      {onPreviewListing && (
+                        <DropdownMenuItem onClick={() => onPreviewListing(listing)}>
+                          <Eye className="w-4 h-4 mr-2" />
+                          View
+                        </DropdownMenuItem>
+                      )}
+                      {onEditListing && (
+                        <DropdownMenuItem onClick={() => onEditListing(listing)}>
+                          <Edit className="w-4 h-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                      )}
+                      {onDuplicateListing && (
+                        <DropdownMenuItem onClick={() => onDuplicateListing(listing)}>
+                          <Copy className="w-4 h-4 mr-2" />
+                          Duplicate
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem 
+                        onClick={() => handleOptimisticDelete(listing.id)}
+                        className="text-red-600"
                       >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                    )}
-                    {onDuplicateListing && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onDuplicateListing(listing)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Copy className="w-4 h-4" />
-                      </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleOptimisticDelete(listing.id)}
-                      className="text-red-600 hover:text-red-700 h-8 w-8 p-0"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </TableCell>
               </TableRow>
             );

@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { Card } from '@/components/ui/card';
 import type { Listing } from '@/types/Listing';
 
 interface InventoryStatsProps {
@@ -16,23 +15,27 @@ const InventoryStats = ({ listings }: InventoryStatsProps) => {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-      <Card className="p-4">
-        <div className="text-2xl font-bold text-blue-600">{stats.totalItems}</div>
-        <div className="text-sm text-gray-600">Items Loaded</div>
-      </Card>
-      <Card className="p-4">
-        <div className="text-2xl font-bold text-green-600">${stats.totalValue.toFixed(2)}</div>
-        <div className="text-sm text-gray-600">Total Value</div>
-      </Card>
-      <Card className="p-4">
-        <div className="text-2xl font-bold text-purple-600">{stats.activeItems}</div>
-        <div className="text-sm text-gray-600">Active</div>
-      </Card>
-      <Card className="p-4">
-        <div className="text-2xl font-bold text-orange-600">{stats.draftItems}</div>
-        <div className="text-sm text-gray-600">Drafts</div>
-      </Card>
+    <div className="flex flex-wrap gap-6 text-sm">
+      <div className="flex items-center gap-2">
+        <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+        <span className="font-semibold text-blue-600">{stats.totalItems}</span>
+        <span className="text-gray-600">Items</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+        <span className="font-semibold text-green-600">${stats.totalValue.toFixed(0)}</span>
+        <span className="text-gray-600">Total Value</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+        <span className="font-semibold text-purple-600">{stats.activeItems}</span>
+        <span className="text-gray-600">Active</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+        <span className="font-semibold text-orange-600">{stats.draftItems}</span>
+        <span className="text-gray-600">Drafts</span>
+      </div>
     </div>
   );
 };
