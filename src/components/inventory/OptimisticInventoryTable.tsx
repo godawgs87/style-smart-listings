@@ -86,6 +86,7 @@ const OptimisticInventoryTable = ({
         next.delete(listingId);
         return next;
       });
+      throw error;
     }
   };
 
@@ -123,20 +124,20 @@ const OptimisticInventoryTable = ({
               {visibleListings.map((listing, index) => {
                 const isUpdating = optimisticUpdates.get(listing.id) === 'updating';
                 return (
-                  <ListingsTableRow
-                    key={listing.id}
-                    listing={listing}
-                    index={index}
-                    isSelected={selectedListings.includes(listing.id)}
-                    visibleColumns={visibleColumns}
-                    onSelectListing={onSelectListing}
-                    onUpdateListing={handleOptimisticUpdate}
-                    onDeleteListing={handleOptimisticDelete}
-                    onPreviewListing={onPreviewListing}
-                    onEditListing={onEditListing}
-                    onDuplicateListing={onDuplicateListing}
-                    className={isUpdating ? 'opacity-50 pointer-events-none' : ''}
-                  />
+                  <div key={listing.id} className={isUpdating ? 'opacity-50 pointer-events-none' : ''}>
+                    <ListingsTableRow
+                      listing={listing}
+                      index={index}
+                      isSelected={selectedListings.includes(listing.id)}
+                      visibleColumns={visibleColumns}
+                      onSelectListing={onSelectListing}
+                      onUpdateListing={handleOptimisticUpdate}
+                      onDeleteListing={handleOptimisticDelete}
+                      onPreviewListing={onPreviewListing}
+                      onEditListing={onEditListing}
+                      onDuplicateListing={onDuplicateListing}
+                    />
+                  </div>
                 );
               })}
             </TableBody>
