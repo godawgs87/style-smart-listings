@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import BulkUploadStep from './components/BulkUploadStep';
 import BulkUploadStepIndicator from './components/BulkUploadStepIndicator';
@@ -17,9 +16,47 @@ export interface PhotoGroup {
   confidence: 'high' | 'medium' | 'low';
   status: 'pending' | 'processing' | 'completed' | 'error';
   aiSuggestion?: string;
-  listingData?: any;
+  listingData?: {
+    title?: string;
+    description?: string;
+    price?: number;
+    category?: string;
+    condition?: string;
+    measurements?: {
+      length?: string | number;
+      width?: string | number;
+      height?: string | number;
+      weight?: string | number;
+    };
+    keywords?: string[];
+    photos?: string[];
+    // Purchase/Consignment fields
+    purchase_price?: number;
+    purchase_date?: string;
+    source_location?: string;
+    source_type?: string;
+    is_consignment?: boolean;
+    consignment_percentage?: number;
+    consignor_name?: string;
+    consignor_contact?: string;
+    // Size fields
+    clothing_size?: string;
+    shoe_size?: string;
+    gender?: 'Men' | 'Women' | 'Kids' | 'Unisex';
+    age_group?: 'Adult' | 'Youth' | 'Toddler' | 'Baby';
+    // Features
+    features?: string[];
+    includes?: string[];
+    defects?: string[];
+  };
   shippingOptions?: any[];
-  selectedShipping?: any;
+  selectedShipping?: {
+    id: string;
+    name: string;
+    cost: number;
+    estimatedDays: string;
+  };
+  isPosted?: boolean;
 }
 
 interface BulkUploadManagerProps {
