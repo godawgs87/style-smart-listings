@@ -1,5 +1,6 @@
 
 import React, { useEffect } from 'react';
+import { useToast } from '@/hooks/use-toast';
 import BulkUploadStep from './components/BulkUploadStep';
 import BulkUploadStepIndicator from './components/BulkUploadStepIndicator';
 import PhotoGroupingInterface from './PhotoGroupingInterface';
@@ -63,6 +64,7 @@ interface BulkUploadManagerProps {
 }
 
 const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
+  const { toast } = useToast();
   const {
     currentStep,
     setCurrentStep,
@@ -108,8 +110,30 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
     currentReviewIndex
   );
 
+  // Clear any lingering toasts when component mounts
+  useEffect(() => {
+    // Clear existing toasts by triggering empty toast
+    const clearToasts = () => {
+      const toastElements = document.querySelectorAll('[data-sonner-toast]');
+      toastElements.forEach(el => el.remove());
+    };
+    
+    clearToasts();
+  }, [currentStep]);
+
   const handlePhotosUploaded = (uploadedPhotos: File[]) => {
     setPhotos(uploadedPhotos);
+  };
+
+  const handleCompleteWorkflow = (results: any[]) => {
+    toast({
+      title: "Bulk upload complete!",
+      description: `Successfully created ${results.length} listing${results.length > 1 ? 's' : ''}. Redirecting to inventory...`,
+    });
+    
+    setTimeout(() => {
+      onComplete(results);
+    }, 1000);
   };
 
   return (
@@ -167,7 +191,7 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
           onEditItem={handleEditItem}
           onPreviewItem={handlePreviewItem}
           onPostItem={handlePostItem}
-          onPostAll={handlePostAll}
+          onPostAll={() => handlePostAll()}
           onReviewAll={handleReviewAll}
           onSaveDraft={handleSaveDraft}
           onUpdateGroup={handleUpdateGroup}

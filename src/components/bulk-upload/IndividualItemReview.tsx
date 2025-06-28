@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { useToast } from '@/hooks/use-toast';
 import IndividualReviewHeader from './components/IndividualReviewHeader';
 import IndividualReviewActions from './components/IndividualReviewActions';
 import BulkConsignmentOptions from './components/BulkConsignmentOptions';
@@ -34,6 +35,7 @@ const IndividualItemReview = ({
   onSaveDraft
 }: IndividualItemReviewProps) => {
   const [editedGroup, setEditedGroup] = useState<PhotoGroup>(group);
+  const { toast } = useToast();
 
   useEffect(() => {
     setEditedGroup(group);
@@ -72,10 +74,26 @@ const IndividualItemReview = ({
   };
 
   const handleApprove = () => {
+    if (!editedGroup.listingData?.title || !editedGroup.listingData?.price || !editedGroup.selectedShipping) {
+      toast({
+        title: "Missing required fields",
+        description: "Please fill in Title, Price, and select a Shipping option before approving.",
+        variant: "destructive"
+      });
+      return;
+    }
     onApprove(editedGroup);
   };
 
   const handleSaveDraft = () => {
+    if (!editedGroup.listingData?.title) {
+      toast({
+        title: "Title required",
+        description: "Please enter a title before saving as draft.",
+        variant: "destructive"
+      });
+      return;
+    }
     onSaveDraft(editedGroup);
   };
 
