@@ -14,7 +14,7 @@ import {
   Clock,
   BarChart3
 } from 'lucide-react';
-import { useUnifiedInventory } from '@/hooks/useUnifiedInventory';
+import { useInventoryData } from '@/hooks/useInventoryData';
 
 interface SalesOperationsManagerProps {
   onNavigateToInventory: () => void;
@@ -23,8 +23,8 @@ interface SalesOperationsManagerProps {
 const SalesOperationsManager = ({ onNavigateToInventory }: SalesOperationsManagerProps) => {
   const [activeTab, setActiveTab] = useState('dashboard');
   
-  // Use the same optimized query pattern but filter for active listings
-  const { listings, loading, stats } = useUnifiedInventory({
+  // Use the new inventory hook with active status filter
+  const { listings, loading, stats } = useInventoryData({
     statusFilter: 'active',
     limit: 10
   });

@@ -2,7 +2,7 @@
 import React from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
-import { useUnifiedInventory } from '@/hooks/useUnifiedInventory';
+import { useInventoryData } from '@/hooks/useInventoryData';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
 import EnhancedMobileNavigation from '@/components/EnhancedMobileNavigation';
 import CSVDataManager from '@/components/inventory/CSVDataManager';
@@ -22,7 +22,7 @@ const DataManagement = ({ onBack, onNavigate }: DataManagementProps) => {
     listings, 
     loading, 
     refetch
-  } = useUnifiedInventory({
+  } = useInventoryData({
     limit: 1000 // Get all listings for export
   });
 

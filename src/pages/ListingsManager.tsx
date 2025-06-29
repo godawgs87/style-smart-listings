@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
-import { useUnifiedInventory } from '@/hooks/useUnifiedInventory';
+import { useInventoryData } from '@/hooks/useInventoryData';
 import { useListingOperations } from '@/hooks/useListingOperations';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
 import MobileNavigation from '@/components/MobileNavigation';
@@ -27,11 +27,10 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
     listings, 
     loading, 
     error, 
-    usingFallback,
     refetch
-  } = useUnifiedInventory({
+  } = useInventoryData({
     searchTerm: searchTerm.trim() || undefined,
-    statusFilter: 'all',
+    statusFilter: undefined, // Show all statuses
     categoryFilter: categoryFilter === 'all' ? undefined : categoryFilter,
     limit: 50
   });
@@ -81,7 +80,7 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
         setPriceRangeFilter={setPriceRangeFilter}
         loading={loading}
         error={error}
-        usingFallback={usingFallback}
+        usingFallback={false} // New hook doesn't have fallback mechanism
         onRefetch={refetch}
         onUpdateListing={handleUpdateListing}
         onDeleteListing={handleDeleteListing}
