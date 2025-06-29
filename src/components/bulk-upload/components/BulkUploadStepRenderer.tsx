@@ -12,6 +12,7 @@ interface BulkUploadStepRendererProps {
   photos: File[];
   photoGroups: PhotoGroup[];
   isGrouping: boolean;
+  isAnalyzing?: boolean;
   onPhotosUploaded: (photos: File[]) => void;
   onStartGrouping: () => void;
   onGroupsConfirmed: (groups: PhotoGroup[]) => void;
@@ -30,6 +31,7 @@ const BulkUploadStepRenderer = ({
   photos,
   photoGroups,
   isGrouping,
+  isAnalyzing,
   onPhotosUploaded,
   onStartGrouping,
   onGroupsConfirmed,
@@ -74,6 +76,7 @@ const BulkUploadStepRenderer = ({
           onPostAll={onPostAll}
           onUpdateGroup={onUpdateGroup}
           onRetryAnalysis={onRetryAnalysis}
+          isAnalyzing={isAnalyzing}
         />
       );
 

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,7 @@ interface AIDetailsTableViewProps {
   onPreviewItem: (groupId: string) => void;
   onPostItem: (groupId: string) => void;
   onRunAI: (groupId: string) => void;
+  isAnalyzing?: boolean;
 }
 
 const AIDetailsTableView = ({
@@ -19,7 +21,8 @@ const AIDetailsTableView = ({
   onEditItem,
   onPreviewItem,
   onPostItem,
-  onRunAI
+  onRunAI,
+  isAnalyzing
 }: AIDetailsTableViewProps) => {
   const getStatusIcon = (group: PhotoGroup) => {
     if (group.isPosted) return <CheckCircle className="w-4 h-4 text-green-600" />;
@@ -111,10 +114,20 @@ const AIDetailsTableView = ({
                 onClick={() => {
                   photoGroups.filter(g => g.status === 'pending').forEach(g => onRunAI(g.id));
                 }}
-                className="bg-blue-600 hover:bg-blue-700"
+                disabled={isAnalyzing}
+                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
               >
-                <Play className="w-4 h-4 mr-2" />
-                Run AI for All Pending
+                {isAnalyzing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Running AI...
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-4 h-4 mr-2" />
+                    Run AI for All Pending
+                  </>
+                )}
               </Button>
             </div>
           </CardContent>
@@ -284,10 +297,20 @@ const AIDetailsTableView = ({
                           <Button
                             size="sm"
                             onClick={() => onRunAI(group.id)}
-                            className="bg-blue-600 hover:bg-blue-700 text-xs"
+                            disabled={isAnalyzing}
+                            className="bg-blue-600 hover:bg-blue-700 text-xs disabled:opacity-50"
                           >
-                            <Play className="w-3 h-3 mr-1" />
-                            Run AI
+                            {isAnalyzing ? (
+                              <>
+                                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                Running...
+                              </>
+                            ) : (
+                              <>
+                                <Play className="w-3 h-3 mr-1" />
+                                Run AI
+                              </>
+                            )}
                           </Button>
                         )}
                         
@@ -335,6 +358,18 @@ const AIDetailsTableView = ({
                               </Button>
                             )}
                           </>
+                        )}
+                        
+                        {group.status === 'error' && (
+                          <Button
+                            size="sm"
+                            onClick={() => onRunAI(group.id)}
+                            disabled={isAnalyzing}
+                            className="bg-red-600 hover:bg-red-700 text-xs disabled:opacity-50"
+                          >
+                            <AlertTriangle className="w-3 h-3 mr-1" />
+                            Retry
+                          </Button>
                         )}
                       </div>
                     </TableCell>

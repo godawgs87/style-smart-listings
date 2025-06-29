@@ -85,7 +85,8 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
     handlePostItem,
     handlePostAll,
     handleUpdateGroup,
-    handleRetryAnalysis
+    handleRetryAnalysis,
+    isAnalyzing
   } = useBulkUploadHandlers(
     photos,
     photoGroups,
@@ -124,6 +125,7 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
         photos={photos}
         photoGroups={photoGroups}
         isGrouping={isGrouping}
+        isAnalyzing={isAnalyzing}
         onPhotosUploaded={handlePhotosUploaded}
         onStartGrouping={handleStartGrouping}
         onGroupsConfirmed={handleGroupsConfirmed}
