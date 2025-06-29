@@ -14,6 +14,7 @@ interface BulkReviewDashboardProps {
   onUpdateGroup?: (updatedGroup: PhotoGroup) => void;
   onRetryAnalysis?: (groupId: string) => void;
   onProceedToShipping?: () => void;
+  onViewInventory?: () => void;
   isAnalyzing?: boolean;
 }
 
@@ -26,6 +27,7 @@ const BulkReviewDashboard = ({
   onUpdateGroup,
   onRetryAnalysis,
   onProceedToShipping,
+  onViewInventory,
   isAnalyzing
 }: BulkReviewDashboardProps) => {
   const [previewGroup, setPreviewGroup] = useState<PhotoGroup | null>(null);
@@ -55,14 +57,15 @@ const BulkReviewDashboard = ({
   const completedItems = photoGroups.filter(g => g.status === 'completed').length;
   const readyForShipping = photoGroups.filter(g => g.status === 'completed' && !g.selectedShipping).length;
   const readyToPost = photoGroups.filter(g => g.status === 'completed' && g.selectedShipping && !g.isPosted).length;
+  const postedItems = photoGroups.filter(g => g.isPosted).length;
 
   return (
     <div className="w-full max-w-7xl mx-auto p-4 space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">🤖 AI Analysis Queue ({photoGroups.length} items)</h2>
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <h2 className="text-xl sm:text-2xl font-bold">🤖 AI Analysis Queue ({photoGroups.length} items)</h2>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
           {isAnalyzing && (
-            <div className="text-blue-600 font-medium">
+            <div className="text-blue-600 font-medium text-sm sm:text-base">
               AI Analysis in progress...
             </div>
           )}
@@ -71,7 +74,7 @@ const BulkReviewDashboard = ({
           {completedItems > 0 && onProceedToShipping && (
             <Button 
               onClick={onProceedToShipping}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto text-sm sm:text-base"
               size="lg"
             >
               📦 Configure Shipping ({completedItems} items)
@@ -82,10 +85,21 @@ const BulkReviewDashboard = ({
           {readyToPost > 0 && (
             <Button 
               onClick={onPostAll}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-green-600 hover:bg-green-700 w-full sm:w-auto text-sm sm:text-base"
               size="lg"
             >
               🚀 Post All Ready ({readyToPost} items)
+            </Button>
+          )}
+
+          {/* Show View Inventory button when items have been posted */}
+          {postedItems > 0 && onViewInventory && (
+            <Button 
+              onClick={onViewInventory}
+              className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto text-sm sm:text-base"
+              size="lg"
+            >
+              📋 View Inventory ({postedItems} posted)
             </Button>
           )}
         </div>
@@ -94,7 +108,7 @@ const BulkReviewDashboard = ({
       {/* Status Summary */}
       {completedItems > 0 && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-center gap-4 text-sm">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 text-sm">
             <span className="text-blue-800 font-medium">
               ✅ {completedItems} items analyzed and ready
             </span>
@@ -106,6 +120,11 @@ const BulkReviewDashboard = ({
             {readyToPost > 0 && (
               <span className="text-green-600">
                 🚀 {readyToPost} ready to post
+              </span>
+            )}
+            {postedItems > 0 && (
+              <span className="text-purple-600">
+                📋 {postedItems} items posted to inventory
               </span>
             )}
           </div>

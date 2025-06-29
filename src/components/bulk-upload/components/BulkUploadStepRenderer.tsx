@@ -25,6 +25,7 @@ interface BulkUploadStepRendererProps {
   onRetryAnalysis: (groupId: string) => void;
   onBack: () => void;
   onShippingComplete: (groupsWithShipping: PhotoGroup[]) => void;
+  onViewInventory?: () => void;
   setCurrentStep: (step: StepType) => void;
 }
 
@@ -45,6 +46,7 @@ const BulkUploadStepRenderer = ({
   onRetryAnalysis,
   onBack,
   onShippingComplete,
+  onViewInventory,
   setCurrentStep
 }: BulkUploadStepRendererProps) => {
   
@@ -80,6 +82,7 @@ const BulkUploadStepRenderer = ({
           onUpdateGroup={onUpdateGroup}
           onRetryAnalysis={onRetryAnalysis}
           onProceedToShipping={() => setCurrentStep('shipping')}
+          onViewInventory={onViewInventory}
           isAnalyzing={isAnalyzing}
         />
       );

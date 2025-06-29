@@ -61,9 +61,10 @@ type StepType = 'upload' | 'grouping' | 'review' | 'shipping';
 interface BulkUploadManagerProps {
   onComplete: (results: any[]) => void;
   onBack: () => void;
+  onViewInventory?: () => void;
 }
 
-const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
+const BulkUploadManager = ({ onComplete, onBack, onViewInventory }: BulkUploadManagerProps) => {
   const { toast } = useToast();
   const {
     currentStep,
@@ -118,6 +119,12 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
     });
   };
 
+  const handleViewInventory = () => {
+    if (onViewInventory) {
+      onViewInventory();
+    }
+  };
+
   return (
     <div className="w-full max-w-6xl mx-auto p-4 space-y-6">
       <BulkUploadHeader />
@@ -145,6 +152,7 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
         onUpdateGroup={handleUpdateGroup}
         onRetryAnalysis={handleRetryAnalysis}
         onShippingComplete={handleShippingComplete}
+        onViewInventory={handleViewInventory}
         onBack={onBack}
         setCurrentStep={setCurrentStep}
       />

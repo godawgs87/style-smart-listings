@@ -43,7 +43,7 @@ const BulkShippingConfiguration = ({
         return {
           ...group,
           shippingOptions,
-          selectedShipping: defaultShipping
+          selectedShipping: group.selectedShipping || defaultShipping
         };
       });
       
@@ -142,13 +142,13 @@ const BulkShippingConfiguration = ({
     <div className="w-full max-w-6xl mx-auto p-4 space-y-6">
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <CardTitle className="flex items-center gap-2">
               <Truck className="w-5 h-5" />
               Configure Shipping Options
             </CardTitle>
-            <div className="flex items-center gap-4 text-sm">
-              <Badge variant="outline" className="bg-green-50 text-green-700">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 text-sm">
+              <Badge variant="outline" className="bg-green-50 text-green-700 w-fit">
                 {configuredCount} of {completedGroups.length} Configured
               </Badge>
               <span className="text-gray-600">
@@ -170,7 +170,7 @@ const BulkShippingConfiguration = ({
                 variant="outline"
                 size="sm"
                 onClick={() => handleBulkApply('local-pickup', (g) => true)}
-                className="bg-white"
+                className="bg-white text-xs sm:text-sm"
               >
                 <MapPin className="w-3 h-3 mr-1" />
                 All Items → Local Pickup (Free)
@@ -179,7 +179,7 @@ const BulkShippingConfiguration = ({
                 variant="outline"
                 size="sm"
                 onClick={() => handleBulkApply('usps-ground', (g) => (g.listingData?.price || 0) < 50)}
-                className="bg-white"
+                className="bg-white text-xs sm:text-sm"
               >
                 <Package className="w-3 h-3 mr-1" />
                 Low Value → Ground ($6-10)
@@ -188,7 +188,7 @@ const BulkShippingConfiguration = ({
                 variant="outline"
                 size="sm"
                 onClick={() => handleBulkApply('usps-priority', (g) => (g.listingData?.price || 0) >= 50)}
-                className="bg-white"
+                className="bg-white text-xs sm:text-sm"
               >
                 <Truck className="w-3 h-3 mr-1" />
                 High Value → Priority ($10-15)
@@ -205,7 +205,7 @@ const BulkShippingConfiguration = ({
             {completedGroups.map((group) => (
               <Card key={group.id} className="border-l-4 border-l-blue-500">
                 <CardContent className="p-4">
-                  <div className="flex items-start gap-4">
+                  <div className="flex flex-col sm:flex-row items-start gap-4">
                     {/* Item Preview */}
                     <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                       {group.photos?.[0] ? (
@@ -219,16 +219,16 @@ const BulkShippingConfiguration = ({
                       )}
                     </div>
 
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <h4 className="font-medium">{group.listingData?.title || group.name}</h4>
+                    <div className="flex-1 w-full min-w-0">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-2">
+                        <div className="min-w-0">
+                          <h4 className="font-medium truncate">{group.listingData?.title || group.name}</h4>
                           <p className="text-sm text-gray-600">
                             ${group.listingData?.price} • {group.listingData?.condition}
                           </p>
                         </div>
                         {group.selectedShipping && (
-                          <Badge className="bg-green-100 text-green-800">
+                          <Badge className="bg-green-100 text-green-800 w-fit">
                             <CheckCircle className="w-3 h-3 mr-1" />
                             Configured
                           </Badge>
@@ -246,7 +246,7 @@ const BulkShippingConfiguration = ({
                               <RadioGroupItem value={option.id} id={`${group.id}-${option.id}`} />
                               <Label 
                                 htmlFor={`${group.id}-${option.id}`}
-                                className="flex-1 cursor-pointer flex items-center justify-between"
+                                className="flex-1 cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-2"
                               >
                                 <div className="flex items-center gap-2">
                                   {option.id === 'local-pickup' ? (
@@ -254,10 +254,10 @@ const BulkShippingConfiguration = ({
                                   ) : (
                                     <Package className="w-4 h-4 text-blue-600" />
                                   )}
-                                  <span>{option.name}</span>
-                                  <span className="text-sm text-gray-500">({option.estimatedDays})</span>
+                                  <span className="text-sm sm:text-base">{option.name}</span>
+                                  <span className="text-xs sm:text-sm text-gray-500">({option.estimatedDays})</span>
                                 </div>
-                                <span className="font-medium">
+                                <span className="font-medium text-sm sm:text-base">
                                   {option.cost === 0 ? 'FREE' : `$${option.cost.toFixed(2)}`}
                                 </span>
                               </Label>
@@ -273,14 +273,14 @@ const BulkShippingConfiguration = ({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex justify-between pt-6 border-t">
-            <Button variant="outline" onClick={onBack}>
+          <div className="flex flex-col sm:flex-row justify-between gap-4 pt-6 border-t">
+            <Button variant="outline" onClick={onBack} className="w-full sm:w-auto">
               Back to Review
             </Button>
             <Button 
               onClick={handleComplete}
               disabled={configuredCount === 0}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
             >
               Complete Setup ({configuredCount} items ready)
             </Button>
