@@ -35,8 +35,8 @@ export const generateRealisticListingData = (groupName: string, photoCount: numb
     consignor_contact: undefined,
     clothing_size: itemType.type === 'clothing' ? 'M' : undefined,
     shoe_size: itemType.type === 'shoes' ? '9' : undefined,
-    gender: itemType.type === 'clothing' || itemType.type === 'shoes' ? 'Unisex' : undefined,
-    age_group: 'Adult',
+    gender: (itemType.type === 'clothing' || itemType.type === 'shoes') ? 'Unisex' as const : undefined,
+    age_group: 'Adult' as const,
     features: [],
     includes: [],
     defects: []

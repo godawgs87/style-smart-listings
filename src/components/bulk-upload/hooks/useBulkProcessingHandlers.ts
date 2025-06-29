@@ -43,13 +43,18 @@ export const useBulkProcessingHandlers = (
         parseFloat(smartListingData.measurements?.weight || '1')
       );
 
-      // Update group with enhanced AI-generated data
+      // Update group with enhanced AI-generated data - ensure proper type casting
       setPhotoGroups(prev => prev.map(g => 
         g.id === group.id 
           ? { 
               ...g, 
               status: 'completed' as const,
-              listingData: smartListingData,
+              listingData: {
+                ...smartListingData,
+                // Ensure gender is properly typed
+                gender: smartListingData.gender as 'Men' | 'Women' | 'Kids' | 'Unisex' | undefined,
+                age_group: smartListingData.age_group as 'Adult' | 'Youth' | 'Toddler' | 'Baby' | undefined
+              },
               shippingOptions: shippingOptions,
               aiSuggestion: `AI analyzed ${group.photos.length} photos and suggested: ${smartListingData.category}`
             }
