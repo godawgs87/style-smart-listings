@@ -28,20 +28,21 @@ export const useListingSave = () => {
         return { success: false, listingId: null };
       }
 
-      console.log('💰 Saving listing with data:', {
+      console.log('💰 Saving enhanced listing with data:', {
         title: listingData.title,
         price: listingData.price,
+        category: listingData.category,
         shipping_cost: shippingCost,
         status: status
       });
 
-      // Ensure all required fields have valid values
+      // Ensure all required fields have valid values with better defaults
       const processedData = {
         title: listingData.title?.trim() || 'Untitled Listing',
-        description: listingData.description?.trim() || '',
+        description: listingData.description?.trim() || 'Please add description for this item.',
         price: Number(listingData.price) || 0,
-        category: listingData.category || 'Uncategorized',
-        condition: listingData.condition || 'Used',
+        category: listingData.category || 'Miscellaneous',
+        condition: listingData.condition || 'Good',
         measurements: listingData.measurements || {},
         keywords: Array.isArray(listingData.keywords) ? listingData.keywords : [],
         photos: Array.isArray(listingData.photos) ? listingData.photos : [],
@@ -80,9 +81,11 @@ export const useListingSave = () => {
         net_profit: netProfit,
         profit_margin: profitMargin,
         listed_date: status === 'active' ? new Date().toISOString().split('T')[0] : null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
 
-      console.log('💾 Final data being saved:', finalData);
+      console.log('💾 Enhanced data being saved:', finalData);
 
       let result;
       let listingId;
@@ -117,12 +120,12 @@ export const useListingSave = () => {
         listingId = result.data.id;
       }
 
-      console.log('✅ Listing saved successfully:', listingId);
+      console.log('✅ Enhanced listing saved successfully:', listingId);
 
       if (status !== 'draft') {
         toast({
           title: "Success!",
-          description: `Listing ${existingListingId ? 'updated' : 'created'} successfully!`
+          description: `Listing "${finalData.title}" ${existingListingId ? 'updated' : 'created'} successfully!`
         });
       }
       

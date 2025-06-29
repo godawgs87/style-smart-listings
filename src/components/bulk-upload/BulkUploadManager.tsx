@@ -118,7 +118,24 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
   }, [currentStep]);
 
   const handlePhotosUploaded = (uploadedPhotos: File[]) => {
+    console.log('📸 Photos uploaded for bulk processing:', uploadedPhotos.length);
     setPhotos(uploadedPhotos);
+  };
+
+  // Enhanced completion handler that ensures inventory refresh
+  const handleEnhancedComplete = (results: any[]) => {
+    console.log('🎉 Bulk upload completed successfully with results:', results);
+    
+    // Show success message
+    toast({
+      title: "Bulk Upload Complete!",
+      description: `Successfully processed ${results.length} items. Redirecting to inventory...`,
+    });
+
+    // Small delay to ensure database writes are complete
+    setTimeout(() => {
+      onComplete(results);
+    }, 1500);
   };
 
   return (
