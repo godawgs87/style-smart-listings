@@ -15,12 +15,17 @@ type ViewType = 'dashboard' | 'create' | 'inventory' | 'active-listings' | 'data
 
 const Index = () => {
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
-  const [pageLoading, setPageLoading] = useState(false);
   const { user, loading } = useAuth();
   const isMobile = useIsMobile();
 
+  // Debug logging
+  useEffect(() => {
+    console.log('Index render - loading:', loading, 'user:', !!user, 'view:', currentView);
+  }, [loading, user, currentView]);
+
   // Simple navigation handler without complex async operations
   const handleNavigation = useCallback((view: ViewType) => {
+    console.log('Navigating to:', view);
     const pageMap = {
       inventory: '/inventory',
       'active-listings': '/active-listings',
@@ -70,11 +75,13 @@ const Index = () => {
 
   // Show loading only when auth is actually loading
   if (loading) {
+    console.log('Showing loading state');
     return <LoadingState message="Loading..." fullPage />;
   }
 
   // Show auth form if no user
   if (!user) {
+    console.log('Showing auth form - no user');
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
         <AuthForm onAuthSuccess={() => setCurrentView('dashboard')} />
@@ -84,6 +91,7 @@ const Index = () => {
 
   // Show create listing view
   if (currentView === 'create') {
+    console.log('Showing create listing view');
     return (
       <CreateListing 
         onBack={() => handleNavigation('dashboard')}
@@ -93,6 +101,7 @@ const Index = () => {
   }
 
   // Main dashboard view
+  console.log('Showing main dashboard');
   return (
     <div className={`min-h-screen bg-gray-50 dark:bg-gray-900 ${isMobile ? 'pb-20' : ''}`}>
       <StreamlinedHeader
@@ -162,7 +171,7 @@ const Index = () => {
         <EnhancedMobileNavigation
           currentView={currentView}
           onNavigate={handleNavigation}
-          loading={pageLoading}
+          loading={false}
           notifications={{
             inventory: 3,
             listings: 1
