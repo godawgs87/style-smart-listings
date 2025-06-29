@@ -29,72 +29,59 @@ interface BulkUploadStepRendererProps {
   onStepChange: (step: StepType) => void;
 }
 
-const stepComponents = {
-  upload: BulkUploadStep,
-  grouping: PhotoGroupingInterface,
-  review: BulkReviewDashboard,
-  shipping: BulkShippingConfiguration
-};
-
 const BulkUploadStepRenderer = (props: BulkUploadStepRendererProps) => {
-  const {
-    currentStep,
-    photos,
-    photoGroups,
-    isGrouping,
-    isAnalyzing,
-    onPhotosUploaded,
-    onStartGrouping,
-    onGroupsConfirmed,
-    onEditItem,
-    onPreviewItem,
-    onPostItem,
-    onPostAll,
-    onUpdateGroup,
-    onRetryAnalysis,
-    onBack,
-    onShippingComplete,
-    onViewInventory,
-    onStepChange
-  } = props;
+  const { currentStep } = props;
 
-  const stepProps = {
-    upload: {
-      photos,
-      isGrouping,
-      onPhotosUploaded,
-      onStartGrouping,
-      onBack
-    },
-    grouping: {
-      photoGroups,
-      onGroupsConfirmed,
-      onBack: () => onStepChange('upload')
-    },
-    review: {
-      photoGroups,
-      onEditItem,
-      onPreviewItem,
-      onPostItem,
-      onPostAll,
-      onUpdateGroup,
-      onRetryAnalysis,
-      onProceedToShipping: () => onStepChange('shipping'),
-      onViewInventory,
-      isAnalyzing
-    },
-    shipping: {
-      photoGroups,
-      onComplete: onShippingComplete,
-      onBack: () => onStepChange('review'),
-      onUpdateGroup
-    }
-  };
-
-  const StepComponent = stepComponents[currentStep];
-  const currentStepProps = stepProps[currentStep];
-
-  return StepComponent ? <StepComponent {...currentStepProps} /> : null;
+  switch (currentStep) {
+    case 'upload':
+      return (
+        <BulkUploadStep
+          photos={props.photos}
+          isGrouping={props.isGrouping}
+          onPhotosUploaded={props.onPhotosUploaded}
+          onStartGrouping={props.onStartGrouping}
+          onBack={props.onBack}
+        />
+      );
+      
+    case 'grouping':
+      return (
+        <PhotoGroupingInterface
+          photoGroups={props.photoGroups}
+          onGroupsConfirmed={props.onGroupsConfirmed}
+          onBack={() => props.onStepChange('upload')}
+        />
+      );
+      
+    case 'review':
+      return (
+        <BulkReviewDashboard
+          photoGroups={props.photoGroups}
+          onEditItem={props.onEditItem}
+          onPreviewItem={props.onPreviewItem}
+          onPostItem={props.onPostItem}
+          onPostAll={props.onPostAll}
+          onUpdateGroup={props.onUpdateGroup}
+          onRetryAnalysis={props.onRetryAnalysis}
+          onProceedToShipping={() => props.onStepChange('shipping')}
+          onViewInventory={props.onViewInventory}
+          isAnalyzing={props.isAnalyzing}
+        />
+      );
+      
+    case 'shipping':
+      return (
+        <BulkShippingConfiguration
+          photoGroups={props.photoGroups}
+          onComplete={props.onShippingComplete}
+          onBack={() => props.onStepChange('review')}
+          onUpdateGroup={props.onUpdateGroup}
+        />
+      );
+      
+    default:
+      return null;
+  }
 };
 
 export default BulkUploadStepRenderer;
