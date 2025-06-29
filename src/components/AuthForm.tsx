@@ -75,7 +75,7 @@ const AuthForm = ({ onAuthSuccess }: AuthFormProps) => {
             title: "Welcome Back!",
             description: "You've successfully signed in."
           });
-          // The auth state change will handle the redirect
+          // Don't call onAuthSuccess here - let the auth state change handle the redirect
         }
       }
     } catch (error) {

@@ -17,8 +17,9 @@ const App = () => {
 
   console.log('App render - loading:', loading, 'user:', !!user);
 
+  // Show loading only briefly during initial auth check
   if (loading) {
-    return <LoadingState message="Initializing..." fullPage />;
+    return <LoadingState message="Loading..." fullPage />;
   }
 
   return (

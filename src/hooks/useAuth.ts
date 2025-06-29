@@ -11,7 +11,20 @@ export const useAuth = () => {
   useEffect(() => {
     console.log('useAuth: Setting up auth state listener');
 
-    // Get initial session
+    // Set up auth state change listener first
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        console.log('Auth state change:', event, !!session);
+        
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        // Always ensure loading is set to false when auth state changes
+        setLoading(false);
+      }
+    );
+
+    // Get initial session - this is crucial for proper initialization
     const getInitialSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
@@ -23,25 +36,13 @@ export const useAuth = () => {
         console.log('Initial session check:', !!session);
         setSession(session);
         setUser(session?.user ?? null);
-        setLoading(false);
       } catch (error) {
         console.error('Failed to get initial session:', error);
+      } finally {
+        // Always set loading to false after checking initial session
         setLoading(false);
       }
     };
-
-    // Set up auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log('Auth state change:', event, !!session);
-        
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        // Always set loading to false when we get an auth state change
-        setLoading(false);
-      }
-    );
 
     // Get the initial session
     getInitialSession();
@@ -54,9 +55,12 @@ export const useAuth = () => {
   const signOut = async () => {
     try {
       console.log('Signing out...');
+      setLoading(true);
       await supabase.auth.signOut();
+      // Loading will be set to false by the auth state change listener
     } catch (error) {
       console.error('Sign out error:', error);
+      setLoading(false);
     }
   };
 
