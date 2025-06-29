@@ -49,7 +49,8 @@ export const useListingSave = () => {
         source_location: listingData.source_location?.trim() || null,
         source_type: listingData.source_type || null,
         price_research: listingData.priceResearch?.trim() || null,
-        shipping_cost: Number(shippingCost), // Ensure it's always a number, including 0
+        // CRITICAL: Properly handle shipping cost including 0 for local pickup
+        shipping_cost: typeof shippingCost === 'number' ? shippingCost : (shippingCost === 0 ? 0 : 9.95),
         status: status,
         user_id: user.id,
         // Add size fields
@@ -60,6 +61,11 @@ export const useListingSave = () => {
       };
 
       console.log('💰 Final shipping_cost being saved:', processedData.shipping_cost, typeof processedData.shipping_cost);
+      console.log('💼 Consignment data being saved:', {
+        is_consignment: processedData.is_consignment,
+        consignment_percentage: processedData.consignment_percentage,
+        consignor_name: processedData.consignor_name
+      });
 
       // Calculate financial metrics
       const costBasis = processedData.purchase_price || 0;

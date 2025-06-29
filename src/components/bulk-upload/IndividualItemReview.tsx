@@ -79,7 +79,7 @@ const IndividualItemReview = ({
   const handleApprove = () => {
     console.log('Approving item with data:', editedGroup);
     
-    // Validation matching single item upload
+    // Validation matching single item upload exactly
     const errors = [];
     if (!editedGroup.listingData?.title?.trim()) errors.push('Title');
     if (!editedGroup.listingData?.price || editedGroup.listingData.price <= 0) errors.push('Price');
@@ -142,6 +142,7 @@ const IndividualItemReview = ({
   const ensureListingData = (): ListingData => {
     const baseData = editedGroup.listingData || {};
     
+    // Ensure all required fields exist with proper defaults
     return {
       title: baseData.title || '',
       description: baseData.description || '',
@@ -202,6 +203,7 @@ const IndividualItemReview = ({
         </div>
 
         <div className="space-y-4">
+          {/* CRITICAL: Consignment options must be fully functional matching single upload */}
           <BulkConsignmentOptions
             data={{
               purchase_price: editedGroup.listingData?.purchase_price,
@@ -219,6 +221,7 @@ const IndividualItemReview = ({
 
           <Separator />
 
+          {/* CRITICAL: Must include local pickup option matching single upload */}
           <BulkShippingOptions
             itemWeight={getWeight()}
             itemDimensions={getDimensions()}

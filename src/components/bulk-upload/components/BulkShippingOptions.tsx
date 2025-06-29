@@ -34,7 +34,7 @@ const BulkShippingOptions: React.FC<BulkShippingOptionsProps> = ({
     const calculateOptions = async () => {
       setIsLoading(true);
       try {
-        // Local pickup option (always available)
+        // CRITICAL: Local pickup option must be first (matching single upload)
         const localPickup: ShippingOption = {
           id: 'local-pickup',
           name: 'Local Pickup',
@@ -49,7 +49,7 @@ const BulkShippingOptions: React.FC<BulkShippingOptionsProps> = ({
         const priorityCost = calculateShippingCost(itemWeight, itemDimensions, 'priority');
 
         const calculatedOptions: ShippingOption[] = [
-          localPickup,
+          localPickup, // MUST be first option
           {
             id: 'usps-ground',
             name: 'USPS Ground Advantage',
@@ -73,10 +73,11 @@ const BulkShippingOptions: React.FC<BulkShippingOptionsProps> = ({
           }
         ];
 
+        console.log('Generated shipping options for bulk upload:', calculatedOptions);
         setShippingOptions(calculatedOptions);
       } catch (error) {
         console.error('Error calculating shipping options:', error);
-        // Fallback options
+        // Fallback options that still include local pickup
         setShippingOptions([
           {
             id: 'local-pickup',
@@ -102,7 +103,7 @@ const BulkShippingOptions: React.FC<BulkShippingOptionsProps> = ({
   }, [itemWeight, itemDimensions]);
 
   const handleOptionSelect = (option: ShippingOption) => {
-    console.log('Selected shipping option:', option);
+    console.log('Selected shipping option in bulk upload:', option);
     onShippingSelect(option);
   };
 

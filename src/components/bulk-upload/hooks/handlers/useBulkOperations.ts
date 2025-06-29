@@ -53,7 +53,7 @@ export const useBulkOperations = (
 
     for (const item of readyItems) {
       try {
-        // Ensure all required data is present
+        // Ensure all required data is present including consignment and shipping
         const completeListingData = ensureListingData(item.listingData);
         
         // Make sure weight is properly set (required for shipping)
@@ -61,10 +61,25 @@ export const useBulkOperations = (
           completeListingData.measurements.weight = '1'; // Default weight if missing
         }
         
-        const listingData = sanitizeListingData(completeListingData);
-        const shippingCost = item.selectedShipping?.cost || 0;
+        // CRITICAL: Ensure consignment data is preserved
+        if (item.listingData?.is_consignment) {
+          completeListingData.is_consignment = true;
+          completeListingData.consignment_percentage = item.listingData.consignment_percentage;
+          completeListingData.consignor_name = item.listingData.consignor_name;
+          completeListingData.consignor_contact = item.listingData.consignor_contact;
+        }
         
-        console.log('Saving listing:', listingData.title, 'with shipping cost:', shippingCost);
+        const listingData = sanitizeListingData(completeListingData);
+        
+        // CRITICAL: Shipping cost must include local pickup (cost = 0)
+        const shippingCost = item.selectedShipping?.cost ?? 9.95; // Default if not selected
+        
+        console.log('Saving bulk listing:', {
+          title: listingData.title,
+          shippingCost,
+          isConsignment: listingData.is_consignment,
+          consignmentPercentage: listingData.consignment_percentage
+        });
         
         const result = await saveListing(
           listingData,
@@ -139,10 +154,19 @@ export const useBulkOperations = (
     for (const item of draftItems) {
       try {
         const completeListingData = ensureListingData(item.listingData);
+        
+        // Preserve consignment data for drafts too
+        if (item.listingData?.is_consignment) {
+          completeListingData.is_consignment = true;
+          completeListingData.consignment_percentage = item.listingData.consignment_percentage;
+          completeListingData.consignor_name = item.listingData.consignor_name;
+          completeListingData.consignor_contact = item.listingData.consignor_contact;
+        }
+        
         const listingData = sanitizeListingData(completeListingData);
         const result = await saveListing(
           listingData,
-          item.selectedShipping?.cost || 0,
+          item.selectedShipping?.cost || 9.95,
           'draft'
         );
 
