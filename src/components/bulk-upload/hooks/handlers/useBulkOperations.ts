@@ -8,6 +8,30 @@ export const useBulkOperations = () => {
   const { saveListing } = useListingSave();
   const { toast } = useToast();
 
+  const convertMeasurements = (measurements: any) => {
+    if (!measurements || typeof measurements !== 'object') {
+      return {};
+    }
+    
+    // Convert all measurement values to strings as required by ListingData interface
+    const converted: { length?: string; width?: string; height?: string; weight?: string } = {};
+    
+    if (measurements.length !== undefined) {
+      converted.length = String(measurements.length);
+    }
+    if (measurements.width !== undefined) {
+      converted.width = String(measurements.width);
+    }
+    if (measurements.height !== undefined) {
+      converted.height = String(measurements.height);
+    }
+    if (measurements.weight !== undefined) {
+      converted.weight = String(measurements.weight);
+    }
+    
+    return converted;
+  };
+
   const postSingleItem = async (group: PhotoGroup): Promise<{ success: boolean; listingId?: string }> => {
     try {
       console.log('📝 Posting single item:', group.id, group.listingData?.title);
@@ -32,14 +56,14 @@ export const useBulkOperations = () => {
       const shippingCost = group.selectedShipping.cost;
       console.log('💰 Using shipping cost:', shippingCost);
 
-      // Convert to proper ListingData format
+      // Convert to proper ListingData format with proper measurements conversion
       const listingData: ListingData = {
         title: group.listingData.title,
         description: group.listingData.description || 'No description available',
         price: group.listingData.price,
         category: group.listingData.category || 'Uncategorized',
         condition: group.listingData.condition || 'Used',
-        measurements: group.listingData.measurements || {},
+        measurements: convertMeasurements(group.listingData.measurements),
         keywords: group.listingData.keywords || [],
         photos: group.listingData.photos || [],
         purchase_price: group.listingData.purchase_price,
@@ -103,14 +127,14 @@ export const useBulkOperations = () => {
       // Use default shipping cost if none selected
       const shippingCost = group.selectedShipping?.cost ?? 9.95;
 
-      // Convert to proper ListingData format
+      // Convert to proper ListingData format with proper measurements conversion
       const listingData: ListingData = {
         title: group.listingData.title,
         description: group.listingData.description || 'No description available',
         price: group.listingData.price || 0,
         category: group.listingData.category || 'Uncategorized',
         condition: group.listingData.condition || 'Used',
-        measurements: group.listingData.measurements || {},
+        measurements: convertMeasurements(group.listingData.measurements),
         keywords: group.listingData.keywords || [],
         photos: group.listingData.photos || [],
         purchase_price: group.listingData.purchase_price,

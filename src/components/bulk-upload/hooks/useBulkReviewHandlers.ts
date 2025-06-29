@@ -75,13 +75,18 @@ export const useBulkReviewHandlers = (
     }, 2000);
   };
 
+  // Wrapper function that takes a PhotoGroup parameter
+  const handleSaveDraftWrapper = (group: PhotoGroup) => {
+    return handleSaveDraft(group);
+  };
+
   return {
     handleEditItem,
     handlePreviewItem,
     handlePostItem,
     handlePostAll: () => handlePostAll(photoGroups),
     handleReviewAll,
-    handleSaveDraft,
+    handleSaveDraft: handleSaveDraftWrapper,
     handleUpdateGroup,
     handleRetryAnalysis
   };
