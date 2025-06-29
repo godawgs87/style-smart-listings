@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import BulkUploadHeader from './components/BulkUploadHeader';
@@ -72,11 +71,7 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
     photoGroups,
     setPhotoGroups,
     isGrouping,
-    setIsGrouping,
-    processingResults,
-    setProcessingResults,
-    currentReviewIndex,
-    setCurrentReviewIndex
+    setIsGrouping
   } = useBulkUploadState();
 
   const {
@@ -87,18 +82,14 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
     handlePostItem,
     handlePostAll,
     handleUpdateGroup,
-    handleRetryAnalysis,
-    handleSaveDraft
+    handleRetryAnalysis
   } = useBulkUploadHandlers(
     photos,
     photoGroups,
     setIsGrouping,
     setCurrentStep,
     setPhotoGroups,
-    setProcessingResults,
-    setCurrentReviewIndex,
-    onComplete,
-    currentReviewIndex
+    onComplete
   );
 
   useEffect(() => {
@@ -114,22 +105,6 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
     setPhotos(uploadedPhotos);
   };
 
-  const handleEnhancedComplete = (results: any[]) => {
-    console.log('🎉 Bulk upload completed successfully with results:', results);
-    
-    const successCount = results.filter(r => r.success).length;
-    const failureCount = results.length - successCount;
-    
-    toast({
-      title: "Bulk Upload Complete!",
-      description: `Successfully processed ${successCount} items${failureCount > 0 ? `, ${failureCount} failed` : ''}. Items have been saved to your inventory.`,
-    });
-
-    setTimeout(() => {
-      onComplete(results);
-    }, 1500);
-  };
-
   return (
     <div className="w-full max-w-6xl mx-auto p-4 space-y-6">
       <BulkUploadHeader />
@@ -138,7 +113,7 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
         currentStep={currentStep}
         photos={photos}
         photoGroups={photoGroups}
-        processingResults={processingResults}
+        processingResults={[]}
       />
 
       <BulkUploadStepRenderer
@@ -146,8 +121,6 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
         photos={photos}
         photoGroups={photoGroups}
         isGrouping={isGrouping}
-        processingResults={processingResults}
-        currentReviewIndex={currentReviewIndex}
         onPhotosUploaded={handlePhotosUploaded}
         onStartGrouping={handleStartGrouping}
         onGroupsConfirmed={handleGroupsConfirmed}

@@ -1,10 +1,9 @@
 
 import { useBulkGroupingHandlers } from './useBulkGroupingHandlers';
-import { useBulkProcessingHandlers } from './useBulkProcessingHandlers';
 import { useBulkOperations } from './handlers/useBulkOperations';
 import type { PhotoGroup } from '../BulkUploadManager';
 
-type StepType = 'upload' | 'grouping' | 'processing' | 'shipping' | 'review' | 'individual-review';
+type StepType = 'upload' | 'grouping' | 'review';
 
 export const useBulkUploadHandlers = (
   photos: File[],
@@ -12,10 +11,7 @@ export const useBulkUploadHandlers = (
   setIsGrouping: (loading: boolean) => void,
   setCurrentStep: (step: StepType) => void,
   setPhotoGroups: (groups: PhotoGroup[] | ((prev: PhotoGroup[]) => PhotoGroup[])) => void,
-  setProcessingResults: (results: any[]) => void,
-  setCurrentReviewIndex: (index: number) => void,
-  onComplete: (results: any[]) => void,
-  currentReviewIndex: number
+  onComplete: (results: any[]) => void
 ) => {
   // Grouping handlers
   const { handleStartGrouping, handleGroupsConfirmed } = useBulkGroupingHandlers(
@@ -25,17 +21,9 @@ export const useBulkUploadHandlers = (
     setPhotoGroups
   );
 
-  // Processing handlers
-  const { processAllGroupsWithAI } = useBulkProcessingHandlers(
-    setPhotoGroups,
-    setProcessingResults,
-    setCurrentStep
-  );
-
   // Bulk operations
-  const { postSingleItem, handleSaveDraft } = useBulkOperations();
+  const { postSingleItem } = useBulkOperations();
 
-  // Simplified handlers for the table view
   const handleEditItem = (groupId: string) => {
     console.log('Edit item:', groupId);
     // Navigate to individual edit - simplified
@@ -92,7 +80,6 @@ export const useBulkUploadHandlers = (
     handlePostItem,
     handlePostAll,
     handleUpdateGroup,
-    handleRetryAnalysis,
-    handleSaveDraft
+    handleRetryAnalysis
   };
 };
