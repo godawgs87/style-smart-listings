@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import BulkUploadHeader from './components/BulkUploadHeader';
@@ -55,6 +56,8 @@ export interface PhotoGroup {
   isPosted?: boolean;
   listingId?: string;
 }
+
+type StepType = 'upload' | 'grouping' | 'review';
 
 interface BulkUploadManagerProps {
   onComplete: (results: any[]) => void;

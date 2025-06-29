@@ -26,12 +26,10 @@ export const useBulkUploadHandlers = (
 
   const handleEditItem = (groupId: string) => {
     console.log('Edit item:', groupId);
-    // Navigate to individual edit - simplified
   };
 
   const handlePreviewItem = (groupId: string) => {
     console.log('Preview item:', groupId);
-    // Open preview dialog - handled by parent component
   };
 
   const handlePostItem = async (groupId: string) => {

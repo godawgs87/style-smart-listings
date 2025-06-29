@@ -2,7 +2,7 @@
 import { useToast } from '@/hooks/use-toast';
 import type { PhotoGroup } from '../BulkUploadManager';
 
-type StepType = 'upload' | 'grouping' | 'processing' | 'shipping' | 'review' | 'individual-review';
+type StepType = 'upload' | 'grouping' | 'review';
 
 export const useBulkGroupingHandlers = (
   photos: File[],
