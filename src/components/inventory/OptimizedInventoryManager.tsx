@@ -4,7 +4,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
 import MobileNavigation from '@/components/MobileNavigation';
-import { useUnifiedInventoryHook } from '@/hooks/useUnifiedInventoryHook';
+import { useStableInventory } from '@/hooks/useStableInventory';
 import { useListingOperations } from '@/hooks/useListingOperations';
 import { useInventoryFilters } from '@/hooks/useInventoryFilters';
 import { Card } from '@/components/ui/card';
@@ -34,7 +34,7 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
     handleClearFilters
   } = useInventoryFilters([]);
 
-  // Use the unified inventory hook
+  // Use the stable inventory hook
   const { 
     listings, 
     loading, 
@@ -43,11 +43,11 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
     isRefreshing,
     refetch, 
     clearCache 
-  } = useUnifiedInventoryHook({
+  } = useStableInventory({
     searchTerm: searchTerm.trim() || undefined,
     statusFilter: statusFilter === 'all' ? undefined : statusFilter,
     categoryFilter: categoryFilter === 'all' ? undefined : categoryFilter,
-    limit: 50
+    limit: 30
   });
 
   const { deleteListing, updateListing, duplicateListing } = useListingOperations();
@@ -67,7 +67,7 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
   const handleUpdateListing = async (listingId: string, updates: any) => {
     const success = await updateListing(listingId, updates);
     if (success) {
-      setTimeout(() => refetch(), 500);
+      setTimeout(() => refetch(), 1000);
     }
   };
 
@@ -75,7 +75,7 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
     const success = await deleteListing(listingId);
     if (success) {
       setSelectedItems(prev => prev.filter(id => id !== listingId));
-      setTimeout(() => refetch(), 500);
+      setTimeout(() => refetch(), 1000);
     }
   };
 
@@ -85,6 +85,12 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
       refetch();
     }
     return result;
+  };
+
+  const handleRetryWithFilters = () => {
+    handleClearFilters();
+    clearCache();
+    refetch();
   };
 
   return (
@@ -134,33 +140,35 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
           </Card>
         )}
 
-        {/* Controls */}
-        <ImprovedInventoryControls
-          searchTerm={searchTerm}
-          statusFilter={statusFilter}
-          categoryFilter={categoryFilter}
-          categories={categories}
-          loading={loading}
-          selectedCount={selectedItems.length}
-          onSearchChange={setSearchTerm}
-          onStatusChange={setStatusFilter}
-          onCategoryChange={setCategoryFilter}
-          onClearFilters={handleClearFilters}
-          onRefresh={refetch}
-          onCreateListing={onCreateListing}
-        />
-
         {/* Error Handling */}
         {error && (
           <ImprovedInventoryErrorBoundary 
             error={error} 
             onRetry={refetch}
-            onClearFilters={handleClearFilters}
+            onClearFilters={handleRetryWithFilters}
           />
         )}
 
-        {/* Table */}
-        {!loading && !error && (
+        {/* Controls - only show if no error */}
+        {!error && (
+          <ImprovedInventoryControls
+            searchTerm={searchTerm}
+            statusFilter={statusFilter}
+            categoryFilter={categoryFilter}
+            categories={categories}
+            loading={loading}
+            selectedCount={selectedItems.length}
+            onSearchChange={setSearchTerm}
+            onStatusChange={setStatusFilter}
+            onCategoryChange={setCategoryFilter}
+            onClearFilters={handleClearFilters}
+            onRefresh={refetch}
+            onCreateListing={onCreateListing}
+          />
+        )}
+
+        {/* Table - only show if data loaded successfully */}
+        {!loading && !error && listings.length > 0 && (
           <OptimisticInventoryTable
             listings={listings}
             selectedListings={selectedItems}
@@ -169,10 +177,21 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
             onUpdateListing={handleUpdateListing}
             onDeleteListing={handleDeleteListing}
             onDuplicateListing={handleDuplicateListing}
-            useVirtualization={listings.length > 30}
+            useVirtualization={listings.length > 25}
           />
         )}
 
+        {/* Empty State */}
+        {!loading && !error && listings.length === 0 && (
+          <Card className="p-8 text-center">
+            <div className="text-gray-500 mb-4">No inventory items found</div>
+            <Button onClick={onCreateListing}>
+              Create Your First Item
+            </Button>
+          </Card>
+        )}
+
+        {/* Loading State */}
         {loading && !isRefreshing && (
           <Card className="p-8 text-center">
             <div className="flex items-center justify-center space-x-2">
