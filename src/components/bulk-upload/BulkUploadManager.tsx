@@ -122,17 +122,20 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
     setPhotos(uploadedPhotos);
   };
 
-  // Enhanced completion handler that ensures inventory refresh
+  // Enhanced completion handler that ensures proper inventory refresh
   const handleEnhancedComplete = (results: any[]) => {
     console.log('🎉 Bulk upload completed successfully with results:', results);
     
-    // Show success message
+    // Show success message with more details
+    const successCount = results.filter(r => r.success).length;
+    const failureCount = results.length - successCount;
+    
     toast({
       title: "Bulk Upload Complete!",
-      description: `Successfully processed ${results.length} items. Redirecting to inventory...`,
+      description: `Successfully processed ${successCount} items${failureCount > 0 ? `, ${failureCount} failed` : ''}. Items have been saved to your inventory.`,
     });
 
-    // Small delay to ensure database writes are complete
+    // Delay to ensure all database operations complete before navigation
     setTimeout(() => {
       onComplete(results);
     }, 1500);

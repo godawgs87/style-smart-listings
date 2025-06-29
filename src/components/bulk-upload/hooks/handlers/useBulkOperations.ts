@@ -1,3 +1,4 @@
+
 import { useListingSave } from '@/hooks/useListingSave';
 import { useToast } from '@/hooks/use-toast';
 import type { PhotoGroup } from '../../BulkUploadManager';
@@ -7,36 +8,66 @@ export const useBulkOperations = () => {
   const { saveListing } = useListingSave();
   const { toast } = useToast();
 
-  const convertMeasurements = (measurements: any) => {
-    if (!measurements || typeof measurements !== 'object') {
-      return {};
+  const convertPhotoGroupToListingData = (group: PhotoGroup): ListingData | null => {
+    if (!group.listingData) {
+      console.error('No listing data available for group:', group.id);
+      return null;
     }
+
+    // Convert measurements to ensure string types (matching ListingData interface)
+    const convertedMeasurements: { length?: string; width?: string; height?: string; weight?: string } = {};
     
-    // Convert all measurement values to strings as required by ListingData interface
-    const converted: { length?: string; width?: string; height?: string; weight?: string } = {};
-    
-    if (measurements.length !== undefined) {
-      converted.length = String(measurements.length);
+    if (group.listingData.measurements) {
+      const measurements = group.listingData.measurements;
+      if (measurements.length !== undefined) {
+        convertedMeasurements.length = String(measurements.length);
+      }
+      if (measurements.width !== undefined) {
+        convertedMeasurements.width = String(measurements.width);
+      }
+      if (measurements.height !== undefined) {
+        convertedMeasurements.height = String(measurements.height);
+      }
+      if (measurements.weight !== undefined) {
+        convertedMeasurements.weight = String(measurements.weight);
+      }
     }
-    if (measurements.width !== undefined) {
-      converted.width = String(measurements.width);
-    }
-    if (measurements.height !== undefined) {
-      converted.height = String(measurements.height);
-    }
-    if (measurements.weight !== undefined) {
-      converted.weight = String(measurements.weight);
-    }
-    
-    return converted;
+
+    // Convert PhotoGroup.listingData to ListingData format
+    const listingData: ListingData = {
+      title: group.listingData.title || 'Untitled Item',
+      description: group.listingData.description || 'No description available',
+      price: group.listingData.price || 0,
+      category: group.listingData.category || 'Uncategorized',
+      condition: group.listingData.condition || 'Used',
+      measurements: convertedMeasurements,
+      keywords: Array.isArray(group.listingData.keywords) ? group.listingData.keywords : [],
+      photos: Array.isArray(group.listingData.photos) ? group.listingData.photos : [],
+      purchase_price: group.listingData.purchase_price,
+      purchase_date: group.listingData.purchase_date,
+      source_location: group.listingData.source_location,
+      source_type: group.listingData.source_type,
+      is_consignment: group.listingData.is_consignment || false,
+      consignment_percentage: group.listingData.consignment_percentage,
+      consignor_name: group.listingData.consignor_name,
+      consignor_contact: group.listingData.consignor_contact,
+      clothing_size: group.listingData.clothing_size,
+      shoe_size: group.listingData.shoe_size,
+      gender: group.listingData.gender,
+      age_group: group.listingData.age_group,
+      priceResearch: group.listingData.priceResearch
+    };
+
+    return listingData;
   };
 
   const postSingleItem = async (group: PhotoGroup): Promise<{ success: boolean; listingId?: string }> => {
     try {
       console.log('📝 Posting single item:', group.id, group.listingData?.title);
       
-      if (!group.listingData) {
-        throw new Error('No listing data available');
+      const listingData = convertPhotoGroupToListingData(group);
+      if (!listingData) {
+        throw new Error('Failed to convert group data to listing format');
       }
 
       if (!group.selectedShipping) {
@@ -44,45 +75,18 @@ export const useBulkOperations = () => {
       }
 
       // Validate required fields
-      if (!group.listingData.title?.trim()) {
+      if (!listingData.title?.trim()) {
         throw new Error('Title is required');
       }
 
-      if (!group.listingData.price || group.listingData.price <= 0) {
+      if (!listingData.price || listingData.price <= 0) {
         throw new Error('Valid price is required');
       }
 
       const shippingCost = group.selectedShipping.cost;
       console.log('💰 Using shipping cost:', shippingCost);
 
-      // Convert to proper ListingData format with proper measurements conversion
-      const listingData: ListingData = {
-        title: group.listingData.title,
-        description: group.listingData.description || 'No description available',
-        price: group.listingData.price,
-        category: group.listingData.category || 'Uncategorized',
-        condition: group.listingData.condition || 'Used',
-        measurements: convertMeasurements(group.listingData.measurements),
-        keywords: group.listingData.keywords || [],
-        photos: group.listingData.photos || [],
-        purchase_price: group.listingData.purchase_price,
-        purchase_date: group.listingData.purchase_date,
-        source_location: group.listingData.source_location,
-        source_type: group.listingData.source_type,
-        is_consignment: group.listingData.is_consignment,
-        consignment_percentage: group.listingData.consignment_percentage,
-        consignor_name: group.listingData.consignor_name,
-        consignor_contact: group.listingData.consignor_contact,
-        clothing_size: group.listingData.clothing_size,
-        shoe_size: group.listingData.shoe_size,
-        gender: group.listingData.gender,
-        age_group: group.listingData.age_group,
-        features: group.listingData.features,
-        includes: group.listingData.includes,
-        defects: group.listingData.defects,
-        priceResearch: group.listingData.priceResearch
-      };
-
+      // Use the same save logic as single item creation
       const result = await saveListing(
         listingData,
         shippingCost,
@@ -93,7 +97,7 @@ export const useBulkOperations = () => {
         console.log('✅ Successfully posted item:', result.listingId);
         toast({
           title: "Item Posted",
-          description: `"${group.listingData.title}" has been posted successfully!`
+          description: `"${listingData.title}" has been posted successfully!`
         });
         return { success: true, listingId: result.listingId };
       } else {
@@ -114,46 +118,20 @@ export const useBulkOperations = () => {
     try {
       console.log('💾 Saving single draft:', group.id, group.listingData?.title);
       
-      if (!group.listingData) {
-        throw new Error('No listing data available');
+      const listingData = convertPhotoGroupToListingData(group);
+      if (!listingData) {
+        throw new Error('Failed to convert group data to listing format');
       }
 
       // For drafts, only require title
-      if (!group.listingData.title?.trim()) {
+      if (!listingData.title?.trim()) {
         throw new Error('Title is required');
       }
 
       // Use default shipping cost if none selected
       const shippingCost = group.selectedShipping?.cost ?? 9.95;
 
-      // Convert to proper ListingData format with proper measurements conversion
-      const listingData: ListingData = {
-        title: group.listingData.title,
-        description: group.listingData.description || 'No description available',
-        price: group.listingData.price || 0,
-        category: group.listingData.category || 'Uncategorized',
-        condition: group.listingData.condition || 'Used',
-        measurements: convertMeasurements(group.listingData.measurements),
-        keywords: group.listingData.keywords || [],
-        photos: group.listingData.photos || [],
-        purchase_price: group.listingData.purchase_price,
-        purchase_date: group.listingData.purchase_date,
-        source_location: group.listingData.source_location,
-        source_type: group.listingData.source_type,
-        is_consignment: group.listingData.is_consignment,
-        consignment_percentage: group.listingData.consignment_percentage,
-        consignor_name: group.listingData.consignor_name,
-        consignor_contact: group.listingData.consignor_contact,
-        clothing_size: group.listingData.clothing_size,
-        shoe_size: group.listingData.shoe_size,
-        gender: group.listingData.gender,
-        age_group: group.listingData.age_group,
-        features: group.listingData.features,
-        includes: group.listingData.includes,
-        defects: group.listingData.defects,
-        priceResearch: group.listingData.priceResearch
-      };
-
+      // Use the same save logic as single item creation  
       const result = await saveListing(
         listingData,
         shippingCost,
@@ -164,7 +142,7 @@ export const useBulkOperations = () => {
         console.log('✅ Successfully saved draft:', result.listingId);
         toast({
           title: "Draft Saved",
-          description: `"${group.listingData.title}" has been saved as draft!`
+          description: `"${listingData.title}" has been saved as draft!`
         });
         return { success: true, listingId: result.listingId };
       } else {

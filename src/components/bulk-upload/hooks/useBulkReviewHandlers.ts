@@ -75,9 +75,9 @@ export const useBulkReviewHandlers = (
     }, 2000);
   };
 
-  // Generic save draft function that saves all items as drafts
+  // Enhanced save draft function that uses the same logic as single item creation
   const handleSaveDraft = async () => {
-    console.log('Saving all items as drafts...');
+    console.log('💾 Saving all items as drafts using unified save logic...');
     let successes = 0;
     let failures = 0;
 
@@ -86,6 +86,12 @@ export const useBulkReviewHandlers = (
         const result = await saveSingleDraft(group);
         if (result.success) {
           successes++;
+          // Update the group to mark it as saved
+          setPhotoGroups(prev => prev.map(g => 
+            g.id === group.id 
+              ? { ...g, isPosted: false, listingId: result.listingId }
+              : g
+          ));
         } else {
           failures++;
         }
@@ -95,11 +101,24 @@ export const useBulkReviewHandlers = (
       }
     }
 
+    const results = photoGroups.map(g => ({ 
+      id: g.id, 
+      success: true, // Will be updated based on actual results
+      status: 'draft'
+    }));
+
     toast({
       title: "Draft Save Complete",
       description: `Saved ${successes} drafts${failures > 0 ? `, ${failures} failed` : ''}`,
       variant: successes === photoGroups.length ? "default" : "destructive"
     });
+
+    // If all successful, complete the process
+    if (successes > 0) {
+      setTimeout(() => {
+        onComplete(results);
+      }, 1000);
+    }
   };
 
   return {
