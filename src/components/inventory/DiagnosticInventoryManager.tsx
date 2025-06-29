@@ -93,19 +93,55 @@ const DiagnosticInventoryManager = ({ onCreateListing, onBack }: DiagnosticInven
           </div>
         </Card>
 
-        {/* Sample Data */}
+        {/* Sample Data with Enhanced Title Display */}
         {listings.length > 0 && (
           <Card className="p-6">
             <h3 className="text-lg font-semibold mb-4">Sample Data Retrieved</h3>
             <div className="space-y-2">
-              {listings.slice(0, 3).map((listing) => (
-                <div key={listing.id} className="bg-gray-50 p-3 rounded border">
-                  <div className="font-medium">{listing.title}</div>
-                  <div className="text-sm text-gray-600">
-                    ID: {listing.id} | Price: ${listing.price} | Status: {listing.status}
+              {listings.slice(0, 3).map((listing) => {
+                const displayTitle = listing.title || `Untitled Item ${listing.id.substring(0, 8)}`;
+                const hasTitle = !!listing.title;
+                
+                return (
+                  <div key={listing.id} className="bg-gray-50 p-3 rounded border">
+                    <div className="flex items-center gap-2">
+                      <div className="font-medium flex-1">{displayTitle}</div>
+                      {!hasTitle && (
+                        <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+                          NO TITLE
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-sm text-gray-600 mt-1">
+                      ID: {listing.id} | Price: ${listing.price} | Status: {listing.status}
+                    </div>
+                    {!hasTitle && (
+                      <div className="text-xs text-red-600 mt-1">
+                        ⚠️ This item is missing a title in the database
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
+            </div>
+            
+            {/* Title Summary */}
+            <div className="mt-4 p-3 bg-blue-50 rounded">
+              <h4 className="font-medium text-blue-800 mb-2">Title Analysis Summary:</h4>
+              <div className="text-sm text-blue-700">
+                {(() => {
+                  const withTitles = listings.filter(l => l.title && l.title.trim() !== '').length;
+                  const withoutTitles = listings.length - withTitles;
+                  return (
+                    <div>
+                      <div>✅ Items with proper titles: {withTitles}</div>
+                      {withoutTitles > 0 && (
+                        <div className="text-red-700">❌ Items missing titles: {withoutTitles}</div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
           </Card>
         )}
