@@ -11,6 +11,7 @@ import { Card } from '@/components/ui/card';
 import OptimisticInventoryTable from './OptimisticInventoryTable';
 import ImprovedInventoryControls from './ImprovedInventoryControls';
 import ImprovedInventoryErrorBoundary from './ImprovedInventoryErrorBoundary';
+import DiagnosticInventoryManager from './DiagnosticInventoryManager';
 import { RefreshCw } from 'lucide-react';
 import type { Listing } from '@/types/Listing';
 
@@ -22,6 +23,7 @@ interface OptimizedInventoryManagerProps {
 const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInventoryManagerProps) => {
   const isMobile = useIsMobile();
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [showDiagnostic, setShowDiagnostic] = useState(false);
 
   const {
     searchTerm,
@@ -51,6 +53,19 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
   });
 
   const { deleteListing, updateListing, duplicateListing } = useListingOperations();
+
+  // Show diagnostic mode if there's persistent loading issues
+  if (showDiagnostic) {
+    return (
+      <DiagnosticInventoryManager
+        onCreateListing={onCreateListing}
+        onBack={() => setShowDiagnostic(false)}
+      />
+    );
+  }
+
+  // If loading for more than expected time, show diagnostic option
+  const showDiagnosticOption = loading && !isRefreshing;
 
   const handleSelectListing = (listingId: string, checked: boolean) => {
     setSelectedItems(prev => 
@@ -136,6 +151,21 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
             <div className="flex items-center justify-center">
               <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
               <span className="text-blue-800">Refreshing inventory...</span>
+            </div>
+          </Card>
+        )}
+
+        {/* Diagnostic Option */}
+        {showDiagnosticOption && (
+          <Card className="p-4 border-yellow-200 bg-yellow-50">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-yellow-800 font-medium">Still loading?</div>
+                <div className="text-yellow-700 text-sm">Run diagnostics to identify the issue</div>
+              </div>
+              <Button onClick={() => setShowDiagnostic(true)} variant="outline" size="sm">
+                Run Diagnostics
+              </Button>
             </div>
           </Card>
         )}
