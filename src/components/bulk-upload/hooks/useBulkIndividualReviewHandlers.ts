@@ -143,10 +143,8 @@ export const useBulkIndividualReviewHandlers = (
       description: "Item saved as draft successfully.",
     });
 
-    // CRITICAL FIX: Return to review dashboard after saving draft
-    setTimeout(() => {
-      setCurrentStep('review');
-    }, 1000);
+    // IMMEDIATE RETURN TO DASHBOARD - no delay
+    setCurrentStep('review');
   };
 
   return {

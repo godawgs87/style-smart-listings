@@ -1,3 +1,4 @@
+
 import { useListingSave } from '@/hooks/useListingSave';
 import { useToast } from '@/hooks/use-toast';
 import type { PhotoGroup } from '../../BulkUploadManager';
@@ -13,7 +14,22 @@ export const useBulkOperations = () => {
       return null;
     }
 
-    // Ensure all fields have proper values, including AI-generated content
+    console.log('Converting PhotoGroup to ListingData:', {
+      groupId: group.id,
+      title: group.listingData.title,
+      description: group.listingData.description?.substring(0, 100) + '...',
+      price: group.listingData.price,
+      category: group.listingData.category,
+      condition: group.listingData.condition,
+      measurements: group.listingData.measurements,
+      keywords: group.listingData.keywords,
+      features: group.listingData.features,
+      includes: group.listingData.includes,
+      defects: group.listingData.defects,
+      priceResearch: group.listingData.priceResearch
+    });
+
+    // Ensure measurements are properly converted to strings
     const convertedMeasurements: { length?: string; width?: string; height?: string; weight?: string } = {};
     
     if (group.listingData.measurements) {
@@ -32,7 +48,7 @@ export const useBulkOperations = () => {
       }
     }
 
-    // Convert PhotoGroup.listingData to ListingData format with enhanced data validation
+    // Convert PhotoGroup.listingData to ListingData format - ensuring ALL AI data is preserved
     const listingData: ListingData = {
       title: group.listingData.title || `${group.name} - Quality Item`,
       description: group.listingData.description || 'Quality item in good condition. Please see photos for detailed condition assessment.',
@@ -54,20 +70,25 @@ export const useBulkOperations = () => {
       shoe_size: group.listingData.shoe_size,
       gender: group.listingData.gender,
       age_group: group.listingData.age_group,
+      // CRITICAL: Preserve all AI-generated enhanced fields
       priceResearch: group.listingData.priceResearch || 'Market research indicates competitive pricing for similar items.',
       features: group.listingData.features || ['Quality construction', 'Well-maintained'],
       includes: group.listingData.includes || ['Item as shown in photos'],
       defects: group.listingData.defects || []
     };
 
-    console.log('💾 Converting group to listing data:', {
-      groupId: group.id,
+    console.log('Final converted listing data:', {
       title: listingData.title,
-      description: listingData.description?.substring(0, 50) + '...',
+      description: listingData.description?.substring(0, 100) + '...',
       price: listingData.price,
+      category: listingData.category,
+      condition: listingData.condition,
       measurements: listingData.measurements,
-      hasKeywords: listingData.keywords?.length || 0,
-      hasFeatures: listingData.features?.length || 0
+      keywords: listingData.keywords,
+      features: listingData.features,
+      includes: listingData.includes,
+      defects: listingData.defects,
+      priceResearch: listingData.priceResearch?.substring(0, 50) + '...'
     });
 
     return listingData;
@@ -102,7 +123,7 @@ export const useBulkOperations = () => {
       const result = await saveListing(
         listingData,
         shippingCost,
-        'active' // Post as active listing
+        'active'
       );
 
       if (result.success) {
@@ -128,7 +149,7 @@ export const useBulkOperations = () => {
 
   const saveSingleDraft = async (group: PhotoGroup): Promise<{ success: boolean; listingId?: string }> => {
     try {
-      console.log('💾 Saving single draft with full data:', group.id, group.listingData?.title);
+      console.log('💾 Saving single draft with ALL AI-generated data:', group.id, group.listingData?.title);
       
       const listingData = convertPhotoGroupToListingData(group);
       if (!listingData) {
@@ -143,27 +164,30 @@ export const useBulkOperations = () => {
       // Use default shipping cost if none selected
       const shippingCost = group.selectedShipping?.cost ?? 9.95;
 
-      console.log('💾 Saving draft with complete data:', {
+      console.log('💾 Saving draft with complete AI data:', {
         title: listingData.title,
         description: listingData.description?.substring(0, 100) + '...',
         price: listingData.price,
         measurements: listingData.measurements,
         keywords: listingData.keywords,
-        features: listingData.features
+        features: listingData.features,
+        includes: listingData.includes,
+        defects: listingData.defects,
+        priceResearch: listingData.priceResearch?.substring(0, 50) + '...'
       });
 
       // Use the same save logic as single item creation  
       const result = await saveListing(
         listingData,
         shippingCost,
-        'draft' // Save as draft
+        'draft'
       );
 
       if (result.success) {
-        console.log('✅ Successfully saved draft with all AI data:', result.listingId);
+        console.log('✅ Successfully saved draft with ALL AI data preserved:', result.listingId);
         toast({
           title: "Draft Saved",
-          description: `"${listingData.title}" has been saved as draft with all details!`
+          description: `"${listingData.title}" has been saved as draft with all AI-generated details!`
         });
         return { success: true, listingId: result.listingId };
       } else {
