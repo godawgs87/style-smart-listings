@@ -53,7 +53,8 @@ const BulkReviewDashboard = ({
   };
 
   const completedItems = photoGroups.filter(g => g.status === 'completed').length;
-  const canProceedToShipping = completedItems > 0;
+  const readyForShipping = photoGroups.filter(g => g.status === 'completed' && !g.selectedShipping).length;
+  const readyToPost = photoGroups.filter(g => g.status === 'completed' && g.selectedShipping && !g.isPosted).length;
 
   return (
     <div className="w-full max-w-7xl mx-auto p-4 space-y-6">
@@ -65,16 +66,51 @@ const BulkReviewDashboard = ({
               AI Analysis in progress...
             </div>
           )}
-          {canProceedToShipping && onProceedToShipping && (
+          
+          {/* Show Configure Shipping button when there are completed items */}
+          {completedItems > 0 && onProceedToShipping && (
             <Button 
               onClick={onProceedToShipping}
               className="bg-blue-600 hover:bg-blue-700"
+              size="lg"
             >
-              Configure Shipping ({completedItems} items)
+              📦 Configure Shipping ({completedItems} items)
+            </Button>
+          )}
+
+          {/* Show Post All button when items are ready to post */}
+          {readyToPost > 0 && (
+            <Button 
+              onClick={onPostAll}
+              className="bg-green-600 hover:bg-green-700"
+              size="lg"
+            >
+              🚀 Post All Ready ({readyToPost} items)
             </Button>
           )}
         </div>
       </div>
+
+      {/* Status Summary */}
+      {completedItems > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center gap-4 text-sm">
+            <span className="text-blue-800 font-medium">
+              ✅ {completedItems} items analyzed and ready
+            </span>
+            {readyForShipping > 0 && (
+              <span className="text-orange-600">
+                📦 {readyForShipping} need shipping configuration
+              </span>
+            )}
+            {readyToPost > 0 && (
+              <span className="text-green-600">
+                🚀 {readyToPost} ready to post
+              </span>
+            )}
+          </div>
+        </div>
+      )}
       
       <AIDetailsTableView
         photoGroups={photoGroups}
