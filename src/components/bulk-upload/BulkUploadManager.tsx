@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import BulkUploadHeader from './components/BulkUploadHeader';
@@ -66,33 +67,13 @@ interface BulkUploadManagerProps {
 
 const BulkUploadManager = ({ onComplete, onBack, onViewInventory }: BulkUploadManagerProps) => {
   const { toast } = useToast();
-  const {
-    currentStep,
-    setCurrentStep,
-    photos,
-    setPhotos,
-    photoGroups,
-    setPhotoGroups,
-    isGrouping,
-    setIsGrouping
-  } = useBulkUploadState();
-
-  const {
-    handleStartGrouping,
-    handleGroupsConfirmed,
-    handleEditItem,
-    handlePreviewItem,
-    handlePostItem,
-    handlePostAll,
-    handleUpdateGroup,
-    handleRetryAnalysis,
-    isAnalyzing
-  } = useBulkUploadHandlers(
-    photos,
-    photoGroups,
-    setIsGrouping,
-    setCurrentStep,
-    setPhotoGroups,
+  const state = useBulkUploadState();
+  const handlers = useBulkUploadHandlers(
+    state.photos,
+    state.photoGroups,
+    state.setIsGrouping,
+    state.setCurrentStep,
+    state.setPhotoGroups,
     onComplete
   );
 
@@ -102,16 +83,16 @@ const BulkUploadManager = ({ onComplete, onBack, onViewInventory }: BulkUploadMa
       toastElements.forEach(el => el.remove());
     };
     clearToasts();
-  }, [currentStep]);
+  }, [state.currentStep]);
 
   const handlePhotosUploaded = (uploadedPhotos: File[]) => {
     console.log('📸 Photos uploaded for bulk processing:', uploadedPhotos.length);
-    setPhotos(uploadedPhotos);
+    state.setPhotos(uploadedPhotos);
   };
 
   const handleShippingComplete = (groupsWithShipping: PhotoGroup[]) => {
-    setPhotoGroups(groupsWithShipping);
-    setCurrentStep('review'); // Go back to review with shipping configured
+    state.setPhotoGroups(groupsWithShipping);
+    state.setCurrentStep('review');
     
     toast({
       title: "Shipping configured!",
@@ -130,31 +111,31 @@ const BulkUploadManager = ({ onComplete, onBack, onViewInventory }: BulkUploadMa
       <BulkUploadHeader />
       
       <BulkUploadStepIndicator
-        currentStep={currentStep}
-        photos={photos}
-        photoGroups={photoGroups}
+        currentStep={state.currentStep}
+        photos={state.photos}
+        photoGroups={state.photoGroups}
         processingResults={[]}
       />
 
       <BulkUploadStepRenderer
-        currentStep={currentStep}
-        photos={photos}
-        photoGroups={photoGroups}
-        isGrouping={isGrouping}
-        isAnalyzing={isAnalyzing}
+        currentStep={state.currentStep}
+        photos={state.photos}
+        photoGroups={state.photoGroups}
+        isGrouping={state.isGrouping}
+        isAnalyzing={handlers.isAnalyzing}
         onPhotosUploaded={handlePhotosUploaded}
-        onStartGrouping={handleStartGrouping}
-        onGroupsConfirmed={handleGroupsConfirmed}
-        onEditItem={handleEditItem}
-        onPreviewItem={handlePreviewItem}
-        onPostItem={handlePostItem}
-        onPostAll={handlePostAll}
-        onUpdateGroup={handleUpdateGroup}
-        onRetryAnalysis={handleRetryAnalysis}
+        onStartGrouping={handlers.handleStartGrouping}
+        onGroupsConfirmed={handlers.handleGroupsConfirmed}
+        onEditItem={handlers.handleEditItem}
+        onPreviewItem={handlers.handlePreviewItem}
+        onPostItem={handlers.handlePostItem}
+        onPostAll={handlers.handlePostAll}
+        onUpdateGroup={handlers.handleUpdateGroup}
+        onRetryAnalysis={handlers.handleRetryAnalysis}
         onShippingComplete={handleShippingComplete}
         onViewInventory={handleViewInventory}
         onBack={onBack}
-        setCurrentStep={setCurrentStep}
+        onStepChange={state.setCurrentStep}
       />
     </div>
   );

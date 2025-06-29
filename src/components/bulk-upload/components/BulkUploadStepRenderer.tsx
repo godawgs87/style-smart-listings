@@ -26,80 +26,75 @@ interface BulkUploadStepRendererProps {
   onBack: () => void;
   onShippingComplete: (groupsWithShipping: PhotoGroup[]) => void;
   onViewInventory?: () => void;
-  setCurrentStep: (step: StepType) => void;
+  onStepChange: (step: StepType) => void;
 }
 
-const BulkUploadStepRenderer = ({
-  currentStep,
-  photos,
-  photoGroups,
-  isGrouping,
-  isAnalyzing,
-  onPhotosUploaded,
-  onStartGrouping,
-  onGroupsConfirmed,
-  onEditItem,
-  onPreviewItem,
-  onPostItem,
-  onPostAll,
-  onUpdateGroup,
-  onRetryAnalysis,
-  onBack,
-  onShippingComplete,
-  onViewInventory,
-  setCurrentStep
-}: BulkUploadStepRendererProps) => {
-  
-  switch (currentStep) {
-    case 'upload':
-      return (
-        <BulkUploadStep
-          photos={photos}
-          isGrouping={isGrouping}
-          onPhotosUploaded={onPhotosUploaded}
-          onStartGrouping={onStartGrouping}
-          onBack={onBack}
-        />
-      );
+const stepComponents = {
+  upload: BulkUploadStep,
+  grouping: PhotoGroupingInterface,
+  review: BulkReviewDashboard,
+  shipping: BulkShippingConfiguration
+};
 
-    case 'grouping':
-      return (
-        <PhotoGroupingInterface
-          photoGroups={photoGroups}
-          onGroupsConfirmed={onGroupsConfirmed}
-          onBack={() => setCurrentStep('upload')}
-        />
-      );
+const BulkUploadStepRenderer = (props: BulkUploadStepRendererProps) => {
+  const {
+    currentStep,
+    photos,
+    photoGroups,
+    isGrouping,
+    isAnalyzing,
+    onPhotosUploaded,
+    onStartGrouping,
+    onGroupsConfirmed,
+    onEditItem,
+    onPreviewItem,
+    onPostItem,
+    onPostAll,
+    onUpdateGroup,
+    onRetryAnalysis,
+    onBack,
+    onShippingComplete,
+    onViewInventory,
+    onStepChange
+  } = props;
 
-    case 'review':
-      return (
-        <BulkReviewDashboard
-          photoGroups={photoGroups}
-          onEditItem={onEditItem}
-          onPreviewItem={onPreviewItem}
-          onPostItem={onPostItem}
-          onPostAll={onPostAll}
-          onUpdateGroup={onUpdateGroup}
-          onRetryAnalysis={onRetryAnalysis}
-          onProceedToShipping={() => setCurrentStep('shipping')}
-          onViewInventory={onViewInventory}
-          isAnalyzing={isAnalyzing}
-        />
-      );
+  const stepProps = {
+    upload: {
+      photos,
+      isGrouping,
+      onPhotosUploaded,
+      onStartGrouping,
+      onBack
+    },
+    grouping: {
+      photoGroups,
+      onGroupsConfirmed,
+      onBack: () => onStepChange('upload')
+    },
+    review: {
+      photoGroups,
+      onEditItem,
+      onPreviewItem,
+      onPostItem,
+      onPostAll,
+      onUpdateGroup,
+      onRetryAnalysis,
+      onProceedToShipping: () => onStepChange('shipping'),
+      onViewInventory,
+      isAnalyzing
+    },
+    shipping: {
+      photoGroups,
+      onComplete: onShippingComplete,
+      onBack: () => onStepChange('review'),
+      onUpdateGroup
+    }
+  };
 
-    case 'shipping':
-      return (
-        <BulkShippingConfiguration
-          photoGroups={photoGroups}
-          onComplete={onShippingComplete}
-          onBack={() => setCurrentStep('review')}
-          onUpdateGroup={onUpdateGroup}
-        />
-      );
+  const StepComponent = stepComponents[currentStep];
+  const currentStepProps = stepProps[currentStep];
 
-    default:
-      return null;
-  }
+  return StepComponent ? <StepComponent {...currentStepProps} /> : null;
 };
 
 export default BulkUploadStepRenderer;

@@ -12,7 +12,6 @@ import InventoryStatsCards from './InventoryStatsCards';
 import InventoryErrorSection from './InventoryErrorSection';
 import InventoryEmptyState from './InventoryEmptyState';
 import InventoryLoadingState from './InventoryLoadingState';
-import type { Listing } from '@/types/Listing';
 
 interface OptimizedInventoryManagerProps {
   onCreateListing: () => void;
@@ -23,32 +22,15 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
   const isMobile = useIsMobile();
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
 
-  const {
-    searchTerm,
-    setSearchTerm,
-    statusFilter,
-    setStatusFilter,
-    categoryFilter,
-    setCategoryFilter,
-    categories,
-    handleClearFilters
-  } = useInventoryFilters([]);
-
-  // Single inventory hook
-  const { 
-    listings, 
-    loading, 
-    error, 
-    stats, 
-    refetch 
-  } = useInventoryData({
-    searchTerm: searchTerm.trim() || undefined,
-    statusFilter: statusFilter === 'all' ? undefined : statusFilter,
-    categoryFilter: categoryFilter === 'all' ? undefined : categoryFilter,
+  const filters = useInventoryFilters([]);
+  const inventory = useInventoryData({
+    searchTerm: filters.searchTerm.trim() || undefined,
+    statusFilter: filters.statusFilter === 'all' ? undefined : filters.statusFilter,
+    categoryFilter: filters.categoryFilter === 'all' ? undefined : filters.categoryFilter,
     limit: 30
   });
 
-  const { deleteListing, updateListing, duplicateListing } = useListingOperations();
+  const operations = useListingOperations();
 
   const handleSelectListing = (listingId: string, checked: boolean) => {
     setSelectedItems(prev => 
@@ -59,35 +41,35 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
   };
 
   const handleSelectAll = (checked: boolean) => {
-    setSelectedItems(checked ? listings.map(l => l.id) : []);
+    setSelectedItems(checked ? inventory.listings.map(l => l.id) : []);
   };
 
   const handleUpdateListing = async (listingId: string, updates: any) => {
-    const success = await updateListing(listingId, updates);
+    const success = await operations.updateListing(listingId, updates);
     if (success) {
-      setTimeout(() => refetch(), 1000);
+      setTimeout(() => inventory.refetch(), 1000);
     }
   };
 
   const handleDeleteListing = async (listingId: string): Promise<void> => {
-    const success = await deleteListing(listingId);
+    const success = await operations.deleteListing(listingId);
     if (success) {
       setSelectedItems(prev => prev.filter(id => id !== listingId));
-      setTimeout(() => refetch(), 1000);
+      setTimeout(() => inventory.refetch(), 1000);
     }
   };
 
   const handleDuplicateListing = async (listing: any) => {
-    const result = await duplicateListing(listing);
+    const result = await operations.duplicateListing(listing);
     if (result) {
-      refetch();
+      inventory.refetch();
     }
     return result;
   };
 
   const handleRetryWithFilters = () => {
-    handleClearFilters();
-    refetch();
+    filters.handleClearFilters();
+    inventory.refetch();
   };
 
   return (
@@ -99,16 +81,14 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
       />
       
       <div className="max-w-7xl mx-auto p-4 space-y-6">
-        {/* Stats Cards - only show when loaded and have data */}
-        {!loading && !error && listings.length > 0 && (
-          <InventoryStatsCards stats={stats} />
+        {!inventory.loading && !inventory.error && inventory.listings.length > 0 && (
+          <InventoryStatsCards stats={inventory.stats} />
         )}
 
-        {/* Error Handling */}
-        {error && (
+        {inventory.error && (
           <InventoryErrorSection
-            error={error}
-            onRetry={refetch}
+            error={inventory.error}
+            onRetry={inventory.refetch}
             onClearFilters={handleRetryWithFilters}
             onUseFallback={() => {}}
             onShowDiagnostic={() => {}}
@@ -116,45 +96,41 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
           />
         )}
 
-        {/* Controls - only show if not in error state */}
-        {!error && (
+        {!inventory.error && (
           <ImprovedInventoryControls
-            searchTerm={searchTerm}
-            statusFilter={statusFilter}
-            categoryFilter={categoryFilter}
-            categories={categories}
-            loading={loading}
+            searchTerm={filters.searchTerm}
+            statusFilter={filters.statusFilter}
+            categoryFilter={filters.categoryFilter}
+            categories={filters.categories}
+            loading={inventory.loading}
             selectedCount={selectedItems.length}
-            onSearchChange={setSearchTerm}
-            onStatusChange={setStatusFilter}
-            onCategoryChange={setCategoryFilter}
-            onClearFilters={handleClearFilters}
-            onRefresh={refetch}
+            onSearchChange={filters.setSearchTerm}
+            onStatusChange={filters.setStatusFilter}
+            onCategoryChange={filters.setCategoryFilter}
+            onClearFilters={filters.handleClearFilters}
+            onRefresh={inventory.refetch}
             onCreateListing={onCreateListing}
           />
         )}
 
-        {/* Table - only show if loaded successfully */}
-        {!loading && !error && listings.length > 0 && (
+        {!inventory.loading && !inventory.error && inventory.listings.length > 0 && (
           <OptimisticInventoryTable
-            listings={listings}
+            listings={inventory.listings}
             selectedListings={selectedItems}
             onSelectListing={handleSelectListing}
             onSelectAll={handleSelectAll}
             onUpdateListing={handleUpdateListing}
             onDeleteListing={handleDeleteListing}
             onDuplicateListing={handleDuplicateListing}
-            useVirtualization={listings.length > 25}
+            useVirtualization={inventory.listings.length > 25}
           />
         )}
 
-        {/* Empty State */}
-        {!loading && !error && listings.length === 0 && (
+        {!inventory.loading && !inventory.error && inventory.listings.length === 0 && (
           <InventoryEmptyState onCreateListing={onCreateListing} />
         )}
 
-        {/* Loading State */}
-        {loading && (
+        {inventory.loading && (
           <InventoryLoadingState />
         )}
       </div>

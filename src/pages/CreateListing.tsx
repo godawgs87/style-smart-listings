@@ -21,56 +21,32 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
   const { user } = useAuth();
   const [uploadMode, setUploadMode] = useState<'single' | 'bulk' | null>(null);
   
-  const {
-    currentStep,
-    setCurrentStep,
-    photos,
-    shippingCost,
-    listingData,
-    draftId,
-    isAutoSaving,
-    setDraftId,
-    setListingData,
-    setIsAutoSaving,
-    handlePhotosChange,
-    handleListingDataChange,
-    handleShippingSelect
-  } = useCreateListingState();
-
-  const handleViewInventory = () => {
-    window.location.href = '/inventory';
-  };
-
-  const {
-    handleAnalyze,
-    handleExport,
-    isAnalyzing,
-    isSaving
-  } = useCreateListingActions({
-    photos,
-    listingData,
-    shippingCost,
-    draftId,
-    isAutoSaving,
-    setListingData,
-    setDraftId,
-    setIsAutoSaving,
-    setCurrentStep,
-    onViewListings: handleViewInventory
+  const state = useCreateListingState();
+  const actions = useCreateListingActions({
+    photos: state.photos,
+    listingData: state.listingData,
+    shippingCost: state.shippingCost,
+    draftId: state.draftId,
+    isAutoSaving: state.isAutoSaving,
+    setListingData: state.setListingData,
+    setDraftId: state.setDraftId,
+    setIsAutoSaving: state.setIsAutoSaving,
+    setCurrentStep: state.setCurrentStep,
+    onViewListings: () => window.location.href = '/inventory'
   });
 
   const handleEdit = () => {
-    setCurrentStep('shipping');
+    state.setCurrentStep('shipping');
   };
 
   const handleBack = () => {
     if (uploadMode === null) {
       onBack();
     } else if (uploadMode === 'single') {
-      if (currentStep === 'shipping') {
-        setCurrentStep('preview');
-      } else if (currentStep === 'preview') {
-        setCurrentStep('photos');
+      if (state.currentStep === 'shipping') {
+        state.setCurrentStep('preview');
+      } else if (state.currentStep === 'preview') {
+        state.setCurrentStep('photos');
       } else {
         setUploadMode(null);
       }
@@ -85,7 +61,7 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
   };
 
   const getWeight = (): number => {
-    const weight = listingData?.measurements?.weight;
+    const weight = state.listingData?.measurements?.weight;
     if (typeof weight === 'string') {
       const parsed = parseFloat(weight);
       return isNaN(parsed) ? 1 : parsed;
@@ -94,7 +70,7 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
   };
 
   const getDimensions = (): { length: number; width: number; height: number } => {
-    const measurements = listingData?.measurements;
+    const measurements = state.listingData?.measurements;
     
     const parseValue = (value: string | number | undefined, defaultValue: number): number => {
       if (typeof value === 'string') {
@@ -114,8 +90,8 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
   const getBackButtonText = () => {
     if (uploadMode === null) return 'Back to Dashboard';
     if (uploadMode === 'bulk') return 'Back to Upload Mode';
-    if (currentStep === 'shipping') return 'Back to Preview';
-    if (currentStep === 'preview') return 'Back to Photos';
+    if (state.currentStep === 'shipping') return 'Back to Preview';
+    if (state.currentStep === 'preview') return 'Back to Photos';
     return 'Back to Upload Mode';
   };
 
@@ -142,25 +118,25 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
           <>
             {!isMobile && (
               <CreateListingSteps 
-                currentStep={currentStep} 
-                photos={photos}
-                listingData={listingData}
+                currentStep={state.currentStep} 
+                photos={state.photos}
+                listingData={state.listingData}
               />
             )}
             
             <CreateListingContent
-              currentStep={currentStep}
-              photos={photos}
-              isAnalyzing={isAnalyzing}
-              listingData={listingData}
-              shippingCost={shippingCost}
-              isSaving={isSaving}
-              onPhotosChange={handlePhotosChange}
-              onAnalyze={handleAnalyze}
+              currentStep={state.currentStep}
+              photos={state.photos}
+              isAnalyzing={actions.isAnalyzing}
+              listingData={state.listingData}
+              shippingCost={state.shippingCost}
+              isSaving={actions.isSaving}
+              onPhotosChange={state.handlePhotosChange}
+              onAnalyze={actions.handleAnalyze}
               onEdit={handleEdit}
-              onExport={handleExport}
-              onShippingSelect={handleShippingSelect}
-              onListingDataChange={handleListingDataChange}
+              onExport={actions.handleExport}
+              onShippingSelect={state.handleShippingSelect}
+              onListingDataChange={state.handleListingDataChange}
               getWeight={getWeight}
               getDimensions={getDimensions}
               onBack={handleBack}
