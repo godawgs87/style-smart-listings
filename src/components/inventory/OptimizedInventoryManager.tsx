@@ -4,14 +4,14 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
 import MobileNavigation from '@/components/MobileNavigation';
-import { useOptimizedInventory } from '@/hooks/useOptimizedInventory';
+import { useUnifiedInventoryHook } from '@/hooks/useUnifiedInventoryHook';
 import { useListingOperations } from '@/hooks/useListingOperations';
 import { useInventoryFilters } from '@/hooks/useInventoryFilters';
 import { Card } from '@/components/ui/card';
 import OptimisticInventoryTable from './OptimisticInventoryTable';
 import ImprovedInventoryControls from './ImprovedInventoryControls';
 import ImprovedInventoryErrorBoundary from './ImprovedInventoryErrorBoundary';
-import { RefreshCw, Trash2 } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import type { Listing } from '@/types/Listing';
 
 interface OptimizedInventoryManagerProps {
@@ -34,20 +34,20 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
     handleClearFilters
   } = useInventoryFilters([]);
 
-  // Use only the optimized inventory hook to avoid conflicts
+  // Use the unified inventory hook
   const { 
     listings, 
     loading, 
     error, 
     stats, 
-    isUsingCache, 
+    isRefreshing,
     refetch, 
     clearCache 
-  } = useOptimizedInventory({
+  } = useUnifiedInventoryHook({
     searchTerm: searchTerm.trim() || undefined,
     statusFilter: statusFilter === 'all' ? undefined : statusFilter,
     categoryFilter: categoryFilter === 'all' ? undefined : categoryFilter,
-    limit: 50 // Reduced from 75 to improve performance
+    limit: 50
   });
 
   const { deleteListing, updateListing, duplicateListing } = useListingOperations();
@@ -67,8 +67,7 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
   const handleUpdateListing = async (listingId: string, updates: any) => {
     const success = await updateListing(listingId, updates);
     if (success) {
-      // Shorter delay for better UX
-      setTimeout(() => refetch(), 300);
+      setTimeout(() => refetch(), 500);
     }
   };
 
@@ -76,7 +75,6 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
     const success = await deleteListing(listingId);
     if (success) {
       setSelectedItems(prev => prev.filter(id => id !== listingId));
-      // Shorter delay for better UX
       setTimeout(() => refetch(), 500);
     }
   };
@@ -87,11 +85,6 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
       refetch();
     }
     return result;
-  };
-
-  const handleClearCacheAndRefresh = () => {
-    clearCache();
-    refetch();
   };
 
   return (
@@ -131,34 +124,12 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
           </Card>
         </div>
 
-        {/* Cache Status */}
-        {isUsingCache && (
-          <Card className="p-4 border-yellow-200 bg-yellow-50">
-            <div className="flex items-center justify-between">
-              <div className="text-yellow-800 flex items-center">
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Using cached data due to connection issues
-              </div>
-              <div className="flex gap-2">
-                <Button 
-                  onClick={refetch} 
-                  variant="outline" 
-                  size="sm"
-                  className="text-yellow-700 border-yellow-300"
-                >
-                  <RefreshCw className="w-4 h-4 mr-1" />
-                  Try Fresh Data
-                </Button>
-                <Button 
-                  onClick={handleClearCacheAndRefresh} 
-                  variant="outline" 
-                  size="sm"
-                  className="text-yellow-700 border-yellow-300"
-                >
-                  <Trash2 className="w-4 h-4 mr-1" />
-                  Clear Cache
-                </Button>
-              </div>
+        {/* Refresh Status */}
+        {isRefreshing && (
+          <Card className="p-4 border-blue-200 bg-blue-50">
+            <div className="flex items-center justify-center">
+              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+              <span className="text-blue-800">Refreshing inventory...</span>
             </div>
           </Card>
         )}
@@ -198,11 +169,11 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
             onUpdateListing={handleUpdateListing}
             onDeleteListing={handleDeleteListing}
             onDuplicateListing={handleDuplicateListing}
-            useVirtualization={listings.length > 30} // Lower threshold for better performance
+            useVirtualization={listings.length > 30}
           />
         )}
 
-        {loading && (
+        {loading && !isRefreshing && (
           <Card className="p-8 text-center">
             <div className="flex items-center justify-center space-x-2">
               <div className="animate-spin w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>

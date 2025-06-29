@@ -4,7 +4,7 @@ import OptimizedInventoryManager from '@/components/inventory/OptimizedInventory
 
 const SimpleInventoryPage = () => {
   const handleCreateListing = () => {
-    window.location.href = '/';
+    window.location.href = '/?view=create';
   };
 
   const handleBack = () => {
