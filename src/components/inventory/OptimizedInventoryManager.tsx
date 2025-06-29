@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
@@ -26,6 +26,8 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [showDiagnostic, setShowDiagnostic] = useState(false);
   const [useFallbackData, setUseFallbackData] = useState(false);
+  const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
+  const [isStable, setIsStable] = useState(false);
 
   const {
     searchTerm,
@@ -54,18 +56,40 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
     limit: 30
   });
 
-  // Fallback diagnostic hook
+  // Fallback diagnostic hook - only run when needed
   const { 
     listings: fallbackListings, 
     loading: fallbackLoading, 
     error: fallbackError 
   } = useInventoryDiagnostic();
 
+  // Stabilize the loading state to prevent flashing
+  useEffect(() => {
+    if (!primaryLoading && !isRefreshing) {
+      const timer = setTimeout(() => {
+        setHasAttemptedLoad(true);
+        setIsStable(true);
+      }, 500); // Small delay to prevent flashing
+      
+      return () => clearTimeout(timer);
+    } else {
+      setIsStable(false);
+    }
+  }, [primaryLoading, isRefreshing]);
+
+  // Auto-switch to fallback if primary fails but fallback has data
+  useEffect(() => {
+    if (hasAttemptedLoad && primaryError && !useFallbackData && fallbackListings.length > 0 && !fallbackError) {
+      console.log('🔄 Auto-switching to fallback data due to primary error');
+      setUseFallbackData(true);
+    }
+  }, [hasAttemptedLoad, primaryError, useFallbackData, fallbackListings.length, fallbackError]);
+
   // Determine which data to use
-  const shouldUseFallback = useFallbackData || (primaryError && !fallbackError && fallbackListings.length > 0);
+  const shouldUseFallback = useFallbackData;
   const listings = shouldUseFallback ? fallbackListings : primaryListings;
-  const loading = shouldUseFallback ? fallbackLoading : primaryLoading;
-  const error = shouldUseFallback ? fallbackError : primaryError;
+  const loading = shouldUseFallback ? fallbackLoading : (primaryLoading || !isStable);
+  const error = shouldUseFallback ? fallbackError : (isStable ? primaryError : null);
   
   // Calculate stats for fallback data
   const fallbackStats = {
@@ -105,7 +129,6 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
     const success = await updateListing(listingId, updates);
     if (success) {
       if (shouldUseFallback) {
-        // For fallback data, we need to manually refresh
         window.location.reload();
       } else {
         setTimeout(() => primaryRefetch(), 1000);
@@ -141,11 +164,21 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
     handleClearFilters();
     clearCache();
     setUseFallbackData(false);
+    setHasAttemptedLoad(false);
+    setIsStable(false);
     primaryRefetch();
   };
 
   const handleUseFallback = () => {
     setUseFallbackData(true);
+  };
+
+  const handleRetryPrimary = () => {
+    setUseFallbackData(false);
+    setHasAttemptedLoad(false);
+    setIsStable(false);
+    clearCache();
+    primaryRefetch();
   };
 
   return (
@@ -165,40 +198,42 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
                 <div className="text-blue-800 font-medium">Using Diagnostic Data</div>
                 <div className="text-blue-700 text-sm">Switched to fallback data source due to loading issues</div>
               </div>
-              <Button onClick={() => setUseFallbackData(false)} variant="outline" size="sm">
+              <Button onClick={handleRetryPrimary} variant="outline" size="sm">
                 Try Primary Again
               </Button>
             </div>
           </Card>
         )}
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="p-4 bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{stats.totalItems}</div>
-              <div className="text-sm text-blue-700">Total Items</div>
-            </div>
-          </Card>
-          <Card className="p-4 bg-gradient-to-r from-green-50 to-green-100 border-green-200">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">${stats.totalValue.toFixed(0)}</div>
-              <div className="text-sm text-green-700">Total Value</div>
-            </div>
-          </Card>
-          <Card className="p-4 bg-gradient-to-r from-purple-50 to-purple-100 border-purple-200">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">{stats.activeItems}</div>
-              <div className="text-sm text-purple-700">Active</div>
-            </div>
-          </Card>
-          <Card className="p-4 bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600">{stats.draftItems}</div>
-              <div className="text-sm text-orange-700">Drafts</div>
-            </div>
-          </Card>
-        </div>
+        {/* Stats Cards - only show when not loading and have data */}
+        {!loading && listings.length > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card className="p-4 bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">{stats.totalItems}</div>
+                <div className="text-sm text-blue-700">Total Items</div>
+              </div>
+            </Card>
+            <Card className="p-4 bg-gradient-to-r from-green-50 to-green-100 border-green-200">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">${stats.totalValue.toFixed(0)}</div>
+                <div className="text-sm text-green-700">Total Value</div>
+              </div>
+            </Card>
+            <Card className="p-4 bg-gradient-to-r from-purple-50 to-purple-100 border-purple-200">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-purple-600">{stats.activeItems}</div>
+                <div className="text-sm text-purple-700">Active</div>
+              </div>
+            </Card>
+            <Card className="p-4 bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-600">{stats.draftItems}</div>
+                <div className="text-sm text-orange-700">Drafts</div>
+              </div>
+            </Card>
+          </div>
+        )}
 
         {/* Refresh Status */}
         {isRefreshing && !shouldUseFallback && (
@@ -210,8 +245,8 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
           </Card>
         )}
 
-        {/* Error Handling with Fallback Option */}
-        {error && !shouldUseFallback && (
+        {/* Error Handling - only show when stable and has error */}
+        {error && isStable && !shouldUseFallback && (
           <Card className="p-6 border-red-200 bg-red-50">
             <div className="space-y-4">
               <ImprovedInventoryErrorBoundary 
@@ -220,7 +255,6 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
                 onClearFilters={handleRetryWithFilters}
               />
               
-              {/* Fallback option if diagnostic data is available */}
               {fallbackListings.length > 0 && (
                 <div className="border-t pt-4">
                   <div className="text-sm text-gray-700 mb-2">
@@ -282,8 +316,8 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
           </Card>
         )}
 
-        {/* Loading State */}
-        {loading && !isRefreshing && !shouldUseFallback && (
+        {/* Loading State - simplified to prevent flashing */}
+        {loading && (
           <Card className="p-8 text-center">
             <div className="flex items-center justify-center space-x-2">
               <div className="animate-spin w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
