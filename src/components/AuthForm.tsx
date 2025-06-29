@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -55,7 +56,6 @@ const AuthForm = ({ onAuthSuccess }: AuthFormProps) => {
           });
         }
       } else {
-        // Sign in
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password
@@ -74,7 +74,7 @@ const AuthForm = ({ onAuthSuccess }: AuthFormProps) => {
             title: "Welcome Back!",
             description: "You've successfully signed in."
           });
-          // Auth state change will handle the redirect automatically
+          onAuthSuccess();
         }
       }
     } catch (error) {

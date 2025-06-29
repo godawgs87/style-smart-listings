@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -17,10 +18,7 @@ const Index = () => {
   const { user, loading } = useAuth();
   const isMobile = useIsMobile();
 
-  // Debug logging
-  useEffect(() => {
-    console.log('Index render - loading:', loading, 'user:', !!user, 'view:', currentView);
-  }, [loading, user, currentView]);
+  console.log('Index render - loading:', loading, 'user:', !!user, 'view:', currentView);
 
   const handleNavigation = useCallback((view: ViewType) => {
     console.log('Navigating to:', view);
@@ -36,6 +34,36 @@ const Index = () => {
       setCurrentView(view);
     }
   }, []);
+
+  // Show loading state during initial auth check
+  if (loading) {
+    console.log('Showing loading state');
+    return <LoadingState message="Loading..." fullPage />;
+  }
+
+  // Show auth form if no user
+  if (!user) {
+    console.log('Showing auth form - no user');
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
+        <AuthForm onAuthSuccess={() => console.log('Auth success')} />
+      </div>
+    );
+  }
+
+  // Show create listing view
+  if (currentView === 'create') {
+    console.log('Showing create listing view');
+    return (
+      <CreateListing 
+        onBack={() => handleNavigation('dashboard')}
+        onViewListings={() => window.location.href = '/inventory'}
+      />
+    );
+  }
+
+  // Main dashboard view
+  console.log('Showing main dashboard');
 
   const dashboardCards = [
     {
@@ -69,37 +97,6 @@ const Index = () => {
     }
   ];
 
-  // Show loading state only during initial auth check
-  if (loading) {
-    console.log('Showing loading state');
-    return <LoadingState message="Loading..." fullPage />;
-  }
-
-  // Show auth form if no user
-  if (!user) {
-    console.log('Showing auth form - no user');
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
-        <AuthForm onAuthSuccess={() => {
-          console.log('Auth success callback triggered');
-        }} />
-      </div>
-    );
-  }
-
-  // Show create listing view
-  if (currentView === 'create') {
-    console.log('Showing create listing view');
-    return (
-      <CreateListing 
-        onBack={() => handleNavigation('dashboard')}
-        onViewListings={() => window.location.href = '/inventory'}
-      />
-    );
-  }
-
-  // Main dashboard view
-  console.log('Showing main dashboard');
   return (
     <div className={`min-h-screen bg-gray-50 dark:bg-gray-900 ${isMobile ? 'pb-20' : ''}`}>
       <StreamlinedHeader
