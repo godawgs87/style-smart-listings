@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -33,7 +34,8 @@ const BulkReviewDashboard = ({
   onUpdateGroup,
   onRetryAnalysis
 }: BulkReviewDashboardProps) => {
-  const [viewMode, setViewMode] = useState<'dashboard' | 'quick' | 'table'>('dashboard');
+  // Start with table view by default for AI orchestration
+  const [viewMode, setViewMode] = useState<'dashboard' | 'quick' | 'table'>('table');
   const [quickReviewIndex, setQuickReviewIndex] = useState(0);
   const [previewGroup, setPreviewGroup] = useState<PhotoGroup | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -136,7 +138,7 @@ const BulkReviewDashboard = ({
             onUpdateGroup(updatedGroup);
           }
         }}
-        onReturn={() => setViewMode('dashboard')}
+        onReturn={() => setViewMode('table')}
       />
     );
   }
@@ -145,13 +147,21 @@ const BulkReviewDashboard = ({
     return (
       <div className="w-full max-w-7xl mx-auto p-4 space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">AI Analysis Queue</h2>
-          <Button 
-            variant="outline" 
-            onClick={() => setViewMode('dashboard')}
-          >
-            Back to Dashboard
-          </Button>
+          <h2 className="text-2xl font-bold">🤖 AI Analysis Queue ({photoGroups.length} items)</h2>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setViewMode('dashboard')}
+            >
+              Dashboard View
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => setViewMode('quick')}
+            >
+              Quick Review
+            </Button>
+          </div>
         </div>
         
         <AIDetailsTableView
@@ -196,13 +206,13 @@ const BulkReviewDashboard = ({
           onValueChange={(value) => value && setViewMode(value as 'dashboard' | 'quick' | 'table')}
           className="w-full sm:w-auto"
         >
+          <ToggleGroupItem value="table" className="flex-1 sm:flex-none">
+            <Table className="w-4 h-4 mr-2" />
+            AI Queue
+          </ToggleGroupItem>
           <ToggleGroupItem value="dashboard" className="flex-1 sm:flex-none">
             <Grid className="w-4 h-4 mr-2" />
             Dashboard
-          </ToggleGroupItem>
-          <ToggleGroupItem value="table" className="flex-1 sm:flex-none">
-            <Table className="w-4 h-4 mr-2" />
-            Table View
           </ToggleGroupItem>
           <ToggleGroupItem value="quick" className="flex-1 sm:flex-none">
             <List className="w-4 h-4 mr-2" />

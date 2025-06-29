@@ -38,18 +38,20 @@ export const useBulkGroupingHandlers = (
     setTimeout(() => {
       setPhotoGroups(groups);
       setIsGrouping(false);
-      setCurrentStep('grouping');
+      // Go directly to review step which will show table view by default
+      setCurrentStep('review');
       
       toast({
         title: "Photos grouped!",
-        description: `Created ${groups.length} item groups.`,
+        description: `Created ${groups.length} item groups. Ready for AI analysis.`,
       });
     }, 2000);
   };
 
   const handleGroupsConfirmed = (confirmedGroups: PhotoGroup[]) => {
     setPhotoGroups(confirmedGroups);
-    setCurrentStep('processing');
+    // Go directly to review step instead of processing
+    setCurrentStep('review');
   };
 
   return {

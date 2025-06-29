@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Eye, Edit, Upload, Play, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Eye, Edit, Upload, Play, Clock, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import type { PhotoGroup } from '../BulkUploadManager';
 
 interface AIDetailsTableViewProps {
@@ -29,7 +29,7 @@ const AIDetailsTableView = ({
       case 'completed':
         return <CheckCircle className="w-4 h-4 text-green-600" />;
       case 'processing':
-        return <Clock className="w-4 h-4 text-blue-600 animate-spin" />;
+        return <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />;
       case 'error':
         return <AlertTriangle className="w-4 h-4 text-red-600" />;
       default:
@@ -48,20 +48,85 @@ const AIDetailsTableView = ({
           ? <Badge className="bg-green-100 text-green-800">Ready</Badge>
           : <Badge className="bg-yellow-100 text-yellow-800">Needs Shipping</Badge>;
       case 'processing':
-        return <Badge className="bg-blue-100 text-blue-800">Processing</Badge>;
+        return <Badge className="bg-blue-100 text-blue-800 animate-pulse">Processing AI...</Badge>;
       case 'error':
         return <Badge className="bg-red-100 text-red-800">Error</Badge>;
       default:
-        return <Badge className="bg-gray-100 text-gray-800">Pending</Badge>;
+        return <Badge className="bg-gray-100 text-gray-800">Pending AI</Badge>;
     }
   };
 
+  const pendingCount = photoGroups.filter(g => g.status === 'pending').length;
+  const processingCount = photoGroups.filter(g => g.status === 'processing').length;
+  const completedCount = photoGroups.filter(g => g.status === 'completed').length;
+
   return (
     <div className="space-y-4">
+      {/* Status Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Pending Analysis</p>
+                <p className="text-2xl font-bold text-gray-900">{pendingCount}</p>
+              </div>
+              <Clock className="w-8 h-8 text-gray-400" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-blue-600">Processing</p>
+                <p className="text-2xl font-bold text-blue-900">{processingCount}</p>
+              </div>
+              <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-green-600">Completed</p>
+                <p className="text-2xl font-bold text-green-900">{completedCount}</p>
+              </div>
+              <CheckCircle className="w-8 h-8 text-green-500" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Bulk Actions */}
+      {pendingCount > 0 && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-blue-900">Ready to start AI analysis</p>
+                <p className="text-sm text-blue-700">{pendingCount} items waiting for analysis</p>
+              </div>
+              <Button 
+                onClick={() => {
+                  // Run AI for all pending items
+                  photoGroups.filter(g => g.status === 'pending').forEach(g => onRunAI(g.id));
+                }}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Play className="w-4 h-4 mr-2" />
+                Run AI for All Pending
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <span>📊 AI Analysis Queue ({photoGroups.length} items)</span>
+            <span>📊 AI Analysis Details</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -110,7 +175,11 @@ const AIDetailsTableView = ({
                     <TableCell>
                       <div className="space-y-1">
                         <div className="font-medium text-sm">
-                          {group.listingData?.title || group.name}
+                          {group.status === 'processing' ? (
+                            <div className="text-blue-600 animate-pulse">Analyzing...</div>
+                          ) : (
+                            group.listingData?.title || group.name
+                          )}
                         </div>
                         <div className="text-xs text-gray-500">
                           {group.photos?.length || 0} photos
@@ -120,25 +189,39 @@ const AIDetailsTableView = ({
                     
                     <TableCell>
                       <div className="text-right font-medium">
-                        {group.listingData?.price ? `$${group.listingData.price}` : '-'}
+                        {group.status === 'processing' ? (
+                          <div className="text-blue-600 animate-pulse">...</div>
+                        ) : (
+                          group.listingData?.price ? `$${group.listingData.price}` : '-'
+                        )}
                       </div>
                     </TableCell>
                     
                     <TableCell>
                       <div className="text-sm">
-                        {group.listingData?.category || '-'}
+                        {group.status === 'processing' ? (
+                          <div className="text-blue-600 animate-pulse">...</div>
+                        ) : (
+                          group.listingData?.category || '-'
+                        )}
                       </div>
                     </TableCell>
                     
                     <TableCell>
                       <div className="text-sm">
-                        {group.listingData?.condition || '-'}
+                        {group.status === 'processing' ? (
+                          <div className="text-blue-600 animate-pulse">...</div>
+                        ) : (
+                          group.listingData?.condition || '-'
+                        )}
                       </div>
                     </TableCell>
                     
                     <TableCell>
                       <div className="text-xs space-y-1">
-                        {group.listingData?.measurements ? (
+                        {group.status === 'processing' ? (
+                          <div className="text-blue-600 animate-pulse">...</div>
+                        ) : group.listingData?.measurements ? (
                           <>
                             {group.listingData.measurements.length && (
                               <div>L: {group.listingData.measurements.length}</div>
@@ -161,7 +244,9 @@ const AIDetailsTableView = ({
                     
                     <TableCell>
                       <div className="space-y-1">
-                        {group.listingData?.keywords && group.listingData.keywords.length > 0 ? (
+                        {group.status === 'processing' ? (
+                          <div className="text-blue-600 animate-pulse">...</div>
+                        ) : group.listingData?.keywords && group.listingData.keywords.length > 0 ? (
                           group.listingData.keywords.slice(0, 3).map((keyword, index) => (
                             <Badge key={index} variant="outline" className="text-xs mr-1">
                               {keyword}
@@ -180,7 +265,9 @@ const AIDetailsTableView = ({
                     
                     <TableCell>
                       <div className="text-sm text-gray-600 max-w-[200px]">
-                        {group.listingData?.description ? (
+                        {group.status === 'processing' ? (
+                          <div className="text-blue-600 animate-pulse">Generating description...</div>
+                        ) : group.listingData?.description ? (
                           <div className="line-clamp-3">
                             {group.listingData.description.length > 100 
                               ? `${group.listingData.description.substring(0, 100)}...`
@@ -203,6 +290,17 @@ const AIDetailsTableView = ({
                           >
                             <Play className="w-3 h-3 mr-1" />
                             Run AI
+                          </Button>
+                        )}
+                        
+                        {group.status === 'processing' && (
+                          <Button
+                            size="sm"
+                            disabled
+                            className="text-xs"
+                          >
+                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                            Processing...
                           </Button>
                         )}
                         
