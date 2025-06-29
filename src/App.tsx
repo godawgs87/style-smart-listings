@@ -9,24 +9,16 @@ import DataManagement from '@/pages/DataManagement';
 import UserSettings from '@/pages/UserSettings';
 import SimpleInventoryPage from '@/pages/SimpleInventoryPage';
 import ActiveListingsPage from '@/pages/ActiveListingsPage';
-import AuthForm from '@/components/AuthForm';
 import LoadingState from '@/components/LoadingState';
 import SafeErrorBoundary from '@/components/SafeErrorBoundary';
 
 const App = () => {
   const { user, loading } = useAuth();
 
-  if (loading) {
-    return <LoadingState message="Loading your workspace..." fullPage />;
-  }
+  console.log('App render - loading:', loading, 'user:', !!user);
 
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gray-100">
-        <AuthForm onAuthSuccess={() => window.location.reload()} />
-        <Toaster />
-      </div>
-    );
+  if (loading) {
+    return <LoadingState message="Initializing..." fullPage />;
   }
 
   return (
@@ -35,11 +27,11 @@ const App = () => {
         <div className="min-h-screen bg-gray-50">
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/inventory" element={<SimpleInventoryPage />} />
-            <Route path="/create" element={<CreateListing onBack={() => window.location.href = '/'} onViewListings={() => window.location.href = '/inventory'} />} />
-            <Route path="/active-listings" element={<ActiveListingsPage onBack={() => window.location.href = '/'} />} />
-            <Route path="/data-management" element={<DataManagement onBack={() => window.location.href = '/'} onNavigate={(view) => window.location.href = `/${view}`} />} />
-            <Route path="/settings" element={<UserSettings />} />
+            <Route path="/inventory" element={user ? <SimpleInventoryPage /> : <Index />} />
+            <Route path="/create" element={user ? <CreateListing onBack={() => window.location.href = '/'} onViewListings={() => window.location.href = '/inventory'} /> : <Index />} />
+            <Route path="/active-listings" element={user ? <ActiveListingsPage onBack={() => window.location.href = '/'} /> : <Index />} />
+            <Route path="/data-management" element={user ? <DataManagement onBack={() => window.location.href = '/'} onNavigate={(view) => window.location.href = `/${view}`} /> : <Index />} />
+            <Route path="/settings" element={user ? <UserSettings /> : <Index />} />
             <Route path="*" element={<Index />} />
           </Routes>
           <Toaster />

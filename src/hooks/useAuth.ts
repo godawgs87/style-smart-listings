@@ -3,23 +3,6 @@ import { useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
-// Auth state cleanup utility
-const cleanupAuthState = () => {
-  // Remove all Supabase auth keys from localStorage
-  Object.keys(localStorage).forEach((key) => {
-    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-      localStorage.removeItem(key);
-    }
-  });
-  
-  // Remove from sessionStorage if in use
-  Object.keys(sessionStorage || {}).forEach((key) => {
-    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-      sessionStorage.removeItem(key);
-    }
-  });
-};
-
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -28,51 +11,23 @@ export const useAuth = () => {
   useEffect(() => {
     let isMounted = true;
 
-    // Set up auth state listener first
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!isMounted) return;
-
-        console.log('Auth state change:', event, !!session);
-        
-        if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
-          // Clean up on sign out or token refresh issues
-          if (event === 'SIGNED_OUT') {
-            cleanupAuthState();
-          }
-        }
-
-        // Update state
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
-
-    // Check for existing session
     const initializeAuth = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        // Get initial session
+        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('Session error:', error);
-          cleanupAuthState();
-          if (isMounted) {
-            setSession(null);
-            setUser(null);
-            setLoading(false);
-          }
-          return;
+          console.error('Initial session error:', error);
         }
 
         if (isMounted) {
-          setSession(session);
-          setUser(session?.user ?? null);
+          console.log('Initial session:', !!initialSession);
+          setSession(initialSession);
+          setUser(initialSession?.user ?? null);
           setLoading(false);
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
-        cleanupAuthState();
         if (isMounted) {
           setSession(null);
           setUser(null);
@@ -81,34 +36,44 @@ export const useAuth = () => {
       }
     };
 
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (!isMounted) return;
+
+        console.log('Auth state change:', event, !!session);
+        
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        // Only set loading to false after we've processed the auth state
+        if (loading) {
+          setLoading(false);
+        }
+      }
+    );
+
+    // Initialize auth
     initializeAuth();
 
-    // Fallback timeout
-    const fallbackTimeout = setTimeout(() => {
-      if (isMounted && loading) {
-        console.log('Auth timeout - completing initialization');
-        setLoading(false);
-      }
-    }, 2000);
-
+    // Cleanup
     return () => {
       isMounted = false;
       subscription.unsubscribe();
-      clearTimeout(fallbackTimeout);
     };
   }, []);
 
   const signOut = async () => {
     try {
-      cleanupAuthState();
-      await supabase.auth.signOut({ scope: 'global' });
-      // Force page reload for clean state
-      window.location.href = '/';
+      setLoading(true);
+      await supabase.auth.signOut();
+      // Let the auth state change handler update the state
     } catch (error) {
       console.error('Sign out error:', error);
-      // Force cleanup and reload even if signOut fails
-      cleanupAuthState();
-      window.location.href = '/';
+      // Force cleanup on error
+      setSession(null);
+      setUser(null);
+      setLoading(false);
     }
   };
 

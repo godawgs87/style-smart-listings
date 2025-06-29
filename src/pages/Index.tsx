@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Camera, Package, BarChart3 } from "lucide-react";
@@ -23,7 +23,6 @@ const Index = () => {
     console.log('Index render - loading:', loading, 'user:', !!user, 'view:', currentView);
   }, [loading, user, currentView]);
 
-  // Simple navigation handler without complex async operations
   const handleNavigation = useCallback((view: ViewType) => {
     console.log('Navigating to:', view);
     const pageMap = {
@@ -33,14 +32,12 @@ const Index = () => {
     };
 
     if (view in pageMap) {
-      // Direct navigation without loading states
       window.location.href = pageMap[view as keyof typeof pageMap];
     } else {
       setCurrentView(view);
     }
   }, []);
 
-  // Simplified dashboard cards without complex memoization
   const dashboardCards = [
     {
       icon: Camera,
@@ -73,10 +70,10 @@ const Index = () => {
     }
   ];
 
-  // Show loading only when auth is actually loading
+  // Show loading state
   if (loading) {
     console.log('Showing loading state');
-    return <LoadingState message="Loading..." fullPage />;
+    return <LoadingState message="Loading your workspace..." fullPage />;
   }
 
   // Show auth form if no user
@@ -84,7 +81,10 @@ const Index = () => {
     console.log('Showing auth form - no user');
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
-        <AuthForm onAuthSuccess={() => setCurrentView('dashboard')} />
+        <AuthForm onAuthSuccess={() => {
+          console.log('Auth success callback triggered');
+          setCurrentView('dashboard');
+        }} />
       </div>
     );
   }
