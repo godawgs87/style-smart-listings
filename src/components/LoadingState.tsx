@@ -20,19 +20,24 @@ const LoadingState = ({
     lg: 'w-8 h-8'
   };
 
-  const containerClasses = fullPage 
-    ? 'min-h-screen flex items-center justify-center bg-gray-50'
-    : 'p-8 text-center';
-
-  const Component = fullPage ? 'div' : Card;
+  if (fullPage) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center space-y-3">
+          <Loader2 className={`${sizeClasses[size]} animate-spin text-blue-500`} />
+          <p className="text-gray-600 text-sm">{message}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <Component className={containerClasses}>
+    <Card className="p-8 text-center">
       <div className="flex flex-col items-center space-y-3">
         <Loader2 className={`${sizeClasses[size]} animate-spin text-blue-500`} />
         <p className="text-gray-600 text-sm">{message}</p>
       </div>
-    </Component>
+    </Card>
   );
 };
 

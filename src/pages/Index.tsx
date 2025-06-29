@@ -19,20 +19,7 @@ const Index = () => {
   const { user, loading } = useAuth();
   const isMobile = useIsMobile();
 
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const view = urlParams.get('view') as ViewType;
-    if (view && ['dashboard', 'create', 'inventory', 'active-listings', 'data-management'].includes(view)) {
-      setCurrentView(view);
-      window.history.replaceState({}, '', '/');
-    }
-  }, []);
-
-  const navigateToPage = useCallback((path: string) => {
-    setPageLoading(true);
-    window.location.href = path;
-  }, []);
-
+  // Simple navigation handler without complex async operations
   const handleNavigation = useCallback((view: ViewType) => {
     const pageMap = {
       inventory: '/inventory',
@@ -41,18 +28,15 @@ const Index = () => {
     };
 
     if (view in pageMap) {
-      navigateToPage(pageMap[view as keyof typeof pageMap]);
+      // Direct navigation without loading states
+      window.location.href = pageMap[view as keyof typeof pageMap];
     } else {
-      setPageLoading(true);
-      setTimeout(() => {
-        setCurrentView(view);
-        setPageLoading(false);
-      }, 200);
+      setCurrentView(view);
     }
-  }, [navigateToPage]);
+  }, []);
 
-  // Memoize dashboard cards to prevent recreation on every render
-  const dashboardCards = useMemo(() => [
+  // Simplified dashboard cards without complex memoization
+  const dashboardCards = [
     {
       icon: Camera,
       title: 'Create Listing',
@@ -66,7 +50,7 @@ const Index = () => {
       icon: Package,
       title: 'Inventory Manager',
       description: 'Track purchases, calculate profits, and manage your reseller inventory.',
-      action: () => navigateToPage('/inventory'),
+      action: () => window.location.href = '/inventory',
       buttonText: 'Manage Inventory',
       buttonClass: 'border hover:bg-green-50',
       iconColor: 'text-green-600',
@@ -76,18 +60,20 @@ const Index = () => {
       icon: BarChart3,
       title: 'Sales Operations',
       description: 'Monitor active listings, track performance, and optimize sales.',
-      action: () => navigateToPage('/active-listings'),
+      action: () => window.location.href = '/active-listings',
       buttonText: 'View Operations',
       buttonClass: 'border hover:bg-orange-50',
       iconColor: 'text-orange-600',
       variant: 'outline' as const
     }
-  ], [handleNavigation, navigateToPage]);
+  ];
 
+  // Show loading only when auth is actually loading
   if (loading) {
-    return <LoadingState message="Loading your workspace..." fullPage />;
+    return <LoadingState message="Loading..." fullPage />;
   }
 
+  // Show auth form if no user
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
@@ -96,25 +82,22 @@ const Index = () => {
     );
   }
 
+  // Show create listing view
   if (currentView === 'create') {
     return (
       <CreateListing 
         onBack={() => handleNavigation('dashboard')}
-        onViewListings={() => navigateToPage('/inventory')}
+        onViewListings={() => window.location.href = '/inventory'}
       />
     );
   }
 
-  if (['inventory', 'active-listings', 'data-management'].includes(currentView)) {
-    return <LoadingState message={`Loading ${currentView.replace('-', ' ')}...`} fullPage />;
-  }
-
+  // Main dashboard view
   return (
     <div className={`min-h-screen bg-gray-50 dark:bg-gray-900 ${isMobile ? 'pb-20' : ''}`}>
       <StreamlinedHeader
         title="Hustly"
         userEmail={user.email}
-        loading={pageLoading}
         notifications={{
           inventory: 3,
           listings: 1
