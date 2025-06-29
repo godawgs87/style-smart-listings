@@ -2,6 +2,7 @@
 import { useToast } from '@/hooks/use-toast';
 import type { PhotoGroup } from '../BulkUploadManager';
 import { generateShippingOptions } from '../utils/shippingCalculator';
+import { generateRealisticListingData } from '../utils/aiSimulation';
 
 type StepType = 'upload' | 'grouping' | 'processing' | 'shipping' | 'review' | 'individual-review';
 
@@ -29,44 +30,11 @@ export const useBulkProcessingHandlers = (
       // Simulate AI processing delay
       await new Promise(resolve => setTimeout(resolve, 1500));
 
-      // Generate mock AI analysis results with all required fields
-      const weightValue = (Math.random() * 2 + 0.5).toFixed(1); // Random weight between 0.5-2.5 lbs
-      
-      const mockListingData = {
-        title: `${group.name} - Analyzed Item`,
-        description: `High-quality item analyzed from uploaded photos. This appears to be a well-maintained piece with good resale potential.`,
-        price: Math.floor(Math.random() * 50) + 15,
-        category: 'Clothing',
-        category_id: null,
-        condition: 'Good',
-        measurements: {
-          length: '12',
-          width: '8', 
-          height: '4',
-          weight: weightValue // Now properly as string
-        },
-        keywords: ['vintage', 'quality', 'fashion'],
-        photos: [],
-        priceResearch: 'Comparable items selling for $20-45',
-        purchase_price: undefined,
-        purchase_date: undefined,
-        source_location: undefined,
-        source_type: undefined,
-        is_consignment: false,
-        consignment_percentage: undefined,
-        consignor_name: undefined,
-        consignor_contact: undefined,
-        clothing_size: undefined,
-        shoe_size: undefined,
-        gender: undefined,
-        age_group: undefined,
-        features: [],
-        includes: [],
-        defects: []
-      };
+      // Generate realistic AI analysis results
+      const mockListingData = generateRealisticListingData(group.name, group.photos.length);
 
-      // Generate shipping options based on weight - pass string directly
-      const shippingOptions = generateShippingOptions(weightValue);
+      // Generate shipping options based on weight
+      const shippingOptions = generateShippingOptions(mockListingData.measurements.weight);
 
       // Update group with AI results
       setPhotoGroups(prev => prev.map(g => 

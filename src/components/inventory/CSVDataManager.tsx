@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,6 +15,7 @@ import {
   type CSVImportRow 
 } from '@/utils/csvUtils';
 import type { Listing } from '@/types/Listing';
+import AIDataImportAssistant from './AIDataImportAssistant';
 
 interface CSVDataManagerProps {
   listings: Listing[];
@@ -31,7 +31,7 @@ const CSVDataManager = ({ listings, onImportComplete }: CSVDataManagerProps) => 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  const handleExport = async () => {
+  async function handleExport() {
     setIsExporting(true);
     try {
       const csvContent = exportListingsToCSV(listings);
@@ -52,9 +52,9 @@ const CSVDataManager = ({ listings, onImportComplete }: CSVDataManagerProps) => 
     } finally {
       setIsExporting(false);
     }
-  };
+  }
 
-  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  async function handleImport(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -178,9 +178,9 @@ const CSVDataManager = ({ listings, onImportComplete }: CSVDataManagerProps) => 
         fileInputRef.current.value = '';
       }
     }
-  };
+  }
 
-  const downloadTemplate = () => {
+  function downloadTemplate() {
     const templateHeaders = [
       'Title',
       'Description',
@@ -239,10 +239,14 @@ const CSVDataManager = ({ listings, onImportComplete }: CSVDataManagerProps) => 
 
     const csvContent = [templateHeaders.join(','), templateRow.join(',')].join('\n');
     downloadCSV(csvContent, 'inventory_import_template.csv');
-  };
+  }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* AI Data Import Assistant */}
+      <AIDataImportAssistant />
+
+      {/* Traditional CSV Export */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -264,14 +268,15 @@ const CSVDataManager = ({ listings, onImportComplete }: CSVDataManagerProps) => 
         </CardContent>
       </Card>
 
+      {/* Traditional CSV Import */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Upload className="w-5 h-5" />
-            Import Data
+            Import CSV Data
           </CardTitle>
           <CardDescription>
-            Upload a CSV file to bulk import listings into your inventory
+            Upload a properly formatted CSV file to bulk import listings
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
