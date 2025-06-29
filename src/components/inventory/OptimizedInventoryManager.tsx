@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
 import MobileNavigation from '@/components/MobileNavigation';
@@ -23,54 +23,57 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
 
   const filters = useInventoryFilters([]);
-  const inventory = useInventoryData({
+  
+  // Memoize inventory query parameters to prevent unnecessary refetches
+  const inventoryQueryParams = useMemo(() => ({
     searchTerm: filters.searchTerm.trim() || undefined,
     statusFilter: filters.statusFilter === 'all' ? undefined : filters.statusFilter,
     categoryFilter: filters.categoryFilter === 'all' ? undefined : filters.categoryFilter,
     limit: 30
-  });
+  }), [filters.searchTerm, filters.statusFilter, filters.categoryFilter]);
 
+  const inventory = useInventoryData(inventoryQueryParams);
   const operations = useListingOperations();
 
-  const handleSelectListing = (listingId: string, checked: boolean) => {
+  const handleSelectListing = useCallback((listingId: string, checked: boolean) => {
     setSelectedItems(prev => 
       checked 
         ? [...prev, listingId]
         : prev.filter(id => id !== listingId)
     );
-  };
+  }, []);
 
-  const handleSelectAll = (checked: boolean) => {
+  const handleSelectAll = useCallback((checked: boolean) => {
     setSelectedItems(checked ? inventory.listings.map(l => l.id) : []);
-  };
+  }, [inventory.listings]);
 
-  const handleUpdateListing = async (listingId: string, updates: any) => {
+  const handleUpdateListing = useCallback(async (listingId: string, updates: any) => {
     const success = await operations.updateListing(listingId, updates);
     if (success) {
       setTimeout(() => inventory.refetch(), 1000);
     }
-  };
+  }, [operations, inventory]);
 
-  const handleDeleteListing = async (listingId: string): Promise<void> => {
+  const handleDeleteListing = useCallback(async (listingId: string): Promise<void> => {
     const success = await operations.deleteListing(listingId);
     if (success) {
       setSelectedItems(prev => prev.filter(id => id !== listingId));
       setTimeout(() => inventory.refetch(), 1000);
     }
-  };
+  }, [operations, inventory]);
 
-  const handleDuplicateListing = async (listing: any) => {
+  const handleDuplicateListing = useCallback(async (listing: any) => {
     const result = await operations.duplicateListing(listing);
     if (result) {
       inventory.refetch();
     }
     return result;
-  };
+  }, [operations, inventory]);
 
-  const handleRetryWithFilters = () => {
+  const handleRetryWithFilters = useCallback(() => {
     filters.handleClearFilters();
     inventory.refetch();
-  };
+  }, [filters, inventory]);
 
   return (
     <div className={`min-h-screen bg-gray-50 ${isMobile ? 'pb-20' : ''}`}>

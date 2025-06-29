@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Camera, Package, BarChart3 } from "lucide-react";
@@ -28,12 +28,12 @@ const Index = () => {
     }
   }, []);
 
-  const navigateToPage = (path: string) => {
+  const navigateToPage = useCallback((path: string) => {
     setPageLoading(true);
     window.location.href = path;
-  };
+  }, []);
 
-  const handleNavigation = (view: ViewType) => {
+  const handleNavigation = useCallback((view: ViewType) => {
     const pageMap = {
       inventory: '/inventory',
       'active-listings': '/active-listings',
@@ -49,34 +49,10 @@ const Index = () => {
         setPageLoading(false);
       }, 200);
     }
-  };
+  }, [navigateToPage]);
 
-  if (loading) {
-    return <LoadingState message="Loading your workspace..." fullPage />;
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
-        <AuthForm onAuthSuccess={() => setCurrentView('dashboard')} />
-      </div>
-    );
-  }
-
-  if (currentView === 'create') {
-    return (
-      <CreateListing 
-        onBack={() => handleNavigation('dashboard')}
-        onViewListings={() => navigateToPage('/inventory')}
-      />
-    );
-  }
-
-  if (['inventory', 'active-listings', 'data-management'].includes(currentView)) {
-    return <LoadingState message={`Loading ${currentView.replace('-', ' ')}...`} fullPage />;
-  }
-
-  const dashboardCards = [
+  // Memoize dashboard cards to prevent recreation on every render
+  const dashboardCards = useMemo(() => [
     {
       icon: Camera,
       title: 'Create Listing',
@@ -106,7 +82,32 @@ const Index = () => {
       iconColor: 'text-orange-600',
       variant: 'outline' as const
     }
-  ];
+  ], [handleNavigation, navigateToPage]);
+
+  if (loading) {
+    return <LoadingState message="Loading your workspace..." fullPage />;
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
+        <AuthForm onAuthSuccess={() => setCurrentView('dashboard')} />
+      </div>
+    );
+  }
+
+  if (currentView === 'create') {
+    return (
+      <CreateListing 
+        onBack={() => handleNavigation('dashboard')}
+        onViewListings={() => navigateToPage('/inventory')}
+      />
+    );
+  }
+
+  if (['inventory', 'active-listings', 'data-management'].includes(currentView)) {
+    return <LoadingState message={`Loading ${currentView.replace('-', ' ')}...`} fullPage />;
+  }
 
   return (
     <div className={`min-h-screen bg-gray-50 dark:bg-gray-900 ${isMobile ? 'pb-20' : ''}`}>

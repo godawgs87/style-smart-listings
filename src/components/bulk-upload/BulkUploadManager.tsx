@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import BulkUploadHeader from './components/BulkUploadHeader';
 import BulkUploadStepIndicator from './components/BulkUploadStepIndicator';
@@ -77,20 +77,18 @@ const BulkUploadManager = ({ onComplete, onBack, onViewInventory }: BulkUploadMa
     onComplete
   );
 
+  // Clear toasts only when step changes, not on every render
   useEffect(() => {
-    const clearToasts = () => {
-      const toastElements = document.querySelectorAll('[data-sonner-toast]');
-      toastElements.forEach(el => el.remove());
-    };
-    clearToasts();
+    const toastElements = document.querySelectorAll('[data-sonner-toast]');
+    toastElements.forEach(el => el.remove());
   }, [state.currentStep]);
 
-  const handlePhotosUploaded = (uploadedPhotos: File[]) => {
+  const handlePhotosUploaded = useCallback((uploadedPhotos: File[]) => {
     console.log('📸 Photos uploaded for bulk processing:', uploadedPhotos.length);
     state.setPhotos(uploadedPhotos);
-  };
+  }, [state.setPhotos]);
 
-  const handleShippingComplete = (groupsWithShipping: PhotoGroup[]) => {
+  const handleShippingComplete = useCallback((groupsWithShipping: PhotoGroup[]) => {
     state.setPhotoGroups(groupsWithShipping);
     state.setCurrentStep('review');
     
@@ -98,13 +96,54 @@ const BulkUploadManager = ({ onComplete, onBack, onViewInventory }: BulkUploadMa
       title: "Shipping configured!",
       description: "Items are now ready for posting to marketplace.",
     });
-  };
+  }, [state.setPhotoGroups, state.setCurrentStep, toast]);
 
-  const handleViewInventory = () => {
+  const handleViewInventory = useCallback(() => {
     if (onViewInventory) {
       onViewInventory();
     }
-  };
+  }, [onViewInventory]);
+
+  // Memoize the step renderer props to prevent unnecessary re-renders
+  const stepRendererProps = useMemo(() => ({
+    currentStep: state.currentStep,
+    photos: state.photos,
+    photoGroups: state.photoGroups,
+    isGrouping: state.isGrouping,
+    isAnalyzing: handlers.isAnalyzing,
+    onPhotosUploaded: handlePhotosUploaded,
+    onStartGrouping: handlers.handleStartGrouping,
+    onGroupsConfirmed: handlers.handleGroupsConfirmed,
+    onEditItem: handlers.handleEditItem,
+    onPreviewItem: handlers.handlePreviewItem,
+    onPostItem: handlers.handlePostItem,
+    onPostAll: handlers.handlePostAll,
+    onUpdateGroup: handlers.handleUpdateGroup,
+    onRetryAnalysis: handlers.handleRetryAnalysis,
+    onShippingComplete: handleShippingComplete,
+    onViewInventory: handleViewInventory,
+    onBack,
+    onStepChange: state.setCurrentStep
+  }), [
+    state.currentStep,
+    state.photos,
+    state.photoGroups,
+    state.isGrouping,
+    handlers.isAnalyzing,
+    handlePhotosUploaded,
+    handlers.handleStartGrouping,
+    handlers.handleGroupsConfirmed,
+    handlers.handleEditItem,
+    handlers.handlePreviewItem,
+    handlers.handlePostItem,
+    handlers.handlePostAll,
+    handlers.handleUpdateGroup,
+    handlers.handleRetryAnalysis,
+    handleShippingComplete,
+    handleViewInventory,
+    onBack,
+    state.setCurrentStep
+  ]);
 
   return (
     <div className="w-full max-w-6xl mx-auto p-4 space-y-6">
@@ -117,26 +156,7 @@ const BulkUploadManager = ({ onComplete, onBack, onViewInventory }: BulkUploadMa
         processingResults={[]}
       />
 
-      <BulkUploadStepRenderer
-        currentStep={state.currentStep}
-        photos={state.photos}
-        photoGroups={state.photoGroups}
-        isGrouping={state.isGrouping}
-        isAnalyzing={handlers.isAnalyzing}
-        onPhotosUploaded={handlePhotosUploaded}
-        onStartGrouping={handlers.handleStartGrouping}
-        onGroupsConfirmed={handlers.handleGroupsConfirmed}
-        onEditItem={handlers.handleEditItem}
-        onPreviewItem={handlers.handlePreviewItem}
-        onPostItem={handlers.handlePostItem}
-        onPostAll={handlers.handlePostAll}
-        onUpdateGroup={handlers.handleUpdateGroup}
-        onRetryAnalysis={handlers.handleRetryAnalysis}
-        onShippingComplete={handleShippingComplete}
-        onViewInventory={handleViewInventory}
-        onBack={onBack}
-        onStepChange={state.setCurrentStep}
-      />
+      <BulkUploadStepRenderer {...stepRendererProps} />
     </div>
   );
 };

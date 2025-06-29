@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { memo } from 'react';
 import BulkUploadStep from './BulkUploadStep';
 import PhotoGroupingInterface from '../PhotoGroupingInterface';
 import BulkReviewDashboard from '../BulkReviewDashboard';
@@ -29,7 +29,7 @@ interface BulkUploadStepRendererProps {
   onStepChange: (step: StepType) => void;
 }
 
-const BulkUploadStepRenderer = (props: BulkUploadStepRendererProps) => {
+const BulkUploadStepRenderer = memo((props: BulkUploadStepRendererProps) => {
   const { currentStep } = props;
 
   switch (currentStep) {
@@ -82,6 +82,8 @@ const BulkUploadStepRenderer = (props: BulkUploadStepRendererProps) => {
     default:
       return null;
   }
-};
+});
+
+BulkUploadStepRenderer.displayName = 'BulkUploadStepRenderer';
 
 export default BulkUploadStepRenderer;
