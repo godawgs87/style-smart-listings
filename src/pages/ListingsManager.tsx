@@ -38,6 +38,15 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
 
   const { deleteListing, updateListing } = useListingOperations();
 
+  // Wrapper functions to handle the Promise<boolean> return types
+  const handleUpdateListing = async (listingId: string, updates: any): Promise<void> => {
+    await updateListing(listingId, updates);
+  };
+
+  const handleDeleteListing = async (listingId: string): Promise<void> => {
+    await deleteListing(listingId);
+  };
+
   if (loading) {
     return (
       <ListingsLoadingState 
@@ -74,8 +83,8 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
         error={error}
         usingFallback={usingFallback}
         onRefetch={refetch}
-        onUpdateListing={updateListing}
-        onDeleteListing={deleteListing}
+        onUpdateListing={handleUpdateListing}
+        onDeleteListing={handleDeleteListing}
       />
 
       {isMobile && (

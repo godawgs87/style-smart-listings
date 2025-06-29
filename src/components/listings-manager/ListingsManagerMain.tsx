@@ -95,7 +95,7 @@ const ListingsManagerMain = ({
 
   const handleDeleteListing = async (listingId: string) => {
     await onDeleteListing(listingId);
-    setSelectedListings(prev => prev.filter(id => id !== listingId));
+    setSelectedListings(selectedListings.filter(id => id !== listingId));
     onRefetch();
   };
 
