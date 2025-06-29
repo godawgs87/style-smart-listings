@@ -44,7 +44,8 @@ export const useBulkProcessingHandlers = (
               status: 'completed' as const,
               listingData: {
                 ...mockListingData,
-                gender: mockListingData.gender as 'Men' | 'Women' | 'Kids' | 'Unisex'
+                gender: mockListingData.gender as 'Men' | 'Women' | 'Kids' | 'Unisex',
+                age_group: mockListingData.age_group as 'Adult' | 'Youth' | 'Toddler' | 'Baby'
               },
               shippingOptions: shippingOptions
             }
