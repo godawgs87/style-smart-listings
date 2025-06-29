@@ -30,6 +30,8 @@ export const useBulkProcessingHandlers = (
       await new Promise(resolve => setTimeout(resolve, 1500));
 
       // Generate mock AI analysis results with all required fields
+      const weightValue = (Math.random() * 2 + 0.5).toFixed(1); // Random weight between 0.5-2.5 lbs
+      
       const mockListingData = {
         title: `${group.name} - Analyzed Item`,
         description: `High-quality item analyzed from uploaded photos. This appears to be a well-maintained piece with good resale potential.`,
@@ -41,7 +43,7 @@ export const useBulkProcessingHandlers = (
           length: '12',
           width: '8', 
           height: '4',
-          weight: (Math.random() * 2 + 0.5).toFixed(1) // Random weight between 0.5-2.5 lbs
+          weight: weightValue // Now properly as string
         },
         keywords: ['vintage', 'quality', 'fashion'],
         photos: [],
@@ -63,8 +65,8 @@ export const useBulkProcessingHandlers = (
         defects: []
       };
 
-      // Generate shipping options based on weight
-      const weight = parseFloat(mockListingData.measurements.weight);
+      // Generate shipping options based on weight - parse string to number for calculation
+      const weight = parseFloat(weightValue);
       const shippingOptions = generateShippingOptions(weight);
 
       // Update group with AI results
