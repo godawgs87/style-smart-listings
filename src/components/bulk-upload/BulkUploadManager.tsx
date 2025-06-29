@@ -86,17 +86,9 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
     handlePreviewItem,
     handlePostItem,
     handlePostAll,
-    handleReviewAll,
-    handleSaveDraft,
-    handleIndividualReviewNext,
-    handleIndividualReviewBack,
-    handleIndividualReviewSkip,
-    handleIndividualReviewApprove,
-    handleIndividualReviewReject,
-    handleIndividualSaveDraft,
-    handleShippingComplete,
     handleUpdateGroup,
-    handleRetryAnalysis
+    handleRetryAnalysis,
+    handleSaveDraft
   } = useBulkUploadHandlers(
     photos,
     photoGroups,
@@ -122,11 +114,9 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
     setPhotos(uploadedPhotos);
   };
 
-  // Enhanced completion handler that ensures proper inventory refresh
   const handleEnhancedComplete = (results: any[]) => {
     console.log('🎉 Bulk upload completed successfully with results:', results);
     
-    // Show success message with more details
     const successCount = results.filter(r => r.success).length;
     const failureCount = results.length - successCount;
     
@@ -135,7 +125,6 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
       description: `Successfully processed ${successCount} items${failureCount > 0 ? `, ${failureCount} failed` : ''}. Items have been saved to your inventory.`,
     });
 
-    // Delay to ensure all database operations complete before navigation
     setTimeout(() => {
       onComplete(results);
     }, 1500);
@@ -162,21 +151,12 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
         onPhotosUploaded={handlePhotosUploaded}
         onStartGrouping={handleStartGrouping}
         onGroupsConfirmed={handleGroupsConfirmed}
-        onShippingComplete={handleShippingComplete}
         onEditItem={handleEditItem}
         onPreviewItem={handlePreviewItem}
         onPostItem={handlePostItem}
         onPostAll={handlePostAll}
-        onReviewAll={handleReviewAll}
-        onSaveDraft={handleSaveDraft}
         onUpdateGroup={handleUpdateGroup}
         onRetryAnalysis={handleRetryAnalysis}
-        onIndividualReviewNext={handleIndividualReviewNext}
-        onIndividualReviewBack={handleIndividualReviewBack}
-        onIndividualReviewSkip={handleIndividualReviewSkip}
-        onIndividualReviewApprove={handleIndividualReviewApprove}
-        onIndividualReviewReject={handleIndividualReviewReject}
-        onIndividualSaveDraft={handleIndividualSaveDraft}
         onBack={onBack}
         setCurrentStep={setCurrentStep}
       />

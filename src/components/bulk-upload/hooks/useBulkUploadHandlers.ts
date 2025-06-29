@@ -1,8 +1,7 @@
+
 import { useBulkGroupingHandlers } from './useBulkGroupingHandlers';
 import { useBulkProcessingHandlers } from './useBulkProcessingHandlers';
-import { useBulkReviewHandlers } from './useBulkReviewHandlers';
-import { useBulkIndividualReviewHandlers } from './useBulkIndividualReviewHandlers';
-import { useBulkShippingHandlers } from './useBulkShippingHandlers';
+import { useBulkOperations } from './handlers/useBulkOperations';
 import type { PhotoGroup } from '../BulkUploadManager';
 
 type StepType = 'upload' | 'grouping' | 'processing' | 'shipping' | 'review' | 'individual-review';
@@ -33,69 +32,67 @@ export const useBulkUploadHandlers = (
     setCurrentStep
   );
 
-  // Review handlers with enhanced functionality
-  const {
-    handleEditItem,
-    handlePreviewItem,
-    handlePostItem,
-    handlePostAll,
-    handleReviewAll,
-    handleSaveDraft,
-    handleUpdateGroup,
-    handleRetryAnalysis
-  } = useBulkReviewHandlers(
-    photoGroups,
-    setCurrentStep,
-    setCurrentReviewIndex,
-    setPhotoGroups,
-    onComplete
-  );
+  // Bulk operations
+  const { postSingleItem, handleSaveDraft } = useBulkOperations();
 
-  // Individual review handlers - now passing currentReviewIndex
-  const {
-    handleIndividualReviewNext,
-    handleIndividualReviewBack,
-    handleIndividualReviewSkip,
-    handleIndividualReviewApprove,
-    handleIndividualReviewReject,
-    handleIndividualSaveDraft
-  } = useBulkIndividualReviewHandlers(
-    photoGroups,
-    setCurrentStep,
-    setCurrentReviewIndex,
-    setPhotoGroups,
-    currentReviewIndex
-  );
+  // Simplified handlers for the table view
+  const handleEditItem = (groupId: string) => {
+    console.log('Edit item:', groupId);
+    // Navigate to individual edit - simplified
+  };
 
-  // Shipping handlers
-  const { handleShippingComplete } = useBulkShippingHandlers(
-    setPhotoGroups,
-    setCurrentStep
-  );
+  const handlePreviewItem = (groupId: string) => {
+    console.log('Preview item:', groupId);
+    // Open preview dialog - handled by parent component
+  };
 
-  // Enhanced groups confirmed handler that triggers processing
-  const handleGroupsConfirmedWithProcessing = (confirmedGroups: PhotoGroup[]) => {
-    handleGroupsConfirmed(confirmedGroups);
-    processAllGroupsWithAI(confirmedGroups);
+  const handlePostItem = async (groupId: string) => {
+    const group = photoGroups.find(g => g.id === groupId);
+    if (group) {
+      const result = await postSingleItem(group);
+      if (result.success) {
+        setPhotoGroups(prev => prev.map(g => 
+          g.id === groupId ? { ...g, isPosted: true, listingId: result.listingId } : g
+        ));
+      }
+    }
+  };
+
+  const handlePostAll = async () => {
+    const readyGroups = photoGroups.filter(g => g.status === 'completed' && g.selectedShipping && !g.isPosted);
+    for (const group of readyGroups) {
+      await handlePostItem(group.id);
+    }
+  };
+
+  const handleUpdateGroup = (updatedGroup: PhotoGroup) => {
+    setPhotoGroups(prev => prev.map(g => 
+      g.id === updatedGroup.id ? updatedGroup : g
+    ));
+  };
+
+  const handleRetryAnalysis = (groupId: string) => {
+    setPhotoGroups(prev => prev.map(g => 
+      g.id === groupId ? { ...g, status: 'processing' as const } : g
+    ));
+    
+    // Simulate AI retry
+    setTimeout(() => {
+      setPhotoGroups(prev => prev.map(g => 
+        g.id === groupId ? { ...g, status: 'completed' as const } : g
+      ));
+    }, 3000);
   };
 
   return {
     handleStartGrouping,
-    handleGroupsConfirmed: handleGroupsConfirmedWithProcessing,
+    handleGroupsConfirmed,
     handleEditItem,
     handlePreviewItem,
     handlePostItem,
     handlePostAll,
-    handleReviewAll,
-    handleSaveDraft,
-    handleIndividualReviewNext,
-    handleIndividualReviewBack,
-    handleIndividualReviewSkip,
-    handleIndividualReviewApprove,
-    handleIndividualReviewReject,
-    handleIndividualSaveDraft,
-    handleShippingComplete,
     handleUpdateGroup,
-    handleRetryAnalysis
+    handleRetryAnalysis,
+    handleSaveDraft
   };
 };

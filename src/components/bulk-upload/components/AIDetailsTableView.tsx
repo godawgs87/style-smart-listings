@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -110,7 +109,6 @@ const AIDetailsTableView = ({
               </div>
               <Button 
                 onClick={() => {
-                  // Run AI for all pending items
                   photoGroups.filter(g => g.status === 'pending').forEach(g => onRunAI(g.id));
                 }}
                 className="bg-blue-600 hover:bg-blue-700"
