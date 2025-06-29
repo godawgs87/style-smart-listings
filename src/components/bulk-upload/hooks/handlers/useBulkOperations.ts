@@ -1,4 +1,3 @@
-
 import { useListingSave } from '@/hooks/useListingSave';
 import { useToast } from '@/hooks/use-toast';
 import type { PhotoGroup } from '../../BulkUploadManager';

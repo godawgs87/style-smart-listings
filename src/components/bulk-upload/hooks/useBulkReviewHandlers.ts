@@ -23,7 +23,7 @@ export const useBulkReviewHandlers = (
 
   const {
     handlePostAll,
-    handleSaveDraft
+    handleSaveDraft: saveSingleDraft
   } = useBulkOperations();
 
   const handleReviewAll = () => {
@@ -75,9 +75,31 @@ export const useBulkReviewHandlers = (
     }, 2000);
   };
 
-  // Wrapper function that takes a PhotoGroup parameter
-  const handleSaveDraftWrapper = (group: PhotoGroup) => {
-    return handleSaveDraft(group);
+  // Generic save draft function that saves all items as drafts
+  const handleSaveDraft = async () => {
+    console.log('Saving all items as drafts...');
+    let successes = 0;
+    let failures = 0;
+
+    for (const group of photoGroups) {
+      try {
+        const result = await saveSingleDraft(group);
+        if (result.success) {
+          successes++;
+        } else {
+          failures++;
+        }
+      } catch (error) {
+        console.error('Failed to save draft for group:', group.id, error);
+        failures++;
+      }
+    }
+
+    toast({
+      title: "Draft Save Complete",
+      description: `Saved ${successes} drafts${failures > 0 ? `, ${failures} failed` : ''}`,
+      variant: successes === photoGroups.length ? "default" : "destructive"
+    });
   };
 
   return {
@@ -86,7 +108,7 @@ export const useBulkReviewHandlers = (
     handlePostItem,
     handlePostAll: () => handlePostAll(photoGroups),
     handleReviewAll,
-    handleSaveDraft: handleSaveDraftWrapper,
+    handleSaveDraft,
     handleUpdateGroup,
     handleRetryAnalysis
   };
