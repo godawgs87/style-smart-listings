@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -75,7 +74,7 @@ const AuthForm = ({ onAuthSuccess }: AuthFormProps) => {
             title: "Welcome Back!",
             description: "You've successfully signed in."
           });
-          // Don't call onAuthSuccess here - let the auth state change handle the redirect
+          // Auth state change will handle the redirect automatically
         }
       }
     } catch (error) {
