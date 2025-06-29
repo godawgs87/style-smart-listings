@@ -28,7 +28,12 @@ export const useListingSave = () => {
         return { success: false, listingId: null };
       }
 
-      console.log('💰 Saving listing with shipping cost:', shippingCost, typeof shippingCost);
+      console.log('💰 Saving listing with data:', {
+        title: listingData.title,
+        price: listingData.price,
+        shipping_cost: shippingCost,
+        status: status
+      });
 
       // Ensure all required fields have valid values
       const processedData = {
@@ -49,23 +54,14 @@ export const useListingSave = () => {
         source_location: listingData.source_location?.trim() || null,
         source_type: listingData.source_type || null,
         price_research: listingData.priceResearch?.trim() || null,
-        // CRITICAL: Properly handle shipping cost including 0 for local pickup
         shipping_cost: typeof shippingCost === 'number' ? shippingCost : (shippingCost === 0 ? 0 : 9.95),
         status: status,
         user_id: user.id,
-        // Add size fields
         clothing_size: listingData.clothing_size?.trim() || null,
         shoe_size: listingData.shoe_size?.trim() || null,
         gender: listingData.gender || null,
         age_group: listingData.age_group || null
       };
-
-      console.log('💰 Final shipping_cost being saved:', processedData.shipping_cost, typeof processedData.shipping_cost);
-      console.log('💼 Consignment data being saved:', {
-        is_consignment: processedData.is_consignment,
-        consignment_percentage: processedData.consignment_percentage,
-        consignor_name: processedData.consignor_name
-      });
 
       // Calculate financial metrics
       const costBasis = processedData.purchase_price || 0;
@@ -86,12 +82,13 @@ export const useListingSave = () => {
         listed_date: status === 'active' ? new Date().toISOString().split('T')[0] : null,
       };
 
-      console.log('Saving listing with data:', finalData);
+      console.log('💾 Final data being saved:', finalData);
 
       let result;
       let listingId;
 
       if (existingListingId) {
+        // Update existing listing
         result = await supabase
           .from('listings')
           .update(finalData)
@@ -101,16 +98,12 @@ export const useListingSave = () => {
           .single();
         
         if (result.error) {
-          console.error('Update error:', result.error);
-          toast({
-            title: "Error",
-            description: `Failed to update listing: ${result.error.message}`,
-            variant: "destructive"
-          });
-          return { success: false, listingId: null };
+          console.error('❌ Update error:', result.error);
+          throw result.error;
         }
         listingId = result.data.id;
       } else {
+        // Insert new listing
         result = await supabase
           .from('listings')
           .insert([finalData])
@@ -118,16 +111,13 @@ export const useListingSave = () => {
           .single();
 
         if (result.error) {
-          console.error('Insert error:', result.error);
-          toast({
-            title: "Error",
-            description: `Failed to save listing: ${result.error.message}`,
-            variant: "destructive"
-          });
-          return { success: false, listingId: null };
+          console.error('❌ Insert error:', result.error);
+          throw result.error;
         }
         listingId = result.data.id;
       }
+
+      console.log('✅ Listing saved successfully:', listingId);
 
       if (status !== 'draft') {
         toast({
@@ -137,11 +127,11 @@ export const useListingSave = () => {
       }
       
       return { success: true, listingId };
-    } catch (error) {
-      console.error('Save operation failed:', error);
+    } catch (error: any) {
+      console.error('❌ Save operation failed:', error);
       toast({
         title: "Error",
-        description: "Failed to save listing. Please check your data and try again.",
+        description: `Failed to save listing: ${error.message || 'Unknown error'}`,
         variant: "destructive"
       });
       return { success: false, listingId: null };

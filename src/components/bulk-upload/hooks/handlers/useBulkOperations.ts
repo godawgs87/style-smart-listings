@@ -1,199 +1,137 @@
 
-import { useToast } from '@/hooks/use-toast';
 import { useListingSave } from '@/hooks/useListingSave';
+import { useToast } from '@/hooks/use-toast';
 import type { PhotoGroup } from '../../BulkUploadManager';
-import { sanitizeListingData } from '@/utils/listingDataValidator';
-import { useBulkValidation } from '../validation/useBulkValidation';
-import { useBulkItemActions } from './useBulkItemActions';
 
-type StepType = 'upload' | 'grouping' | 'processing' | 'shipping' | 'review' | 'individual-review';
-
-export const useBulkOperations = (
-  photoGroups: PhotoGroup[],
-  setCurrentStep: (step: StepType) => void,
-  setCurrentReviewIndex: (index: number) => void,
-  setPhotoGroups: (groups: PhotoGroup[] | ((prev: PhotoGroup[]) => PhotoGroup[])) => void,
-  onComplete: (results: any[]) => void
-) => {
-  const { toast } = useToast();
+export const useBulkOperations = () => {
   const { saveListing } = useListingSave();
-  const { validateGroupForSave, validateGroupForDraft } = useBulkValidation();
-  const { ensureListingData } = useBulkItemActions(photoGroups, setCurrentStep, setCurrentReviewIndex, setPhotoGroups);
+  const { toast } = useToast();
 
-  const handlePostAll = async () => {
-    const readyItems = photoGroups.filter(g => {
-      const validation = validateGroupForSave(g);
-      return validation.isValid && !g.isPosted && g.status === 'completed';
-    });
-    
-    console.log('Ready items for posting:', readyItems.length);
-    
-    if (readyItems.length === 0) {
-      const incompleteItems = photoGroups.filter(g => !g.isPosted);
-      const validationErrors = incompleteItems.map(g => {
-        const validation = validateGroupForSave(g);
-        return validation.errors;
-      }).flat();
+  const postSingleItem = async (group: PhotoGroup): Promise<{ success: boolean; listingId?: string }> => {
+    try {
+      console.log('📝 Posting single item:', group.id, group.listingData?.title);
       
-      toast({
-        title: "No items ready to post",
-        description: `Please complete: ${[...new Set(validationErrors)].join(', ')}`,
-        variant: "destructive"
-      });
-      return;
-    }
-
-    toast({
-      title: "Creating listings...",
-      description: `Processing ${readyItems.length} item${readyItems.length > 1 ? 's' : ''}...`,
-    });
-
-    let successCount = 0;
-    const savedListings = [];
-
-    for (const item of readyItems) {
-      try {
-        // Ensure all required data is present including consignment and shipping
-        const completeListingData = ensureListingData(item.listingData);
-        
-        // Make sure weight is properly set (required for shipping)
-        if (!completeListingData.measurements.weight) {
-          completeListingData.measurements.weight = '1'; // Default weight if missing
-        }
-        
-        // CRITICAL: Ensure consignment data is preserved
-        if (item.listingData?.is_consignment) {
-          completeListingData.is_consignment = true;
-          completeListingData.consignment_percentage = item.listingData.consignment_percentage;
-          completeListingData.consignor_name = item.listingData.consignor_name;
-          completeListingData.consignor_contact = item.listingData.consignor_contact;
-        }
-        
-        const listingData = sanitizeListingData(completeListingData);
-        
-        // CRITICAL: Shipping cost must include local pickup (cost = 0)
-        const shippingCost = item.selectedShipping?.cost ?? 9.95; // Default if not selected
-        
-        console.log('Saving bulk listing:', {
-          title: listingData.title,
-          shippingCost,
-          isConsignment: listingData.is_consignment,
-          consignmentPercentage: listingData.consignment_percentage
-        });
-        
-        const result = await saveListing(
-          listingData,
-          shippingCost,
-          'active'
-        );
-
-        if (result.success) {
-          successCount++;
-          savedListings.push({ ...item, listingId: result.listingId });
-          
-          setPhotoGroups(prev => prev.map(g => 
-            g.id === item.id
-              ? { ...g, isPosted: true, listingId: result.listingId, status: 'completed' as const }
-              : g
-          ));
-        } else {
-          console.error('Failed to save listing (no success):', item.listingData?.title);
-        }
-      } catch (error) {
-        console.error(`Failed to save ${item.listingData?.title || item.name}:`, error);
-        toast({
-          title: "Error saving item",
-          description: `Failed to save "${item.listingData?.title || item.name}": ${error.message}`,
-          variant: "destructive"
-        });
+      if (!group.listingData) {
+        throw new Error('No listing data available');
       }
-    }
 
-    console.log('Bulk save complete. Success count:', successCount);
+      if (!group.selectedShipping) {
+        throw new Error('No shipping option selected');
+      }
 
-    if (successCount > 0) {
+      // Validate required fields
+      if (!group.listingData.title?.trim()) {
+        throw new Error('Title is required');
+      }
+
+      if (!group.listingData.price || group.listingData.price <= 0) {
+        throw new Error('Valid price is required');
+      }
+
+      const shippingCost = group.selectedShipping.cost;
+      console.log('💰 Using shipping cost:', shippingCost);
+
+      const result = await saveListing(
+        group.listingData,
+        shippingCost,
+        'active' // Post as active listing
+      );
+
+      if (result.success) {
+        console.log('✅ Successfully posted item:', result.listingId);
+        toast({
+          title: "Item Posted",
+          description: `"${group.listingData.title}" has been posted successfully!`
+        });
+        return { success: true, listingId: result.listingId };
+      } else {
+        throw new Error('Failed to save listing');
+      }
+    } catch (error: any) {
+      console.error('❌ Failed to post item:', error);
       toast({
-        title: "Bulk upload complete!",
-        description: `Successfully created ${successCount} listing${successCount > 1 ? 's' : ''}!`,
-      });
-      
-      // Complete the process
-      onComplete(savedListings);
-      
-      setTimeout(() => {
-        window.location.href = '/inventory';
-      }, 1500);
-    } else {
-      toast({
-        title: "Upload failed",
-        description: "Failed to create any listings. Please check your data and try again.",
+        title: "Failed to Post Item",
+        description: error.message || 'An error occurred while posting the item',
         variant: "destructive"
       });
+      return { success: false };
     }
   };
 
-  const handleSaveDraft = async () => {
-    const draftItems = photoGroups.filter(g => {
-      const validation = validateGroupForDraft(g);
-      return validation.isValid && !g.isPosted;
-    });
-    
-    console.log('Draft items:', draftItems.length);
-    
-    if (draftItems.length === 0) {
+  const saveSingleDraft = async (group: PhotoGroup): Promise<{ success: boolean; listingId?: string }> => {
+    try {
+      console.log('💾 Saving single draft:', group.id, group.listingData?.title);
+      
+      if (!group.listingData) {
+        throw new Error('No listing data available');
+      }
+
+      // For drafts, only require title
+      if (!group.listingData.title?.trim()) {
+        throw new Error('Title is required');
+      }
+
+      // Use default shipping cost if none selected
+      const shippingCost = group.selectedShipping?.cost ?? 9.95;
+
+      const result = await saveListing(
+        group.listingData,
+        shippingCost,
+        'draft' // Save as draft
+      );
+
+      if (result.success) {
+        console.log('✅ Successfully saved draft:', result.listingId);
+        toast({
+          title: "Draft Saved",
+          description: `"${group.listingData.title}" has been saved as draft!`
+        });
+        return { success: true, listingId: result.listingId };
+      } else {
+        throw new Error('Failed to save draft');
+      }
+    } catch (error: any) {
+      console.error('❌ Failed to save draft:', error);
       toast({
-        title: "No items to save",
-        description: "Please complete at least the title for items to save as drafts.",
+        title: "Failed to Save Draft",
+        description: error.message || 'An error occurred while saving the draft',
         variant: "destructive"
       });
-      return;
+      return { success: false };
     }
+  };
 
-    let successCount = 0;
+  const postAllItems = async (groups: PhotoGroup[]): Promise<{ successes: number; failures: number }> => {
+    let successes = 0;
+    let failures = 0;
 
-    for (const item of draftItems) {
-      try {
-        const completeListingData = ensureListingData(item.listingData);
-        
-        // Preserve consignment data for drafts too
-        if (item.listingData?.is_consignment) {
-          completeListingData.is_consignment = true;
-          completeListingData.consignment_percentage = item.listingData.consignment_percentage;
-          completeListingData.consignor_name = item.listingData.consignor_name;
-          completeListingData.consignor_contact = item.listingData.consignor_contact;
-        }
-        
-        const listingData = sanitizeListingData(completeListingData);
-        const result = await saveListing(
-          listingData,
-          item.selectedShipping?.cost || 9.95,
-          'draft'
-        );
+    console.log('🚀 Starting bulk post operation for', groups.length, 'items');
 
-        if (result.success) {
-          successCount++;
-          setPhotoGroups(prev => prev.map(g => 
-            g.id === item.id
-              ? { ...g, listingId: result.listingId, status: 'completed' as const }
-              : g
-          ));
-        }
-      } catch (error) {
-        console.error(`Failed to save draft for ${item.listingData?.title || item.name}:`, error);
+    for (const group of groups) {
+      const result = await postSingleItem(group);
+      if (result.success) {
+        successes++;
+      } else {
+        failures++;
       }
     }
 
-    toast({
-      title: successCount > 0 ? "Drafts saved!" : "Save failed",
-      description: successCount > 0 
-        ? `Saved ${successCount} item${successCount > 1 ? 's' : ''} as draft${successCount > 1 ? 's' : ''}`
-        : "Failed to save drafts. Please try again.",
-      variant: successCount > 0 ? "default" : "destructive"
-    });
+    console.log(`📊 Bulk post complete: ${successes} successes, ${failures} failures`);
+
+    if (successes > 0) {
+      toast({
+        title: "Bulk Post Complete",
+        description: `Successfully posted ${successes} items${failures > 0 ? `, ${failures} failed` : ''}`,
+        variant: successes === groups.length ? "default" : "destructive"
+      });
+    }
+
+    return { successes, failures };
   };
 
   return {
-    handlePostAll,
-    handleSaveDraft
+    postSingleItem,
+    saveSingleDraft,
+    postAllItems
   };
 };

@@ -31,10 +31,10 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
 
       console.log('🔍 Fetching inventory for user:', user.id);
 
-      // Use minimal query with increased limits
+      // Use minimal query but with better error handling
       let query = supabase
         .from('listings')
-        .select('id, title, price, status, category, condition, created_at, user_id')
+        .select('*') // Get all fields to ensure we have complete data
         .eq('user_id', user.id);
 
       // Apply filters only if specified
@@ -52,19 +52,12 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
         query = query.ilike('title', `%${searchTerm}%`);
       }
 
-      // Increased limit to allow more listings - default to 50, max 100
+      // Use reasonable limit with proper ordering
       const limit = Math.min(options.limit || 50, 100);
       
-      // Set timeout to 10 seconds for better reliability
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Query timeout - using cached data')), 10000)
-      );
-
-      const queryPromise = query
+      const { data, error } = await query
         .order('created_at', { ascending: false })
         .limit(limit);
-
-      const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
 
       if (error) {
         console.error('❌ Database error:', error);
@@ -73,36 +66,7 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
 
       console.log('✅ Fetched listings:', data?.length || 0);
       
-      // Transform minimal data to match Listing interface
-      const transformedData: Listing[] = (data || []).map(item => ({
-        ...item,
-        description: null,
-        measurements: {},
-        keywords: null,
-        photos: null,
-        price_research: null,
-        shipping_cost: null,
-        purchase_price: null,
-        purchase_date: null,
-        is_consignment: null,
-        consignment_percentage: null,
-        consignor_name: null,
-        consignor_contact: null,
-        source_location: null,
-        source_type: null,
-        cost_basis: null,
-        fees_paid: null,
-        net_profit: null,
-        profit_margin: null,
-        listed_date: null,
-        sold_date: null,
-        sold_price: null,
-        days_to_sell: null,
-        performance_notes: null,
-        updated_at: item.created_at // Use created_at as fallback
-      }));
-      
-      return transformedData;
+      return data || [];
       
     } catch (err: any) {
       console.error('❌ Failed to fetch inventory:', err);
@@ -144,7 +108,7 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
         setError(err.message || 'Failed to load inventory');
         toast({
           title: "Unable to Load Listings", 
-          description: "Database query timed out. Try refreshing.",
+          description: "Please check your connection and try again.",
           variant: "destructive"
         });
       }
