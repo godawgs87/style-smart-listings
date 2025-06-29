@@ -24,7 +24,7 @@ export const useBulkReviewHandlers = (
   const {
     handlePostAll,
     handleSaveDraft
-  } = useBulkOperations(photoGroups, setCurrentStep, setCurrentReviewIndex, setPhotoGroups, onComplete);
+  } = useBulkOperations();
 
   const handleReviewAll = () => {
     setCurrentReviewIndex(0);
@@ -79,7 +79,7 @@ export const useBulkReviewHandlers = (
     handleEditItem,
     handlePreviewItem,
     handlePostItem,
-    handlePostAll,
+    handlePostAll: () => handlePostAll(photoGroups),
     handleReviewAll,
     handleSaveDraft,
     handleUpdateGroup,

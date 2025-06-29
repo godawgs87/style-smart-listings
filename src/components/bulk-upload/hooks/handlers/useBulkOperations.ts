@@ -2,6 +2,7 @@
 import { useListingSave } from '@/hooks/useListingSave';
 import { useToast } from '@/hooks/use-toast';
 import type { PhotoGroup } from '../../BulkUploadManager';
+import type { ListingData } from '@/types/CreateListing';
 
 export const useBulkOperations = () => {
   const { saveListing } = useListingSave();
@@ -31,8 +32,36 @@ export const useBulkOperations = () => {
       const shippingCost = group.selectedShipping.cost;
       console.log('💰 Using shipping cost:', shippingCost);
 
+      // Convert to proper ListingData format
+      const listingData: ListingData = {
+        title: group.listingData.title,
+        description: group.listingData.description || 'No description available',
+        price: group.listingData.price,
+        category: group.listingData.category || 'Uncategorized',
+        condition: group.listingData.condition || 'Used',
+        measurements: group.listingData.measurements || {},
+        keywords: group.listingData.keywords || [],
+        photos: group.listingData.photos || [],
+        purchase_price: group.listingData.purchase_price,
+        purchase_date: group.listingData.purchase_date,
+        source_location: group.listingData.source_location,
+        source_type: group.listingData.source_type,
+        is_consignment: group.listingData.is_consignment,
+        consignment_percentage: group.listingData.consignment_percentage,
+        consignor_name: group.listingData.consignor_name,
+        consignor_contact: group.listingData.consignor_contact,
+        clothing_size: group.listingData.clothing_size,
+        shoe_size: group.listingData.shoe_size,
+        gender: group.listingData.gender,
+        age_group: group.listingData.age_group,
+        features: group.listingData.features,
+        includes: group.listingData.includes,
+        defects: group.listingData.defects,
+        priceResearch: group.listingData.priceResearch
+      };
+
       const result = await saveListing(
-        group.listingData,
+        listingData,
         shippingCost,
         'active' // Post as active listing
       );
@@ -74,8 +103,36 @@ export const useBulkOperations = () => {
       // Use default shipping cost if none selected
       const shippingCost = group.selectedShipping?.cost ?? 9.95;
 
+      // Convert to proper ListingData format
+      const listingData: ListingData = {
+        title: group.listingData.title,
+        description: group.listingData.description || 'No description available',
+        price: group.listingData.price || 0,
+        category: group.listingData.category || 'Uncategorized',
+        condition: group.listingData.condition || 'Used',
+        measurements: group.listingData.measurements || {},
+        keywords: group.listingData.keywords || [],
+        photos: group.listingData.photos || [],
+        purchase_price: group.listingData.purchase_price,
+        purchase_date: group.listingData.purchase_date,
+        source_location: group.listingData.source_location,
+        source_type: group.listingData.source_type,
+        is_consignment: group.listingData.is_consignment,
+        consignment_percentage: group.listingData.consignment_percentage,
+        consignor_name: group.listingData.consignor_name,
+        consignor_contact: group.listingData.consignor_contact,
+        clothing_size: group.listingData.clothing_size,
+        shoe_size: group.listingData.shoe_size,
+        gender: group.listingData.gender,
+        age_group: group.listingData.age_group,
+        features: group.listingData.features,
+        includes: group.listingData.includes,
+        defects: group.listingData.defects,
+        priceResearch: group.listingData.priceResearch
+      };
+
       const result = await saveListing(
-        group.listingData,
+        listingData,
         shippingCost,
         'draft' // Save as draft
       );
@@ -129,9 +186,19 @@ export const useBulkOperations = () => {
     return { successes, failures };
   };
 
+  const handlePostAll = async (groups: PhotoGroup[]) => {
+    return await postAllItems(groups);
+  };
+
+  const handleSaveDraft = async (group: PhotoGroup) => {
+    return await saveSingleDraft(group);
+  };
+
   return {
     postSingleItem,
     saveSingleDraft,
-    postAllItems
+    postAllItems,
+    handlePostAll,
+    handleSaveDraft
   };
 };

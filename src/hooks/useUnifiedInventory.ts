@@ -66,7 +66,15 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
 
       console.log('✅ Fetched listings:', data?.length || 0);
       
-      return data || [];
+      // Convert measurements from Json to proper format
+      const processedData = (data || []).map(listing => ({
+        ...listing,
+        measurements: typeof listing.measurements === 'object' && listing.measurements !== null 
+          ? listing.measurements as { length?: string; width?: string; height?: string; weight?: string; }
+          : {}
+      })) as Listing[];
+      
+      return processedData;
       
     } catch (err: any) {
       console.error('❌ Failed to fetch inventory:', err);
