@@ -31,7 +31,7 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
 
       console.log('🔍 Fetching inventory for user:', user.id);
 
-      // Use very minimal query - only essential fields to avoid timeouts
+      // Use minimal query with increased limits
       let query = supabase
         .from('listings')
         .select('id, title, price, status, category, condition, created_at, user_id')
@@ -52,12 +52,12 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
         query = query.ilike('title', `%${searchTerm}%`);
       }
 
-      // Very conservative limit - start small
-      const limit = Math.min(options.limit || 10, 10);
+      // Increased limit to allow more listings - default to 50, max 100
+      const limit = Math.min(options.limit || 50, 100);
       
-      // Set a very short timeout to fail fast
+      // Set timeout to 10 seconds for better reliability
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Query timeout - using cached data')), 3000)
+        setTimeout(() => reject(new Error('Query timeout - using cached data')), 10000)
       );
 
       const queryPromise = query

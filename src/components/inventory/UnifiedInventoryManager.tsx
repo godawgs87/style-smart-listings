@@ -28,7 +28,7 @@ const UnifiedInventoryManager = ({ onCreateListing, onBack }: UnifiedInventoryMa
   const [editingListing, setEditingListing] = useState<Listing | null>(null);
 
   const { listings, loading, error, stats, refetch, usingFallback } = useUnifiedInventory({
-    limit: 25
+    limit: 75 // Increased from 25 to 75
   });
 
   const {

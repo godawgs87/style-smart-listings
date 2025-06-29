@@ -9,9 +9,9 @@ interface ProgressiveLoadingOptions {
 }
 
 export const useProgressiveLoading = (options: ProgressiveLoadingOptions) => {
-  // Use a conservative maximum of 10 items to prevent scaling issues
-  const safeMaxLimit = Math.min(options.maxLimit, 10);
-  const safeInitialLimit = Math.min(options.initialLimit, 10);
+  // Increased safe maximum to 100 items for better usability
+  const safeMaxLimit = Math.min(options.maxLimit, 100);
+  const safeInitialLimit = Math.min(options.initialLimit, 50);
   
   const [currentLimit, setCurrentLimit] = useState(safeInitialLimit);
   const [isLoadingMore, setIsLoadingMore] = useState(false);

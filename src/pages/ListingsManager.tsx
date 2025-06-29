@@ -36,7 +36,7 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
     searchTerm: searchTerm.trim() || undefined,
     statusFilter: 'all',
     categoryFilter: categoryFilter === 'all' ? undefined : categoryFilter,
-    limit: 10
+    limit: 50 // Increased from 10 to 50
   });
 
   const { deleteListing, updateListing } = useListingOperations();
