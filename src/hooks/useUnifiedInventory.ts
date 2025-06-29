@@ -31,10 +31,9 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
 
       console.log('🔍 Fetching inventory for user:', user.id);
 
-      // Use minimal query but with better error handling
       let query = supabase
         .from('listings')
-        .select('*') // Get all fields to ensure we have complete data
+        .select('*')
         .eq('user_id', user.id);
 
       // Apply filters only if specified
@@ -66,13 +65,36 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
 
       console.log('✅ Fetched listings:', data?.length || 0);
       
-      // Convert measurements from Json to proper format
-      const processedData = (data || []).map(listing => ({
-        ...listing,
-        measurements: typeof listing.measurements === 'object' && listing.measurements !== null 
-          ? listing.measurements as { length?: string; width?: string; height?: string; weight?: string; }
-          : {}
-      })) as Listing[];
+      // Safely process the data with proper error handling
+      const processedData = (data || []).map(listing => {
+        try {
+          // Safely handle measurements conversion
+          let measurements = {};
+          if (listing.measurements) {
+            if (typeof listing.measurements === 'object' && listing.measurements !== null) {
+              measurements = listing.measurements;
+            } else if (typeof listing.measurements === 'string') {
+              try {
+                measurements = JSON.parse(listing.measurements);
+              } catch {
+                measurements = {};
+              }
+            }
+          }
+
+          return {
+            ...listing,
+            measurements: measurements as { length?: string; width?: string; height?: string; weight?: string; }
+          };
+        } catch (processingError) {
+          console.error('Error processing listing:', listing.id, processingError);
+          // Return listing with empty measurements if processing fails
+          return {
+            ...listing,
+            measurements: {}
+          };
+        }
+      }) as Listing[];
       
       return processedData;
       
