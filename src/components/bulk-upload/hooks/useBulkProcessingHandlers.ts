@@ -36,13 +36,16 @@ export const useBulkProcessingHandlers = (
       // Generate shipping options based on weight
       const shippingOptions = generateShippingOptions(mockListingData.measurements.weight);
 
-      // Update group with AI results
+      // Update group with AI results - ensure proper typing
       setPhotoGroups(prev => prev.map(g => 
         g.id === group.id 
           ? { 
               ...g, 
               status: 'completed' as const,
-              listingData: mockListingData,
+              listingData: {
+                ...mockListingData,
+                gender: mockListingData.gender as 'Men' | 'Women' | 'Kids' | 'Unisex'
+              },
               shippingOptions: shippingOptions
             }
           : g
