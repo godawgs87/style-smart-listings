@@ -6,6 +6,21 @@ import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
+// Auth state cleanup utility
+const cleanupAuthState = () => {
+  Object.keys(localStorage).forEach((key) => {
+    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+      localStorage.removeItem(key);
+    }
+  });
+  
+  Object.keys(sessionStorage || {}).forEach((key) => {
+    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+      sessionStorage.removeItem(key);
+    }
+  });
+};
+
 interface AuthFormProps {
   onAuthSuccess: () => void;
 }
@@ -22,6 +37,17 @@ const AuthForm = ({ onAuthSuccess }: AuthFormProps) => {
     setIsLoading(true);
 
     try {
+      // Clean up any existing auth state first
+      cleanupAuthState();
+      
+      // Attempt to sign out any existing session
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err) {
+        // Continue even if this fails
+        console.log('Pre-auth cleanup signout:', err);
+      }
+
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({
           email,
@@ -44,7 +70,7 @@ const AuthForm = ({ onAuthSuccess }: AuthFormProps) => {
           });
         }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password
         });
@@ -55,16 +81,25 @@ const AuthForm = ({ onAuthSuccess }: AuthFormProps) => {
             description: error.message,
             variant: "destructive"
           });
-        } else {
+        } else if (data.user) {
           toast({
             title: "Welcome Back!",
             description: "You've successfully signed in."
           });
-          onAuthSuccess();
+          
+          // Force page reload for clean state
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 500);
         }
       }
     } catch (error) {
       console.error('Auth error:', error);
+      toast({
+        title: "Authentication Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
