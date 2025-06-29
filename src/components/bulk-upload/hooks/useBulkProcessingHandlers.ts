@@ -65,9 +65,8 @@ export const useBulkProcessingHandlers = (
         defects: []
       };
 
-      // Generate shipping options based on weight - parse string to number for calculation
-      const weight = parseFloat(weightValue);
-      const shippingOptions = generateShippingOptions(weight);
+      // Generate shipping options based on weight - pass string directly
+      const shippingOptions = generateShippingOptions(weightValue);
 
       // Update group with AI results
       setPhotoGroups(prev => prev.map(g => 
