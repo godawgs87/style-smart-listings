@@ -63,7 +63,7 @@ export const useStableInventory = (options: StableInventoryOptions = {}) => {
     }
     
     abortControllerRef.current = new AbortController();
-    const timeoutId = setTimeout(() => abortControllerRef.current?.abort(), 10000); // 10s timeout
+    const timeoutId = setTimeout(() => abortControllerRef.current?.abort(), 5000); // Reduced to 5s timeout
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -74,7 +74,7 @@ export const useStableInventory = (options: StableInventoryOptions = {}) => {
 
       console.log('🔍 Building query for user:', user.id);
 
-      // Build optimized query
+      // Build more conservative query to avoid timeouts
       let query = supabase
         .from('listings')
         .select(`
@@ -84,13 +84,8 @@ export const useStableInventory = (options: StableInventoryOptions = {}) => {
           category,
           condition,
           status,
-          shipping_cost,
-          photos,
           created_at,
-          updated_at,
-          purchase_price,
-          purchase_date,
-          cost_basis
+          updated_at
         `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
@@ -108,8 +103,8 @@ export const useStableInventory = (options: StableInventoryOptions = {}) => {
         query = query.ilike('title', `%${options.searchTerm.trim()}%`);
       }
 
-      // Conservative limit
-      const limit = Math.min(options.limit || 30, 50);
+      // Very conservative limit to avoid timeouts
+      const limit = Math.min(options.limit || 20, 25);
       query = query.limit(limit);
 
       const { data, error } = await query.abortSignal(abortControllerRef.current.signal);
@@ -118,21 +113,24 @@ export const useStableInventory = (options: StableInventoryOptions = {}) => {
 
       if (error) {
         console.error('❌ Query error:', error);
+        if (error.code === '57014') {
+          throw new Error('Query timed out - try using filters to narrow your search');
+        }
         throw new Error(`Database error: ${error.message}`);
       }
 
       console.log('✅ Successfully fetched listings:', data?.length || 0);
       
-      // Process data safely
+      // Process data safely with minimal fields
       const processedData = (data || []).map(listing => ({
         ...listing,
         measurements: {},
         keywords: [],
+        photos: [],
         price: Number(listing.price) || 0,
-        shipping_cost: Number(listing.shipping_cost) || 9.95,
-        photos: Array.isArray(listing.photos) ? listing.photos : [],
-        purchase_price: listing.purchase_price ? Number(listing.purchase_price) : undefined,
-        cost_basis: listing.cost_basis ? Number(listing.cost_basis) : undefined
+        shipping_cost: 9.95,
+        purchase_price: undefined,
+        cost_basis: undefined
       })) as Listing[];
       
       // Cache the result

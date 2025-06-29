@@ -28,8 +28,7 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [showDiagnostic, setShowDiagnostic] = useState(false);
   const [useFallbackData, setUseFallbackData] = useState(false);
-  const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
-  const [isStable, setIsStable] = useState(false);
+  const [loadingState, setLoadingState] = useState<'initial' | 'loading' | 'loaded' | 'error'>('initial');
 
   const {
     searchTerm,
@@ -65,33 +64,39 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
     error: fallbackError 
   } = useInventoryDiagnostic();
 
-  // Stabilize the loading state to prevent flashing
+  // Manage loading state more carefully
   useEffect(() => {
-    if (!primaryLoading && !isRefreshing) {
-      const timer = setTimeout(() => {
-        setHasAttemptedLoad(true);
-        setIsStable(true);
-      }, 500); // Small delay to prevent flashing
-      
-      return () => clearTimeout(timer);
+    if (useFallbackData) {
+      if (fallbackLoading) {
+        setLoadingState('loading');
+      } else if (fallbackError) {
+        setLoadingState('error');
+      } else {
+        setLoadingState('loaded');
+      }
     } else {
-      setIsStable(false);
+      if (primaryLoading || isRefreshing) {
+        setLoadingState('loading');
+      } else if (primaryError) {
+        setLoadingState('error');
+      } else {
+        setLoadingState('loaded');
+      }
     }
-  }, [primaryLoading, isRefreshing]);
+  }, [primaryLoading, primaryError, isRefreshing, fallbackLoading, fallbackError, useFallbackData]);
 
   // Auto-switch to fallback if primary fails but fallback has data
   useEffect(() => {
-    if (hasAttemptedLoad && primaryError && !useFallbackData && fallbackListings.length > 0 && !fallbackError) {
+    if (loadingState === 'error' && primaryError && !useFallbackData && fallbackListings.length > 0 && !fallbackError) {
       console.log('🔄 Auto-switching to fallback data due to primary error');
       setUseFallbackData(true);
     }
-  }, [hasAttemptedLoad, primaryError, useFallbackData, fallbackListings.length, fallbackError]);
+  }, [loadingState, primaryError, useFallbackData, fallbackListings.length, fallbackError]);
 
   // Determine which data to use
   const shouldUseFallback = useFallbackData;
   const listings = shouldUseFallback ? fallbackListings : primaryListings;
-  const loading = shouldUseFallback ? fallbackLoading : (primaryLoading || !isStable);
-  const error = shouldUseFallback ? fallbackError : (isStable ? primaryError : null);
+  const currentError = shouldUseFallback ? fallbackError : primaryError;
   
   // Calculate stats for fallback data
   const fallbackStats = {
@@ -166,19 +171,18 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
     handleClearFilters();
     clearCache();
     setUseFallbackData(false);
-    setHasAttemptedLoad(false);
-    setIsStable(false);
+    setLoadingState('initial');
     primaryRefetch();
   };
 
   const handleUseFallback = () => {
     setUseFallbackData(true);
+    setLoadingState('initial');
   };
 
   const handleRetryPrimary = () => {
     setUseFallbackData(false);
-    setHasAttemptedLoad(false);
-    setIsStable(false);
+    setLoadingState('initial');
     clearCache();
     primaryRefetch();
   };
@@ -193,12 +197,12 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
       
       <div className="max-w-7xl mx-auto p-4 space-y-6">
         {/* Fallback Data Notice */}
-        {shouldUseFallback && (
+        {shouldUseFallback && loadingState === 'loaded' && (
           <FallbackDataNotice onRetryPrimary={handleRetryPrimary} />
         )}
 
-        {/* Stats Cards - only show when not loading and have data */}
-        {!loading && listings.length > 0 && (
+        {/* Stats Cards - only show when loaded and have data */}
+        {loadingState === 'loaded' && listings.length > 0 && (
           <InventoryStatsCards stats={stats} />
         )}
 
@@ -207,10 +211,10 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
           <RefreshStatusIndicator />
         )}
 
-        {/* Error Handling - only show when stable and has error */}
-        {error && isStable && !shouldUseFallback && (
+        {/* Error Handling - only show when in error state */}
+        {loadingState === 'error' && currentError && !shouldUseFallback && (
           <InventoryErrorSection
-            error={error}
+            error={currentError}
             onRetry={primaryRefetch}
             onClearFilters={handleRetryWithFilters}
             onUseFallback={handleUseFallback}
@@ -219,14 +223,14 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
           />
         )}
 
-        {/* Controls - only show if no error or using fallback */}
-        {(!error || shouldUseFallback) && (
+        {/* Controls - only show if not in error state or using fallback */}
+        {(loadingState !== 'error' || shouldUseFallback) && (
           <ImprovedInventoryControls
             searchTerm={searchTerm}
             statusFilter={statusFilter}
             categoryFilter={categoryFilter}
             categories={categories}
-            loading={loading}
+            loading={loadingState === 'loading'}
             selectedCount={selectedItems.length}
             onSearchChange={setSearchTerm}
             onStatusChange={setStatusFilter}
@@ -237,8 +241,8 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
           />
         )}
 
-        {/* Table - only show if data loaded successfully */}
-        {!loading && (!error || shouldUseFallback) && listings.length > 0 && (
+        {/* Table - only show if loaded successfully */}
+        {loadingState === 'loaded' && listings.length > 0 && (
           <OptimisticInventoryTable
             listings={listings}
             selectedListings={selectedItems}
@@ -252,12 +256,12 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
         )}
 
         {/* Empty State */}
-        {!loading && (!error || shouldUseFallback) && listings.length === 0 && (
+        {loadingState === 'loaded' && listings.length === 0 && (
           <InventoryEmptyState onCreateListing={onCreateListing} />
         )}
 
-        {/* Loading State - simplified to prevent flashing */}
-        {loading && (
+        {/* Loading State - only show when actually loading */}
+        {loadingState === 'loading' && (
           <InventoryLoadingState />
         )}
       </div>
