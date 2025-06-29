@@ -19,7 +19,18 @@ const AuthForm = ({ onAuthSuccess }: AuthFormProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email || !password) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter both email and password.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsLoading(true);
+    console.log('Auth form submit:', isSignUp ? 'signup' : 'signin', email);
 
     try {
       if (isSignUp) {
@@ -32,6 +43,7 @@ const AuthForm = ({ onAuthSuccess }: AuthFormProps) => {
         });
 
         if (error) {
+          console.error('Sign up error:', error);
           toast({
             title: "Sign Up Failed",
             description: error.message,
@@ -51,18 +63,19 @@ const AuthForm = ({ onAuthSuccess }: AuthFormProps) => {
         });
 
         if (error) {
+          console.error('Sign in error:', error);
           toast({
-            title: "Sign In Failed",
+            title: "Sign In Failed", 
             description: error.message,
             variant: "destructive"
           });
         } else if (data.user) {
+          console.log('Sign in successful:', data.user.id);
           toast({
             title: "Welcome Back!",
             description: "You've successfully signed in."
           });
-          // Don't force reload - let the auth state change handler manage this
-          onAuthSuccess();
+          // The auth state change will handle the redirect
         }
       }
     } catch (error) {
@@ -91,6 +104,7 @@ const AuthForm = ({ onAuthSuccess }: AuthFormProps) => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            disabled={isLoading}
           />
         </div>
         
@@ -101,6 +115,7 @@ const AuthForm = ({ onAuthSuccess }: AuthFormProps) => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            disabled={isLoading}
           />
         </div>
         
@@ -114,6 +129,7 @@ const AuthForm = ({ onAuthSuccess }: AuthFormProps) => {
           type="button"
           onClick={() => setIsSignUp(!isSignUp)}
           className="text-sm text-blue-600 hover:underline"
+          disabled={isLoading}
         >
           {isSignUp ? 'Already have an account? Sign in' : 'Need an account? Sign up'}
         </button>

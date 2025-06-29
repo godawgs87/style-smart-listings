@@ -9,71 +9,54 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let isMounted = true;
+    console.log('useAuth: Setting up auth state listener');
 
-    const initializeAuth = async () => {
+    // Get initial session
+    const getInitialSession = async () => {
       try {
-        // Get initial session
-        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
+        const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('Initial session error:', error);
+          console.error('Error getting initial session:', error);
         }
 
-        if (isMounted) {
-          console.log('Initial session:', !!initialSession);
-          setSession(initialSession);
-          setUser(initialSession?.user ?? null);
-          setLoading(false);
-        }
+        console.log('Initial session check:', !!session);
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
       } catch (error) {
-        console.error('Auth initialization error:', error);
-        if (isMounted) {
-          setSession(null);
-          setUser(null);
-          setLoading(false);
-        }
+        console.error('Failed to get initial session:', error);
+        setLoading(false);
       }
     };
 
-    // Set up auth state listener
+    // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!isMounted) return;
-
+      (event, session) => {
         console.log('Auth state change:', event, !!session);
         
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Only set loading to false after we've processed the auth state
-        if (loading) {
-          setLoading(false);
-        }
+        // Always set loading to false when we get an auth state change
+        setLoading(false);
       }
     );
 
-    // Initialize auth
-    initializeAuth();
+    // Get the initial session
+    getInitialSession();
 
-    // Cleanup
     return () => {
-      isMounted = false;
       subscription.unsubscribe();
     };
   }, []);
 
   const signOut = async () => {
     try {
-      setLoading(true);
+      console.log('Signing out...');
       await supabase.auth.signOut();
-      // Let the auth state change handler update the state
     } catch (error) {
       console.error('Sign out error:', error);
-      // Force cleanup on error
-      setSession(null);
-      setUser(null);
-      setLoading(false);
     }
   };
 

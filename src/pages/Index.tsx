@@ -70,10 +70,10 @@ const Index = () => {
     }
   ];
 
-  // Show loading state
+  // Show loading state only briefly
   if (loading) {
     console.log('Showing loading state');
-    return <LoadingState message="Loading your workspace..." fullPage />;
+    return <LoadingState message="Loading..." fullPage />;
   }
 
   // Show auth form if no user
@@ -83,7 +83,7 @@ const Index = () => {
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
         <AuthForm onAuthSuccess={() => {
           console.log('Auth success callback triggered');
-          setCurrentView('dashboard');
+          // Don't manually change view - let the auth state change handle it
         }} />
       </div>
     );
