@@ -4,7 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import type { Listing } from '@/types/Listing';
 
-interface UnifiedInventoryOptions {
+interface InventoryOptions {
   searchTerm?: string;
   statusFilter?: string;
   categoryFilter?: string;
@@ -18,15 +18,10 @@ interface InventoryStats {
   draftItems: number;
 }
 
-// Simple memory cache - no global conflicts
-const memoryCache = new Map<string, { data: Listing[]; timestamp: number }>();
-const CACHE_DURATION = 10000; // 10 seconds only
-
-export const useUnifiedInventoryHook = (options: UnifiedInventoryOptions = {}) => {
+export const useInventoryData = (options: InventoryOptions = {}) => {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const mountedRef = useRef(true);
   const { toast } = useToast();
 
@@ -37,21 +32,20 @@ export const useUnifiedInventoryHook = (options: UnifiedInventoryOptions = {}) =
     draftItems: listings.filter(item => item.status === 'draft').length
   }), [listings]);
 
-  const cacheKey = useMemo(() => {
-    return `inventory-${JSON.stringify(options)}`;
-  }, [options]);
+  const fetchInventory = useCallback(async () => {
+    if (!mountedRef.current) return;
 
-  const fetchInventory = useCallback(async (): Promise<Listing[]> => {
-    console.log('🔍 Fetching inventory with options:', options);
-    
     try {
+      setLoading(true);
+      setError(null);
+
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
         throw new Error('Authentication required');
       }
 
-      // Build query step by step
+      // Simple, focused query
       let query = supabase
         .from('listings')
         .select(`
@@ -62,11 +56,11 @@ export const useUnifiedInventoryHook = (options: UnifiedInventoryOptions = {}) =
           condition,
           status,
           shipping_cost,
-          photos,
           created_at,
           updated_at
         `)
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
 
       // Apply filters
       if (options.statusFilter && options.statusFilter !== 'all') {
@@ -81,114 +75,66 @@ export const useUnifiedInventoryHook = (options: UnifiedInventoryOptions = {}) =
         query = query.ilike('title', `%${options.searchTerm.trim()}%`);
       }
 
-      // Limit results
-      const limit = Math.min(options.limit || 50, 100);
-      query = query.limit(limit).order('created_at', { ascending: false });
+      // Conservative limit
+      const limit = Math.min(options.limit || 25, 50);
+      query = query.limit(limit);
 
       const { data, error } = await query;
 
       if (error) {
-        console.error('❌ Query error:', error);
         throw error;
       }
 
-      console.log('✅ Fetched listings:', data?.length || 0);
-      
-      // Process data
+      if (!mountedRef.current) return;
+
+      // Process data safely
       const processedData = (data || []).map(listing => ({
         ...listing,
         measurements: {},
         keywords: [],
+        photos: [],
         price: Number(listing.price) || 0,
-        shipping_cost: Number(listing.shipping_cost) || 9.95,
-        photos: Array.isArray(listing.photos) ? listing.photos : []
+        shipping_cost: Number(listing.shipping_cost) || 9.95
       })) as Listing[];
-      
-      // Cache the result
-      memoryCache.set(cacheKey, { data: processedData, timestamp: Date.now() });
-      
-      return processedData;
-      
-    } catch (err: any) {
-      console.error('❌ Failed to fetch inventory:', err);
-      throw err;
-    }
-  }, [options, cacheKey]);
 
-  const loadData = useCallback(async (force = false) => {
-    if (!mountedRef.current) return;
-
-    // Check cache first (unless forced)
-    if (!force) {
-      const cached = memoryCache.get(cacheKey);
-      if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-        console.log('🎯 Using cached data');
-        setListings(cached.data);
-        setLoading(false);
-        setError(null);
-        return;
-      }
-    }
-
-    try {
-      setError(null);
-      if (!isRefreshing) {
-        setLoading(true);
-      }
-
-      const data = await fetchInventory();
-      
-      if (!mountedRef.current) return;
-
-      setListings(data);
-      setLoading(false);
-      setIsRefreshing(false);
+      setListings(processedData);
       
     } catch (err: any) {
       if (!mountedRef.current) return;
       
-      console.error('❌ Load error:', err);
+      console.error('Failed to fetch inventory:', err);
       setError(err.message || 'Failed to load inventory');
-      setLoading(false);
-      setIsRefreshing(false);
       
       toast({
         title: "Error Loading Inventory",
         description: "Please check your connection and try again.",
         variant: "destructive"
       });
+    } finally {
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
-  }, [fetchInventory, cacheKey, isRefreshing, toast]);
+  }, [options.searchTerm, options.statusFilter, options.categoryFilter, options.limit, toast]);
 
   const refetch = useCallback(() => {
-    console.log('🔄 Manual refetch requested');
-    setIsRefreshing(true);
-    // Clear cache for fresh data
-    memoryCache.delete(cacheKey);
-    loadData(true);
-  }, [loadData, cacheKey]);
-
-  const clearCache = useCallback(() => {
-    memoryCache.clear();
-    console.log('🗑️ Cache cleared');
-  }, []);
+    fetchInventory();
+  }, [fetchInventory]);
 
   useEffect(() => {
     mountedRef.current = true;
-    loadData();
+    fetchInventory();
     
     return () => {
       mountedRef.current = false;
     };
-  }, [loadData]);
+  }, [fetchInventory]);
 
   return {
     listings,
     loading,
     error,
     stats,
-    isRefreshing,
-    refetch,
-    clearCache
+    refetch
   };
 };
