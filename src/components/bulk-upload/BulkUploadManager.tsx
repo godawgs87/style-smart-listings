@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import BulkUploadHeader from './components/BulkUploadHeader';
@@ -57,7 +56,7 @@ export interface PhotoGroup {
   listingId?: string;
 }
 
-type StepType = 'upload' | 'grouping' | 'review';
+type StepType = 'upload' | 'grouping' | 'review' | 'shipping';
 
 interface BulkUploadManagerProps {
   onComplete: (results: any[]) => void;
@@ -109,6 +108,16 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
     setPhotos(uploadedPhotos);
   };
 
+  const handleShippingComplete = (groupsWithShipping: PhotoGroup[]) => {
+    setPhotoGroups(groupsWithShipping);
+    setCurrentStep('review'); // Go back to review with shipping configured
+    
+    toast({
+      title: "Shipping configured!",
+      description: "Items are now ready for posting to marketplace.",
+    });
+  };
+
   return (
     <div className="w-full max-w-6xl mx-auto p-4 space-y-6">
       <BulkUploadHeader />
@@ -135,6 +144,7 @@ const BulkUploadManager = ({ onComplete, onBack }: BulkUploadManagerProps) => {
         onPostAll={handlePostAll}
         onUpdateGroup={handleUpdateGroup}
         onRetryAnalysis={handleRetryAnalysis}
+        onShippingComplete={handleShippingComplete}
         onBack={onBack}
         setCurrentStep={setCurrentStep}
       />

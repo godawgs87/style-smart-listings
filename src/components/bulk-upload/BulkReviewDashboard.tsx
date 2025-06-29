@@ -13,6 +13,7 @@ interface BulkReviewDashboardProps {
   onPostAll: () => void;
   onUpdateGroup?: (updatedGroup: PhotoGroup) => void;
   onRetryAnalysis?: (groupId: string) => void;
+  onProceedToShipping?: () => void;
   isAnalyzing?: boolean;
 }
 
@@ -24,6 +25,7 @@ const BulkReviewDashboard = ({
   onPostAll,
   onUpdateGroup,
   onRetryAnalysis,
+  onProceedToShipping,
   isAnalyzing
 }: BulkReviewDashboardProps) => {
   const [previewGroup, setPreviewGroup] = useState<PhotoGroup | null>(null);
@@ -50,15 +52,28 @@ const BulkReviewDashboard = ({
     }
   };
 
+  const completedItems = photoGroups.filter(g => g.status === 'completed').length;
+  const canProceedToShipping = completedItems > 0;
+
   return (
     <div className="w-full max-w-7xl mx-auto p-4 space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">🤖 AI Analysis Queue ({photoGroups.length} items)</h2>
-        {isAnalyzing && (
-          <div className="text-blue-600 font-medium">
-            AI Analysis in progress...
-          </div>
-        )}
+        <div className="flex items-center gap-4">
+          {isAnalyzing && (
+            <div className="text-blue-600 font-medium">
+              AI Analysis in progress...
+            </div>
+          )}
+          {canProceedToShipping && onProceedToShipping && (
+            <Button 
+              onClick={onProceedToShipping}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Configure Shipping ({completedItems} items)
+            </Button>
+          )}
+        </div>
       </div>
       
       <AIDetailsTableView

@@ -3,9 +3,10 @@ import React from 'react';
 import BulkUploadStep from './BulkUploadStep';
 import PhotoGroupingInterface from '../PhotoGroupingInterface';
 import BulkReviewDashboard from '../BulkReviewDashboard';
+import BulkShippingConfiguration from '../BulkShippingConfiguration';
 import type { PhotoGroup } from '../BulkUploadManager';
 
-type StepType = 'upload' | 'grouping' | 'review';
+type StepType = 'upload' | 'grouping' | 'review' | 'shipping';
 
 interface BulkUploadStepRendererProps {
   currentStep: StepType;
@@ -23,6 +24,7 @@ interface BulkUploadStepRendererProps {
   onUpdateGroup: (group: PhotoGroup) => void;
   onRetryAnalysis: (groupId: string) => void;
   onBack: () => void;
+  onShippingComplete: (groupsWithShipping: PhotoGroup[]) => void;
   setCurrentStep: (step: StepType) => void;
 }
 
@@ -42,6 +44,7 @@ const BulkUploadStepRenderer = ({
   onUpdateGroup,
   onRetryAnalysis,
   onBack,
+  onShippingComplete,
   setCurrentStep
 }: BulkUploadStepRendererProps) => {
   
@@ -76,7 +79,18 @@ const BulkUploadStepRenderer = ({
           onPostAll={onPostAll}
           onUpdateGroup={onUpdateGroup}
           onRetryAnalysis={onRetryAnalysis}
+          onProceedToShipping={() => setCurrentStep('shipping')}
           isAnalyzing={isAnalyzing}
+        />
+      );
+
+    case 'shipping':
+      return (
+        <BulkShippingConfiguration
+          photoGroups={photoGroups}
+          onComplete={onShippingComplete}
+          onBack={() => setCurrentStep('review')}
+          onUpdateGroup={onUpdateGroup}
         />
       );
 
