@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
 import MobileNavigation from '@/components/MobileNavigation';
 import { useStableInventory } from '@/hooks/useStableInventory';
+import { useInventoryDiagnostic } from '@/hooks/useInventoryDiagnostic';
 import { useListingOperations } from '@/hooks/useListingOperations';
 import { useInventoryFilters } from '@/hooks/useInventoryFilters';
 import { Card } from '@/components/ui/card';
@@ -24,6 +25,7 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
   const isMobile = useIsMobile();
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [showDiagnostic, setShowDiagnostic] = useState(false);
+  const [useFallbackData, setUseFallbackData] = useState(false);
 
   const {
     searchTerm,
@@ -36,14 +38,14 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
     handleClearFilters
   } = useInventoryFilters([]);
 
-  // Use the stable inventory hook
+  // Primary inventory hook
   const { 
-    listings, 
-    loading, 
-    error, 
-    stats, 
+    listings: primaryListings, 
+    loading: primaryLoading, 
+    error: primaryError, 
+    stats: primaryStats, 
     isRefreshing,
-    refetch, 
+    refetch: primaryRefetch, 
     clearCache 
   } = useStableInventory({
     searchTerm: searchTerm.trim() || undefined,
@@ -52,9 +54,32 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
     limit: 30
   });
 
+  // Fallback diagnostic hook
+  const { 
+    listings: fallbackListings, 
+    loading: fallbackLoading, 
+    error: fallbackError 
+  } = useInventoryDiagnostic();
+
+  // Determine which data to use
+  const shouldUseFallback = useFallbackData || (primaryError && !fallbackError && fallbackListings.length > 0);
+  const listings = shouldUseFallback ? fallbackListings : primaryListings;
+  const loading = shouldUseFallback ? fallbackLoading : primaryLoading;
+  const error = shouldUseFallback ? fallbackError : primaryError;
+  
+  // Calculate stats for fallback data
+  const fallbackStats = {
+    totalItems: fallbackListings.length,
+    totalValue: fallbackListings.reduce((sum, item) => sum + (item.price || 0), 0),
+    activeItems: fallbackListings.filter(item => item.status === 'active').length,
+    draftItems: fallbackListings.filter(item => item.status === 'draft').length
+  };
+  
+  const stats = shouldUseFallback ? fallbackStats : primaryStats;
+
   const { deleteListing, updateListing, duplicateListing } = useListingOperations();
 
-  // Show diagnostic mode if there's persistent loading issues
+  // Show diagnostic mode if explicitly requested
   if (showDiagnostic) {
     return (
       <DiagnosticInventoryManager
@@ -63,9 +88,6 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
       />
     );
   }
-
-  // If loading for more than expected time, show diagnostic option
-  const showDiagnosticOption = loading && !isRefreshing;
 
   const handleSelectListing = (listingId: string, checked: boolean) => {
     setSelectedItems(prev => 
@@ -82,7 +104,12 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
   const handleUpdateListing = async (listingId: string, updates: any) => {
     const success = await updateListing(listingId, updates);
     if (success) {
-      setTimeout(() => refetch(), 1000);
+      if (shouldUseFallback) {
+        // For fallback data, we need to manually refresh
+        window.location.reload();
+      } else {
+        setTimeout(() => primaryRefetch(), 1000);
+      }
     }
   };
 
@@ -90,14 +117,22 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
     const success = await deleteListing(listingId);
     if (success) {
       setSelectedItems(prev => prev.filter(id => id !== listingId));
-      setTimeout(() => refetch(), 1000);
+      if (shouldUseFallback) {
+        window.location.reload();
+      } else {
+        setTimeout(() => primaryRefetch(), 1000);
+      }
     }
   };
 
   const handleDuplicateListing = async (listing: any) => {
     const result = await duplicateListing(listing);
     if (result) {
-      refetch();
+      if (shouldUseFallback) {
+        window.location.reload();
+      } else {
+        primaryRefetch();
+      }
     }
     return result;
   };
@@ -105,7 +140,12 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
   const handleRetryWithFilters = () => {
     handleClearFilters();
     clearCache();
-    refetch();
+    setUseFallbackData(false);
+    primaryRefetch();
+  };
+
+  const handleUseFallback = () => {
+    setUseFallbackData(true);
   };
 
   return (
@@ -117,6 +157,21 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
       />
       
       <div className="max-w-7xl mx-auto p-4 space-y-6">
+        {/* Fallback Data Notice */}
+        {shouldUseFallback && (
+          <Card className="p-4 border-blue-200 bg-blue-50">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-blue-800 font-medium">Using Diagnostic Data</div>
+                <div className="text-blue-700 text-sm">Switched to fallback data source due to loading issues</div>
+              </div>
+              <Button onClick={() => setUseFallbackData(false)} variant="outline" size="sm">
+                Try Primary Again
+              </Button>
+            </div>
+          </Card>
+        )}
+
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="p-4 bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
@@ -146,7 +201,7 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
         </div>
 
         {/* Refresh Status */}
-        {isRefreshing && (
+        {isRefreshing && !shouldUseFallback && (
           <Card className="p-4 border-blue-200 bg-blue-50">
             <div className="flex items-center justify-center">
               <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
@@ -155,32 +210,38 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
           </Card>
         )}
 
-        {/* Diagnostic Option */}
-        {showDiagnosticOption && (
-          <Card className="p-4 border-yellow-200 bg-yellow-50">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-yellow-800 font-medium">Still loading?</div>
-                <div className="text-yellow-700 text-sm">Run diagnostics to identify the issue</div>
-              </div>
-              <Button onClick={() => setShowDiagnostic(true)} variant="outline" size="sm">
-                Run Diagnostics
-              </Button>
+        {/* Error Handling with Fallback Option */}
+        {error && !shouldUseFallback && (
+          <Card className="p-6 border-red-200 bg-red-50">
+            <div className="space-y-4">
+              <ImprovedInventoryErrorBoundary 
+                error={error} 
+                onRetry={primaryRefetch}
+                onClearFilters={handleRetryWithFilters}
+              />
+              
+              {/* Fallback option if diagnostic data is available */}
+              {fallbackListings.length > 0 && (
+                <div className="border-t pt-4">
+                  <div className="text-sm text-gray-700 mb-2">
+                    We found {fallbackListings.length} items using an alternative method.
+                  </div>
+                  <div className="flex gap-2">
+                    <Button onClick={handleUseFallback} variant="outline" size="sm">
+                      Use Available Data
+                    </Button>
+                    <Button onClick={() => setShowDiagnostic(true)} variant="outline" size="sm">
+                      Show Diagnostics
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </Card>
         )}
 
-        {/* Error Handling */}
-        {error && (
-          <ImprovedInventoryErrorBoundary 
-            error={error} 
-            onRetry={refetch}
-            onClearFilters={handleRetryWithFilters}
-          />
-        )}
-
-        {/* Controls - only show if no error */}
-        {!error && (
+        {/* Controls - only show if no error or using fallback */}
+        {(!error || shouldUseFallback) && (
           <ImprovedInventoryControls
             searchTerm={searchTerm}
             statusFilter={statusFilter}
@@ -192,13 +253,13 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
             onStatusChange={setStatusFilter}
             onCategoryChange={setCategoryFilter}
             onClearFilters={handleClearFilters}
-            onRefresh={refetch}
+            onRefresh={shouldUseFallback ? () => window.location.reload() : primaryRefetch}
             onCreateListing={onCreateListing}
           />
         )}
 
         {/* Table - only show if data loaded successfully */}
-        {!loading && !error && listings.length > 0 && (
+        {!loading && (!error || shouldUseFallback) && listings.length > 0 && (
           <OptimisticInventoryTable
             listings={listings}
             selectedListings={selectedItems}
@@ -212,7 +273,7 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
         )}
 
         {/* Empty State */}
-        {!loading && !error && listings.length === 0 && (
+        {!loading && (!error || shouldUseFallback) && listings.length === 0 && (
           <Card className="p-8 text-center">
             <div className="text-gray-500 mb-4">No inventory items found</div>
             <Button onClick={onCreateListing}>
@@ -222,7 +283,7 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
         )}
 
         {/* Loading State */}
-        {loading && !isRefreshing && (
+        {loading && !isRefreshing && !shouldUseFallback && (
           <Card className="p-8 text-center">
             <div className="flex items-center justify-center space-x-2">
               <div className="animate-spin w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
