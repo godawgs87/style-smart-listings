@@ -7,6 +7,7 @@ interface UnifiedInventoryManagerProps {
   onBack: () => void;
 }
 
+// Simplified to just use the OptimizedInventoryManager to avoid conflicts
 const UnifiedInventoryManager = ({ onCreateListing, onBack }: UnifiedInventoryManagerProps) => {
   return (
     <OptimizedInventoryManager

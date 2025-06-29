@@ -34,6 +34,7 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
     handleClearFilters
   } = useInventoryFilters([]);
 
+  // Use only the optimized inventory hook to avoid conflicts
   const { 
     listings, 
     loading, 
@@ -46,7 +47,7 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
     searchTerm: searchTerm.trim() || undefined,
     statusFilter: statusFilter === 'all' ? undefined : statusFilter,
     categoryFilter: categoryFilter === 'all' ? undefined : categoryFilter,
-    limit: 75
+    limit: 50 // Reduced from 75 to improve performance
   });
 
   const { deleteListing, updateListing, duplicateListing } = useListingOperations();
@@ -66,7 +67,8 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
   const handleUpdateListing = async (listingId: string, updates: any) => {
     const success = await updateListing(listingId, updates);
     if (success) {
-      setTimeout(() => refetch(), 500);
+      // Shorter delay for better UX
+      setTimeout(() => refetch(), 300);
     }
   };
 
@@ -74,7 +76,8 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
     const success = await deleteListing(listingId);
     if (success) {
       setSelectedItems(prev => prev.filter(id => id !== listingId));
-      setTimeout(() => refetch(), 1000);
+      // Shorter delay for better UX
+      setTimeout(() => refetch(), 500);
     }
   };
 
@@ -195,7 +198,7 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
             onUpdateListing={handleUpdateListing}
             onDeleteListing={handleDeleteListing}
             onDuplicateListing={handleDuplicateListing}
-            useVirtualization={listings.length > 50}
+            useVirtualization={listings.length > 30} // Lower threshold for better performance
           />
         )}
 
