@@ -51,14 +51,14 @@ export const useBulkGroupingHandlers = (
         ? `Item ${groups.length + 1} (${currentGroup.length} photos)`
         : `Item ${groups.length + 1}`;
       
-      const confidence = currentGroup.length > 1 ? 'high' : 'medium';
+      const confidence: 'high' | 'medium' | 'low' = currentGroup.length > 1 ? 'high' : 'medium';
       
       groups.push({
         id: `group-${groups.length}`,
         photos: currentGroup,
         name: groupName,
-        confidence: confidence as const,
-        status: 'pending' as const,
+        confidence: confidence,
+        status: 'pending',
         aiSuggestion: currentGroup.length > 1 
           ? `Detected ${currentGroup.length} photos of the same item`
           : `Single photo item detected`
