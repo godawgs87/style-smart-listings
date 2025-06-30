@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useMemo } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
@@ -46,16 +45,15 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
     setSelectedItems(checked ? inventory.listings.map(l => l.id) : []);
   }, [inventory.listings]);
 
-  const handleUpdateListing = useCallback(async (listingId: string, updates: any) => {
+  const handleUpdateListing = useCallback(async (listingId: string, updates: any): Promise<void> => {
     try {
       const success = await operations.updateListing(listingId, updates);
       if (success) {
         setTimeout(() => inventory.refetch(), 500);
       }
-      return success;
     } catch (error) {
       console.error('Failed to update listing:', error);
-      return false;
+      throw error;
     }
   }, [operations, inventory]);
 
