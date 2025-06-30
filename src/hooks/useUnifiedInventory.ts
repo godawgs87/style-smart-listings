@@ -48,20 +48,6 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      // Apply filters
-      if (options.statusFilter && options.statusFilter !== 'all') {
-        query = query.eq('status', options.statusFilter);
-      }
-
-      if (options.categoryFilter && options.categoryFilter !== 'all') {
-        query = query.eq('category', options.categoryFilter);
-      }
-
-      if (options.searchTerm?.trim()) {
-        const searchTerm = options.searchTerm.trim();
-        query = query.or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
-      }
-
       const limit = Math.min(options.limit || 50, 100);
       query = query.limit(limit);
 
@@ -90,7 +76,7 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
       console.error('❌ Failed to fetch inventory:', err);
       throw err;
     }
-  }, [options.searchTerm, options.statusFilter, options.categoryFilter, options.limit]);
+  }, [options.limit]);
 
   const loadData = useCallback(async () => {
     if (!mountedRef.current) return;

@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useMemo } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
@@ -11,6 +12,8 @@ import InventoryStatsCards from './InventoryStatsCards';
 import InventoryErrorSection from './InventoryErrorSection';
 import InventoryEmptyState from './InventoryEmptyState';
 import InventoryLoadingState from './InventoryLoadingState';
+import ListingDetailView from './ListingDetailView';
+import type { Listing } from '@/types/Listing';
 
 interface OptimizedInventoryManagerProps {
   onCreateListing: () => void;
@@ -20,17 +23,17 @@ interface OptimizedInventoryManagerProps {
 const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInventoryManagerProps) => {
   const isMobile = useIsMobile();
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [previewListing, setPreviewListing] = useState<Listing | null>(null);
 
-  const filters = useInventoryFilters([]);
-  
   const inventoryQueryParams = useMemo(() => ({
-    searchTerm: filters.searchTerm.trim() || undefined,
-    statusFilter: filters.statusFilter === 'all' ? undefined : filters.statusFilter,
-    categoryFilter: filters.categoryFilter === 'all' ? undefined : filters.categoryFilter,
     limit: 50
-  }), [filters.searchTerm, filters.statusFilter, filters.categoryFilter]);
+  }), []);
 
   const inventory = useUnifiedInventory(inventoryQueryParams);
+  
+  // Initialize filters with actual listings data for categories
+  const filters = useInventoryFilters(inventory.listings);
+  
   const operations = useListingOperations();
 
   const handleSelectListing = useCallback((listingId: string, checked: boolean) => {
@@ -83,10 +86,41 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
     }
   }, [operations, inventory]);
 
+  const handlePreviewListing = useCallback((listing: Listing) => {
+    setPreviewListing(listing);
+  }, []);
+
+  const handleClosePreview = useCallback(() => {
+    setPreviewListing(null);
+  }, []);
+
   const handleRetryWithFilters = useCallback(() => {
     filters.handleClearFilters();
     inventory.refetch();
   }, [filters, inventory]);
+
+  // Filter listings based on current filter state
+  const filteredListings = useMemo(() => {
+    let filtered = inventory.listings;
+
+    if (filters.searchTerm.trim()) {
+      const searchLower = filters.searchTerm.toLowerCase();
+      filtered = filtered.filter(listing => 
+        listing.title?.toLowerCase().includes(searchLower) ||
+        listing.description?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    if (filters.statusFilter && filters.statusFilter !== 'all') {
+      filtered = filtered.filter(listing => listing.status === filters.statusFilter);
+    }
+
+    if (filters.categoryFilter && filters.categoryFilter !== 'all') {
+      filtered = filtered.filter(listing => listing.category === filters.categoryFilter);
+    }
+
+    return filtered;
+  }, [inventory.listings, filters.searchTerm, filters.statusFilter, filters.categoryFilter]);
 
   // Show loading state
   if (inventory.loading) {
@@ -146,7 +180,7 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
   }
 
   // Show empty state
-  if (!inventory.loading && inventory.listings.length === 0) {
+  if (!inventory.loading && filteredListings.length === 0 && inventory.listings.length === 0) {
     return (
       <div className={`min-h-screen bg-gray-50 ${isMobile ? 'pb-20' : ''}`}>
         <StreamlinedHeader
@@ -212,14 +246,15 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
         />
 
         <OptimisticInventoryTable
-          listings={inventory.listings}
+          listings={filteredListings}
           selectedListings={selectedItems}
           onSelectListing={handleSelectListing}
           onSelectAll={handleSelectAll}
           onUpdateListing={handleUpdateListing}
           onDeleteListing={handleDeleteListing}
           onDuplicateListing={handleDuplicateListing}
-          useVirtualization={inventory.listings.length > 25}
+          onPreviewListing={handlePreviewListing}
+          useVirtualization={filteredListings.length > 25}
         />
       </div>
 
@@ -230,6 +265,17 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
           showBack
           onBack={onBack}
           title="Inventory"
+        />
+      )}
+
+      {previewListing && (
+        <ListingDetailView
+          listing={previewListing}
+          onClose={handleClosePreview}
+          onEdit={() => {
+            // TODO: Implement edit functionality
+            console.log('Edit listing:', previewListing.id);
+          }}
         />
       )}
     </div>
