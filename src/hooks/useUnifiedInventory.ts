@@ -20,8 +20,10 @@ interface InventoryStats {
 
 export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
   const [listings, setListings] = useState<Listing[]>([]);
+  const [cachedListings, setCachedListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [usingFallback, setUsingFallback] = useState(false);
   const mountedRef = useRef(true);
   const { toast } = useToast();
 
@@ -32,7 +34,7 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
     draftItems: listings.filter(item => item.status === 'draft').length
   }), [listings]);
 
-  const fetchInventory = useCallback(async (): Promise<Listing[]> => {
+  const fetchInventory = useCallback(async (options: UnifiedInventoryOptions = {}): Promise<Listing[]> => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -42,16 +44,24 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
 
       console.log('🔍 Fetching unified inventory for user:', user.id);
 
+      // Use very conservative limit to prevent timeouts
+      const limit = Math.min(options.limit || 10, 10);
+
+      // Simplified query - only essential fields
       let query = supabase
         .from('listings')
-        .select('*')
+        .select('id, title, price, status, category, condition, created_at, user_id')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(limit);
 
-      const limit = Math.min(options.limit || 50, 100);
-      query = query.limit(limit);
+      // Create timeout promise
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Query timeout - using cached data')), 3000)
+      );
 
-      const { data, error } = await query;
+      // Race the query against timeout
+      const { data, error } = await Promise.race([query, timeoutPromise]);
 
       if (error) {
         console.error('❌ Database error:', error);
@@ -60,46 +70,84 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
 
       console.log('✅ Fetched listings:', data?.length || 0);
       
-      const processedData = (data || []).map(listing => ({
-        ...listing,
-        measurements: listing.measurements || {},
-        status: listing.status || 'draft',
-        price: Number(listing.price) || 0,
-        shipping_cost: Number(listing.shipping_cost) || 9.95,
-        keywords: Array.isArray(listing.keywords) ? listing.keywords : [],
-        photos: Array.isArray(listing.photos) ? listing.photos : []
-      })) as Listing[];
+      // Transform minimal data to full Listing interface
+      const transformedData: Listing[] = (data || []).map(item => ({
+        ...item,
+        description: null,
+        measurements: {},
+        keywords: null,
+        photos: null,
+        price_research: null,
+        shipping_cost: 9.95,
+        purchase_price: null,
+        purchase_date: null,
+        cost_basis: null,
+        fees_paid: 0,
+        net_profit: null,
+        profit_margin: null,
+        listed_date: null,
+        sold_date: null,
+        sold_price: null,
+        days_to_sell: null,
+        is_consignment: false,
+        consignment_percentage: null,
+        consignor_name: null,
+        consignor_contact: null,
+        source_location: null,
+        source_type: null,
+        performance_notes: null,
+        category_id: null,
+        gender: null,
+        age_group: null,
+        clothing_size: null,
+        shoe_size: null,
+        updated_at: item.created_at // Use created_at as fallback
+      }));
       
-      return processedData;
+      return transformedData;
       
     } catch (err: any) {
       console.error('❌ Failed to fetch inventory:', err);
       throw err;
     }
-  }, [options.limit]);
+  }, []);
 
   const loadData = useCallback(async () => {
     if (!mountedRef.current) return;
 
     setLoading(true);
     setError(null);
+    setUsingFallback(false);
 
     try {
-      const data = await fetchInventory();
+      const data = await fetchInventory(options);
       
       if (!mountedRef.current) return;
 
       setListings(data);
+      setCachedListings(data); // Cache successful data
       console.log(`✅ Loaded ${data.length} inventory items`);
+      
     } catch (err: any) {
       if (!mountedRef.current) return;
       
       console.error('❌ Failed to fetch inventory:', err);
-      setError(err.message || 'Failed to load inventory');
+      
+      // Use cached data as fallback if available
+      if (cachedListings.length > 0) {
+        console.log('📦 Using cached data as fallback');
+        setListings(cachedListings);
+        setUsingFallback(true);
+        setError(`Connection timeout - showing cached data (${cachedListings.length} items)`);
+      } else {
+        setError(err.message || 'Failed to load inventory');
+      }
       
       toast({
-        title: "Unable to Load Listings", 
-        description: "Please check your connection and try again.",
+        title: "Connection Issue", 
+        description: cachedListings.length > 0 
+          ? "Using cached data due to timeout" 
+          : "Unable to load listings. Please try refreshing.",
         variant: "destructive"
       });
     } finally {
@@ -107,7 +155,7 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
         setLoading(false);
       }
     }
-  }, [fetchInventory, toast]);
+  }, [fetchInventory, toast, options, cachedListings]);
 
   const refetch = useCallback(() => {
     console.log('🔄 Refetching unified inventory data...');
@@ -128,7 +176,8 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
     loading,
     error,
     stats,
-    refetch
+    refetch,
+    usingFallback
   };
 };
 

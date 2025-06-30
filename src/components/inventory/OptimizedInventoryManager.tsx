@@ -1,6 +1,7 @@
 
 import React, { useState, useCallback, useMemo } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { Badge } from '@/components/ui/badge';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
 import UnifiedMobileNavigation from '@/components/UnifiedMobileNavigation';
 import { useUnifiedInventory } from '@/hooks/useUnifiedInventory';
@@ -26,7 +27,7 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
   const [previewListing, setPreviewListing] = useState<Listing | null>(null);
 
   const inventoryQueryParams = useMemo(() => ({
-    limit: 50
+    limit: 10 // Very conservative limit to prevent timeouts
   }), []);
 
   const inventory = useUnifiedInventory(inventoryQueryParams);
@@ -147,8 +148,8 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
     );
   }
 
-  // Show error state
-  if (inventory.error) {
+  // Show error state (but not if we're using fallback data)
+  if (inventory.error && !inventory.usingFallback) {
     return (
       <div className={`min-h-screen bg-gray-50 ${isMobile ? 'pb-20' : ''}`}>
         <StreamlinedHeader
@@ -228,6 +229,20 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
       />
       
       <div className="max-w-7xl mx-auto p-4 space-y-6">
+        {/* Show fallback warning if using cached data */}
+        {inventory.usingFallback && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="bg-yellow-100 text-yellow-800">
+                Cached Data
+              </Badge>
+              <span className="text-yellow-800 text-sm">
+                Showing cached inventory due to connection timeout. Data may not be current.
+              </span>
+            </div>
+          </div>
+        )}
+
         <InventoryStatsCards stats={inventory.stats} />
 
         <ImprovedInventoryControls
@@ -273,7 +288,6 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
           listing={previewListing}
           onClose={handleClosePreview}
           onEdit={() => {
-            // TODO: Implement edit functionality
             console.log('Edit listing:', previewListing.id);
           }}
         />
