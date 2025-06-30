@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useUnifiedInventory } from '@/hooks/useUnifiedInventory';
 import { useListingOperations } from '@/hooks/useListingOperations';
+import { usePlatformData } from '@/hooks/usePlatformData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,8 +25,50 @@ const SalesOperationsManager = ({ onNavigateToInventory }: SalesOperationsManage
   });
 
   const { updateListing } = useListingOperations();
+  const { platforms, rules, offers, platformListings, loading: platformLoading } = usePlatformData();
 
-  if (loading) {
+  // Mock handlers for platform operations
+  const handlePlatformToggle = (platformId: string, enabled: boolean) => {
+    console.log('Toggle platform:', platformId, enabled);
+  };
+
+  const handlePlatformSettings = (platformId: string) => {
+    console.log('Platform settings:', platformId);
+  };
+
+  const handleAddPlatform = () => {
+    console.log('Add platform');
+  };
+
+  const handleCreateRule = () => {
+    console.log('Create rule');
+  };
+
+  const handleEditRule = (ruleId: string) => {
+    console.log('Edit rule:', ruleId);
+  };
+
+  const handleDeleteRule = (ruleId: string) => {
+    console.log('Delete rule:', ruleId);
+  };
+
+  const handleToggleRule = (ruleId: string, enabled: boolean) => {
+    console.log('Toggle rule:', ruleId, enabled);
+  };
+
+  const handleCreateOffer = (offer: any) => {
+    console.log('Create offer:', offer);
+  };
+
+  const handleSendOffer = (offerId: string) => {
+    console.log('Send offer:', offerId);
+  };
+
+  const handleCancelOffer = (offerId: string) => {
+    console.log('Cancel offer:', offerId);
+  };
+
+  if (loading || platformLoading) {
     return (
       <div className="max-w-7xl mx-auto p-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -184,15 +227,32 @@ const SalesOperationsManager = ({ onNavigateToInventory }: SalesOperationsManage
         </TabsContent>
 
         <TabsContent value="platforms">
-          <PlatformManager listings={activeListings} onUpdateListing={updateListing} />
+          <PlatformManager
+            platforms={platforms}
+            platformListings={platformListings}
+            onPlatformToggle={handlePlatformToggle}
+            onPlatformSettings={handlePlatformSettings}
+            onAddPlatform={handleAddPlatform}
+          />
         </TabsContent>
 
         <TabsContent value="offers">
-          <OfferManager listings={activeListings} onUpdateListing={updateListing} />
+          <OfferManager
+            offers={offers}
+            onCreateOffer={handleCreateOffer}
+            onSendOffer={handleSendOffer}
+            onCancelOffer={handleCancelOffer}
+          />
         </TabsContent>
 
         <TabsContent value="rules">
-          <CrossListingRules listings={activeListings} onUpdateListing={updateListing} />
+          <CrossListingRules
+            rules={rules}
+            onCreateRule={handleCreateRule}
+            onEditRule={handleEditRule}
+            onDeleteRule={handleDeleteRule}
+            onToggleRule={handleToggleRule}
+          />
         </TabsContent>
       </Tabs>
     </div>
