@@ -2,7 +2,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
-import MobileNavigation from '@/components/MobileNavigation';
+import UnifiedMobileNavigation from '@/components/UnifiedMobileNavigation';
 import { useInventoryData } from '@/hooks/useInventoryData';
 import { useListingOperations } from '@/hooks/useListingOperations';
 import { useInventoryFilters } from '@/hooks/useInventoryFilters';
@@ -139,7 +139,7 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
       </div>
 
       {isMobile && (
-        <MobileNavigation
+        <UnifiedMobileNavigation
           currentView="inventory"
           onNavigate={() => {}}
           showBack

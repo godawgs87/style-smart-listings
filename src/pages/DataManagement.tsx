@@ -4,7 +4,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
 import { useInventoryData } from '@/hooks/useInventoryData';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
-import EnhancedMobileNavigation from '@/components/EnhancedMobileNavigation';
+import UnifiedMobileNavigation from '@/components/UnifiedMobileNavigation';
 import CSVDataManager from '@/components/inventory/CSVDataManager';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Database } from 'lucide-react';
@@ -61,7 +61,7 @@ const DataManagement = ({ onBack, onNavigate }: DataManagementProps) => {
       </div>
 
       {isMobile && (
-        <EnhancedMobileNavigation
+        <UnifiedMobileNavigation
           currentView="data-management"
           onNavigate={onNavigate}
           showBack

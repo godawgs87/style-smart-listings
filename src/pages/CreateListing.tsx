@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCreateListingState } from '@/hooks/useCreateListingState';
 import { useCreateListingActions } from '@/hooks/useCreateListingActions';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
-import MobileNavigation from '@/components/MobileNavigation';
+import UnifiedMobileNavigation from '@/components/UnifiedMobileNavigation';
 import CreateListingContent from '@/components/create-listing/CreateListingContent';
 import CreateListingSteps from '@/components/create-listing/CreateListingSteps';
 import BulkUploadManager from '@/components/bulk-upload/BulkUploadManager';
@@ -154,7 +154,7 @@ const CreateListing = ({ onBack, onViewListings }: CreateListingProps) => {
       </div>
 
       {isMobile && (
-        <MobileNavigation
+        <UnifiedMobileNavigation
           currentView="create"
           onNavigate={() => {}}
           showBack

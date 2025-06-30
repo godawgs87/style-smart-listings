@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useInventoryData } from '@/hooks/useInventoryData';
 import { useListingOperations } from '@/hooks/useListingOperations';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
-import MobileNavigation from '@/components/MobileNavigation';
+import UnifiedMobileNavigation from '@/components/UnifiedMobileNavigation';
 import ListingsLoadingState from '@/components/ListingsLoadingState';
 import ListingsManagerMain from '@/components/listings-manager/ListingsManagerMain';
 
@@ -87,7 +87,7 @@ const ListingsManager = ({ onBack }: ListingsManagerProps) => {
       />
 
       {isMobile && (
-        <MobileNavigation
+        <UnifiedMobileNavigation
           currentView="listings"
           onNavigate={() => {}}
           showBack

@@ -2,7 +2,7 @@
 import React from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
-import MobileNavigation from '@/components/MobileNavigation';
+import UnifiedMobileNavigation from '@/components/UnifiedMobileNavigation';
 import SalesOperationsManager from '@/components/active-listings/SalesOperationsManager';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -33,7 +33,7 @@ const ActiveListingsPage = ({ onBack }: ActiveListingsPageProps) => {
       />
 
       {isMobile && (
-        <MobileNavigation
+        <UnifiedMobileNavigation
           currentView="active-listings"
           onNavigate={() => {}}
           showBack

@@ -3,7 +3,7 @@ import React from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
-import MobileNavigation from '@/components/MobileNavigation';
+import UnifiedMobileNavigation from '@/components/UnifiedMobileNavigation';
 import UserSettingsTabs from '@/components/user-settings/UserSettingsTabs';
 
 const UserSettings = () => {
@@ -27,7 +27,7 @@ const UserSettings = () => {
       </div>
 
       {isMobile && (
-        <MobileNavigation
+        <UnifiedMobileNavigation
           currentView="settings"
           onNavigate={() => {}}
           showBack
