@@ -6,77 +6,33 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Settings, Plus, Zap, Eye, Heart, TrendingUp } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import type { Listing } from '@/types/Listing';
+import type { Platform, PlatformListing } from '@/types/Platform';
 
 interface PlatformManagerProps {
-  listings: Listing[];
-  onUpdateListing: (id: string, updates: any) => Promise<boolean>;
+  platforms: Platform[];
+  platformListings: PlatformListing[];
+  onPlatformToggle: (platformId: string, enabled: boolean) => void;
+  onPlatformSettings: (platformId: string) => void;
+  onAddPlatform: () => void;
 }
 
 const PlatformManager = ({
-  listings,
-  onUpdateListing
+  platforms,
+  platformListings,
+  onPlatformToggle,
+  onPlatformSettings,
+  onAddPlatform
 }: PlatformManagerProps) => {
   const isMobile = useIsMobile();
 
-  // Mock platform data - in a real app this would come from props or context
-  const mockPlatforms = [
-    {
-      id: 'ebay',
-      name: 'eBay',
-      icon: 'E',
-      isActive: true,
-      settings: {
-        autoList: true,
-        autoDelist: false,
-        autoPrice: true,
-        offerManagement: true
-      }
-    },
-    {
-      id: 'mercari',
-      name: 'Mercari',
-      icon: 'M',
-      isActive: false,
-      settings: {
-        autoList: false,
-        autoDelist: false,
-        autoPrice: false,
-        offerManagement: false
-      }
-    }
-  ];
-
-  const mockPlatformListings = listings.map(listing => ({
-    id: listing.id,
-    platform: 'ebay',
-    status: 'active',
-    views: Math.floor(Math.random() * 100),
-    watchers: Math.floor(Math.random() * 20),
-    offers: Math.floor(Math.random() * 5)
-  }));
-
-  const handlePlatformToggle = async (platformId: string, enabled: boolean) => {
-    console.log('Toggle platform:', platformId, enabled);
-    // In a real app, this would update platform settings
-  };
-
-  const handlePlatformSettings = (platformId: string) => {
-    console.log('Open platform settings:', platformId);
-  };
-
-  const handleAddPlatform = () => {
-    console.log('Add new platform');
-  };
-
   const getPlatformStats = (platformId: string) => {
-    const platformListings = mockPlatformListings.filter(pl => pl.platform === platformId);
+    const platformSpecificListings = platformListings.filter(pl => pl.platform === platformId);
     return {
-      total: platformListings.length,
-      active: platformListings.filter(pl => pl.status === 'active').length,
-      totalViews: platformListings.reduce((sum, pl) => sum + pl.views, 0),
-      totalWatchers: platformListings.reduce((sum, pl) => sum + pl.watchers, 0),
-      totalOffers: platformListings.reduce((sum, pl) => sum + pl.offers, 0)
+      total: platformSpecificListings.length,
+      active: platformSpecificListings.filter(pl => pl.status === 'active').length,
+      totalViews: platformSpecificListings.reduce((sum, pl) => sum + pl.views, 0),
+      totalWatchers: platformSpecificListings.reduce((sum, pl) => sum + pl.watchers, 0),
+      totalOffers: platformSpecificListings.reduce((sum, pl) => sum + pl.offers, 0)
     };
   };
 
@@ -84,14 +40,14 @@ const PlatformManager = ({
     <div className="space-y-6">
       <div className={`flex ${isMobile ? 'flex-col gap-4' : 'flex-row'} justify-between items-center`}>
         <h2 className="text-2xl font-bold">Platform Management</h2>
-        <Button onClick={handleAddPlatform} className="flex items-center gap-2 w-full md:w-auto">
+        <Button onClick={onAddPlatform} className="flex items-center gap-2 w-full md:w-auto">
           <Plus className="w-4 h-4" />
           Add Platform
         </Button>
       </div>
 
       <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'} gap-4`}>
-        {mockPlatforms.map((platform) => {
+        {platforms.map((platform) => {
           const stats = getPlatformStats(platform.id);
           return (
             <Card key={platform.id} className="relative">
@@ -105,12 +61,11 @@ const PlatformManager = ({
                   </div>
                   <Switch
                     checked={platform.isActive}
-                    onCheckedChange={(checked) => handlePlatformToggle(platform.id, checked)}
+                    onCheckedChange={(checked) => onPlatformToggle(platform.id, checked)}
                   />
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Mobile-optimized stats grid */}
                 <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-2'} gap-4 text-sm`}>
                   <div>
                     <div className="text-gray-500 text-xs">Active Listings</div>
@@ -139,7 +94,6 @@ const PlatformManager = ({
                   </div>
                 </div>
 
-                {/* Mobile-optimized badges */}
                 <div className="flex flex-wrap gap-1">
                   {platform.settings.autoList && (
                     <Badge variant="secondary" className="text-xs">
@@ -161,7 +115,7 @@ const PlatformManager = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handlePlatformSettings(platform.id)}
+                  onClick={() => onPlatformSettings(platform.id)}
                   className="w-full flex items-center gap-2"
                 >
                   <Settings className="w-4 h-4" />
@@ -173,8 +127,7 @@ const PlatformManager = ({
         })}
       </div>
 
-      {/* Mobile-friendly empty state */}
-      {mockPlatforms.length === 0 && (
+      {platforms.length === 0 && (
         <Card className="p-8 text-center">
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Plus className="w-8 h-8 text-gray-400" />
@@ -183,7 +136,7 @@ const PlatformManager = ({
           <p className="text-gray-600 mb-4 text-sm">
             Connect your selling platforms to start cross-listing and managing your inventory.
           </p>
-          <Button onClick={handleAddPlatform} className="w-full md:w-auto">
+          <Button onClick={onAddPlatform} className="w-full md:w-auto">
             Add Your First Platform
           </Button>
         </Card>

@@ -5,92 +5,52 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Plus, Edit, Trash2, Zap, Target, DollarSign } from 'lucide-react';
-import type { Listing } from '@/types/Listing';
+import type { CrossListingRule } from '@/types/Platform';
 
 interface CrossListingRulesProps {
-  listings: Listing[];
-  onUpdateListing: (id: string, updates: any) => Promise<boolean>;
+  rules: CrossListingRule[];
+  onCreateRule: () => void;
+  onEditRule: (ruleId: string) => void;
+  onDeleteRule: (ruleId: string) => void;
+  onToggleRule: (ruleId: string, enabled: boolean) => void;
 }
 
 const CrossListingRules = ({
-  listings,
-  onUpdateListing
+  rules,
+  onCreateRule,
+  onEditRule,
+  onDeleteRule,
+  onToggleRule
 }: CrossListingRulesProps) => {
-  // Mock rules data - in a real app this would come from props or context
-  const mockRules = [
-    {
-      id: '1',
-      name: 'Designer Items Auto-List',
-      platforms: ['eBay', 'Mercari', 'Poshmark'],
-      conditions: {
-        category: ['Clothing', 'Accessories'],
-        priceRange: { min: 50, max: 500 }
-      },
-      settings: {
-        autoList: true,
-        priceMultiplier: 1.2
-      }
-    },
-    {
-      id: '2',
-      name: 'Electronics Quick List',
-      platforms: ['eBay', 'Facebook'],
-      conditions: {
-        category: ['Electronics'],
-        priceRange: { min: 100, max: 1000 }
-      },
-      settings: {
-        autoList: false,
-        priceMultiplier: 1.1
-      }
-    }
-  ];
-
-  const handleCreateRule = () => {
-    console.log('Create new cross-listing rule');
-  };
-
-  const handleEditRule = (ruleId: string) => {
-    console.log('Edit rule:', ruleId);
-  };
-
-  const handleDeleteRule = (ruleId: string) => {
-    console.log('Delete rule:', ruleId);
-  };
-
-  const handleToggleRule = (ruleId: string, enabled: boolean) => {
-    console.log('Toggle rule:', ruleId, enabled);
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Cross-Listing Rules</h2>
-        <Button onClick={handleCreateRule} className="flex items-center gap-2">
+        <Button onClick={onCreateRule} className="flex items-center gap-2">
           <Plus className="w-4 h-4" />
           Create Rule
         </Button>
       </div>
 
-      {mockRules.length === 0 ? (
+      {rules.length === 0 ? (
         <Card className="p-8 text-center">
           <Zap className="w-12 h-12 mx-auto text-gray-400 mb-4" />
           <h3 className="text-lg font-semibold mb-2">No Automation Rules</h3>
           <p className="text-gray-600 mb-4">
             Create rules to automatically list items across multiple platforms based on your criteria.
           </p>
-          <Button onClick={handleCreateRule}>Create Your First Rule</Button>
+          <Button onClick={onCreateRule}>Create Your First Rule</Button>
         </Card>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {mockRules.map((rule) => (
+          {rules.map((rule) => (
             <Card key={rule.id}>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">{rule.name}</CardTitle>
                   <Switch
                     checked={rule.settings.autoList}
-                    onCheckedChange={(checked) => handleToggleRule(rule.id, checked)}
+                    onCheckedChange={(checked) => onToggleRule(rule.id, checked)}
                   />
                 </div>
               </CardHeader>
@@ -128,14 +88,14 @@ const CrossListingRules = ({
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleEditRule(rule.id)}
+                      onClick={() => onEditRule(rule.id)}
                     >
                       <Edit className="w-4 h-4" />
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleDeleteRule(rule.id)}
+                      onClick={() => onDeleteRule(rule.id)}
                       className="text-red-600 hover:text-red-700"
                     >
                       <Trash2 className="w-4 h-4" />
