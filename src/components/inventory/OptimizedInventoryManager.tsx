@@ -3,7 +3,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
 import UnifiedMobileNavigation from '@/components/UnifiedMobileNavigation';
-import { useInventoryData } from '@/hooks/useInventoryData';
+import { useUnifiedInventory } from '@/hooks/useUnifiedInventory';
 import { useListingOperations } from '@/hooks/useListingOperations';
 import { useInventoryFilters } from '@/hooks/useInventoryFilters';
 import OptimisticInventoryTable from './OptimisticInventoryTable';
@@ -32,7 +32,7 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
     limit: 30
   }), [filters.searchTerm, filters.statusFilter, filters.categoryFilter]);
 
-  const inventory = useInventoryData(inventoryQueryParams);
+  const inventory = useUnifiedInventory(inventoryQueryParams);
   const operations = useListingOperations();
 
   const handleSelectListing = useCallback((listingId: string, checked: boolean) => {

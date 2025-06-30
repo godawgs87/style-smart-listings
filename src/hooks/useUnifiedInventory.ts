@@ -4,7 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import type { Listing } from '@/types/Listing';
 
-interface RobustInventoryOptions {
+interface UnifiedInventoryOptions {
   searchTerm?: string;
   statusFilter?: string;
   categoryFilter?: string;
@@ -18,7 +18,7 @@ interface InventoryStats {
   draftItems: number;
 }
 
-export const useRobustInventory = (options: RobustInventoryOptions = {}) => {
+export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,9 +41,9 @@ export const useRobustInventory = (options: RobustInventoryOptions = {}) => {
         throw new Error('Authentication required');
       }
 
-      console.log('🔍 Fetching robust inventory for user:', user.id);
+      console.log('🔍 Fetching unified inventory for user:', user.id);
 
-      // Build optimized query with only needed fields initially
+      // Build comprehensive query with all needed fields
       let query = supabase
         .from('listings')
         .select(`
@@ -95,8 +95,8 @@ export const useRobustInventory = (options: RobustInventoryOptions = {}) => {
         query = query.or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
       }
 
-      // Apply limit
-      const limit = Math.min(options.limit || 100, 200);
+      // Conservative but reasonable limit
+      const limit = Math.min(options.limit || 50, 100);
       query = query.limit(limit);
 
       const { data, error } = await query;
@@ -108,7 +108,7 @@ export const useRobustInventory = (options: RobustInventoryOptions = {}) => {
 
       console.log('✅ Fetched listings:', data?.length || 0);
       
-      // Process and validate data
+      // Process and validate data safely
       const processedData = (data || []).map(listing => {
         try {
           // Safely handle measurements
@@ -197,7 +197,7 @@ export const useRobustInventory = (options: RobustInventoryOptions = {}) => {
   }, [fetchInventory, lastFetchTime, toast]);
 
   const refetch = useCallback(() => {
-    console.log('🔄 Refetching inventory data...');
+    console.log('🔄 Refetching unified inventory data...');
     setLastFetchTime(0); // Reset throttle
     loadData();
   }, [loadData]);
@@ -220,4 +220,4 @@ export const useRobustInventory = (options: RobustInventoryOptions = {}) => {
   };
 };
 
-export type { RobustInventoryOptions, InventoryStats };
+export type { UnifiedInventoryOptions, InventoryStats };
