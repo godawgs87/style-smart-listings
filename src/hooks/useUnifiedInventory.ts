@@ -22,7 +22,6 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastFetchTime, setLastFetchTime] = useState<number>(0);
   const mountedRef = useRef(true);
   const { toast } = useToast();
 
@@ -43,41 +42,9 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
 
       console.log('🔍 Fetching unified inventory for user:', user.id);
 
-      // Build comprehensive query with all needed fields
       let query = supabase
         .from('listings')
-        .select(`
-          id,
-          title,
-          description,
-          price,
-          category,
-          condition,
-          status,
-          shipping_cost,
-          measurements,
-          keywords,
-          photos,
-          created_at,
-          updated_at,
-          purchase_price,
-          purchase_date,
-          is_consignment,
-          consignment_percentage,
-          source_type,
-          source_location,
-          cost_basis,
-          net_profit,
-          profit_margin,
-          listed_date,
-          sold_date,
-          days_to_sell,
-          performance_notes,
-          clothing_size,
-          shoe_size,
-          gender,
-          age_group
-        `)
+        .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -95,7 +62,6 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
         query = query.or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
       }
 
-      // Conservative but reasonable limit
       const limit = Math.min(options.limit || 50, 100);
       query = query.limit(limit);
 
@@ -108,46 +74,15 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
 
       console.log('✅ Fetched listings:', data?.length || 0);
       
-      // Process and validate data safely
-      const processedData = (data || []).map(listing => {
-        try {
-          // Safely handle measurements
-          let measurements = {};
-          if (listing.measurements) {
-            if (typeof listing.measurements === 'object' && listing.measurements !== null) {
-              measurements = listing.measurements;
-            } else if (typeof listing.measurements === 'string') {
-              try {
-                measurements = JSON.parse(listing.measurements);
-              } catch {
-                measurements = {};
-              }
-            }
-          }
-
-          // Ensure required fields have valid values
-          return {
-            ...listing,
-            measurements: measurements as { length?: string; width?: string; height?: string; weight?: string; },
-            status: listing.status || 'draft',
-            price: Number(listing.price) || 0,
-            shipping_cost: Number(listing.shipping_cost) || 9.95,
-            keywords: Array.isArray(listing.keywords) ? listing.keywords : [],
-            photos: Array.isArray(listing.photos) ? listing.photos : []
-          };
-        } catch (processingError) {
-          console.error('Error processing listing:', listing.id, processingError);
-          return {
-            ...listing,
-            measurements: {},
-            status: 'draft',
-            price: 0,
-            shipping_cost: 9.95,
-            keywords: [],
-            photos: []
-          };
-        }
-      }) as Listing[];
+      const processedData = (data || []).map(listing => ({
+        ...listing,
+        measurements: listing.measurements || {},
+        status: listing.status || 'draft',
+        price: Number(listing.price) || 0,
+        shipping_cost: Number(listing.shipping_cost) || 9.95,
+        keywords: Array.isArray(listing.keywords) ? listing.keywords : [],
+        photos: Array.isArray(listing.photos) ? listing.photos : []
+      })) as Listing[];
       
       return processedData;
       
@@ -160,12 +95,6 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
   const loadData = useCallback(async () => {
     if (!mountedRef.current) return;
 
-    // Prevent rapid refetches
-    const now = Date.now();
-    if (now - lastFetchTime < 1000) {
-      return;
-    }
-
     setLoading(true);
     setError(null);
 
@@ -175,8 +104,6 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
       if (!mountedRef.current) return;
 
       setListings(data);
-      setLastFetchTime(now);
-      
       console.log(`✅ Loaded ${data.length} inventory items`);
     } catch (err: any) {
       if (!mountedRef.current) return;
@@ -194,11 +121,10 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
         setLoading(false);
       }
     }
-  }, [fetchInventory, lastFetchTime, toast]);
+  }, [fetchInventory, toast]);
 
   const refetch = useCallback(() => {
     console.log('🔄 Refetching unified inventory data...');
-    setLastFetchTime(0); // Reset throttle
     loadData();
   }, [loadData]);
 
