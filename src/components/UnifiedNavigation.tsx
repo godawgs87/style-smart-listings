@@ -13,7 +13,7 @@ import {
   Loader2
 } from 'lucide-react';
 
-interface EnhancedNavigationProps {
+interface UnifiedNavigationProps {
   loading?: boolean;
   notifications?: {
     inventory?: number;
@@ -21,7 +21,7 @@ interface EnhancedNavigationProps {
   };
 }
 
-const EnhancedNavigation = ({ loading, notifications }: EnhancedNavigationProps) => {
+const UnifiedNavigation = ({ loading, notifications }: UnifiedNavigationProps) => {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -112,4 +112,4 @@ const EnhancedNavigation = ({ loading, notifications }: EnhancedNavigationProps)
   );
 };
 
-export default EnhancedNavigation;
+export default UnifiedNavigation;

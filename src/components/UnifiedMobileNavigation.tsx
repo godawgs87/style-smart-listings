@@ -2,9 +2,9 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Camera, Settings, ArrowLeft, Package, Home, Plus, Loader2, BarChart3, Database } from 'lucide-react';
+import { Settings, ArrowLeft, Package, Home, Plus, Loader2, BarChart3, Database } from 'lucide-react';
 
-interface EnhancedMobileNavigationProps {
+interface UnifiedMobileNavigationProps {
   currentView: string;
   onNavigate: (view: 'dashboard' | 'create' | 'inventory' | 'active-listings' | 'data-management') => void;
   showBack?: boolean;
@@ -17,7 +17,7 @@ interface EnhancedMobileNavigationProps {
   };
 }
 
-const EnhancedMobileNavigation = ({ 
+const UnifiedMobileNavigation = ({ 
   currentView, 
   onNavigate, 
   showBack = false, 
@@ -25,7 +25,7 @@ const EnhancedMobileNavigation = ({
   title,
   loading,
   notifications
-}: EnhancedMobileNavigationProps) => {
+}: UnifiedMobileNavigationProps) => {
   const handleSettingsClick = () => {
     if (loading) return;
     window.location.href = '/settings';
@@ -146,4 +146,4 @@ const EnhancedMobileNavigation = ({
   );
 };
 
-export default EnhancedMobileNavigation;
+export default UnifiedMobileNavigation;

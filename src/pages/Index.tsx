@@ -6,7 +6,7 @@ import { Camera, Package, BarChart3 } from "lucide-react";
 import CreateListing from "./CreateListing";
 import AuthForm from "@/components/AuthForm";
 import StreamlinedHeader from "@/components/StreamlinedHeader";
-import EnhancedMobileNavigation from "@/components/EnhancedMobileNavigation";
+import UnifiedMobileNavigation from "@/components/UnifiedMobileNavigation";
 import LoadingState from "@/components/LoadingState";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -163,7 +163,7 @@ const Index = () => {
       </div>
 
       {isMobile && (
-        <EnhancedMobileNavigation
+        <UnifiedMobileNavigation
           currentView={currentView}
           onNavigate={handleNavigation}
           loading={false}

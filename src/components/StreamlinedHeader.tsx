@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ArrowLeft, Menu, X, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import EnhancedNavigation from './EnhancedNavigation';
+import UnifiedNavigation from './UnifiedNavigation';
 
 interface StreamlinedHeaderProps {
   title: string;
@@ -72,7 +72,7 @@ const StreamlinedHeader = ({
             </div>
 
             {/* Center - Navigation */}
-            <EnhancedNavigation loading={loading} notifications={notifications} />
+            <UnifiedNavigation loading={loading} notifications={notifications} />
 
             {/* Right side */}
             <div className="flex items-center space-x-3">
