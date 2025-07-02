@@ -117,29 +117,34 @@ serve(async (req) => {
     }
 
     if (action === 'exchange_code') {
-      console.log('=== Starting Token Exchange ===')
+      // Add immediate logging that should definitely show up
+      console.log('=== EBAY TOKEN EXCHANGE START ===')
+      console.log('Current timestamp:', new Date().toISOString())
       console.log('Code received:', code ? 'present' : 'missing')
       console.log('State received:', state ? 'present' : 'missing')
       
       if (!code) {
+        console.log('ERROR: No authorization code provided')
         throw new Error('No authorization code provided')
       }
 
-      // Create the token request
+      // Log the exact URL and parameters we're about to use
       const tokenUrl = `${baseUrl}/identity/v1/oauth2/token`
-      const credentials = btoa(`${ebayConfig.clientId}:${ebayConfig.clientSecret}`)
-      
+      console.log('Token URL:', tokenUrl)
+      console.log('Redirect URI in request:', ebayConfig.redirectUri)
+      console.log('Client ID (first 10 chars):', ebayConfig.clientId?.substring(0, 10))
+      console.log('Client Secret present:', ebayConfig.clientSecret ? 'YES' : 'NO')
+
       const formData = new URLSearchParams({
         grant_type: 'authorization_code',
         code: code,
         redirect_uri: ebayConfig.redirectUri
       })
 
-      console.log('Token exchange details:')
-      console.log('- URL:', tokenUrl)
-      console.log('- Redirect URI:', ebayConfig.redirectUri)
-      console.log('- Form data:', formData.toString())
-      console.log('- Client ID:', ebayConfig.clientId ? ebayConfig.clientId.substring(0, 10) + '...' : 'MISSING')
+      console.log('Form data being sent to eBay:', formData.toString())
+
+      const credentials = btoa(`${ebayConfig.clientId}:${ebayConfig.clientSecret}`)
+      console.log('Basic auth header length:', credentials.length)
 
       try {
         const tokenResponse = await fetch(tokenUrl, {
