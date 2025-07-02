@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/components/AuthProvider';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
 import UnifiedMobileNavigation from '@/components/UnifiedMobileNavigation';
 import UserSettingsTabs from '@/components/user-settings/UserSettingsTabs';

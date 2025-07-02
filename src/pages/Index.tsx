@@ -9,7 +9,7 @@ import AuthForm from "@/components/AuthForm";
 import StreamlinedHeader from "@/components/StreamlinedHeader";
 import UnifiedMobileNavigation from "@/components/UnifiedMobileNavigation";
 import LoadingState from "@/components/LoadingState";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/components/AuthProvider";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 type ViewType = 'dashboard' | 'create' | 'inventory' | 'active-listings' | 'data-management';

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/components/AuthProvider';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/components/AuthProvider';
 import { useCreateListingState } from '@/hooks/useCreateListingState';
 import { useCreateListingActions } from '@/hooks/useCreateListingActions';
 import StreamlinedHeader from '@/components/StreamlinedHeader';
