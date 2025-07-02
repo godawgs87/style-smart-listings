@@ -15,26 +15,15 @@ export const useListingDetails = () => {
     details: Partial<Listing> | null;
     error?: string;
   }> => {
-    try {
-      console.log('🔍 Skipping individual fetch - using unified inventory data for:', listingId);
-      
-      // Return empty data since all data should now come from unified inventory
-      const transformedDetails = {
-        id: listingId,
-        photos: []
-      };
+    // Skip all database queries - unified inventory provides all necessary data
+    console.log('🚫 Skipping individual fetch - all data from unified inventory for:', listingId);
+    
+    const transformedDetails = {
+      id: listingId,
+      photos: []
+    };
 
-      console.log('✅ Using unified inventory data');
-      return { details: transformedDetails };
-
-    } catch (error: any) {
-      console.error('💥 Exception in fetchListingDetails:', error);
-      // Fallback for any errors
-      return { 
-        details: { id: listingId, photos: [] },
-        error: error.message 
-      };
-    }
+    return { details: transformedDetails };
   }, []);
 
   const loadDetails = useCallback(async (listingId: string): Promise<Partial<Listing> | null> => {
