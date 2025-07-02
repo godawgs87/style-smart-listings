@@ -239,6 +239,7 @@ serve(async (req) => {
         return new Response(JSON.stringify({
           success: true,
           message: 'eBay connected successfully',
+          username: marketplaceAccountData.account_username,
           account: {
             id: accountData?.id,
             platform: 'ebay',
