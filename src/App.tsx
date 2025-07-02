@@ -9,6 +9,7 @@ import DataManagement from '@/pages/DataManagement';
 import UserSettings from '@/pages/UserSettings';
 import SimpleInventoryPage from '@/pages/SimpleInventoryPage';
 import ActiveListingsPage from '@/pages/ActiveListingsPage';
+import EbayCallback from '@/pages/EbayCallback';
 import SafeErrorBoundary from '@/components/SafeErrorBoundary';
 
 const App = () => {
@@ -24,6 +25,7 @@ const App = () => {
             <Route path="/active-listings" element={<ActiveListingsPage onBack={() => window.location.href = '/'} />} />
             <Route path="/data-management" element={<DataManagement onBack={() => window.location.href = '/'} onNavigate={(view) => window.location.href = `/${view}`} />} />
             <Route path="/settings" element={<UserSettings />} />
+            <Route path="/ebay/callback" element={<EbayCallback />} />
             <Route path="*" element={<Index />} />
           </Routes>
           <Toaster />

@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Link, Settings } from 'lucide-react';
 import { useEbayIntegration } from '@/hooks/useEbayIntegration';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const UserConnectionsTab = () => {
   const { connectEbayAccount, importSoldListings, connecting, importing } = useEbayIntegration();
@@ -24,18 +25,25 @@ const UserConnectionsTab = () => {
   ]);
 
   const handleConnectEbay = async () => {
-    // Simulate OAuth flow - in production this would redirect to eBay
-    const mockUsername = "demo_user";
-    const mockOAuthToken = "mock_oauth_token_" + Date.now();
-    
-    const account = await connectEbayAccount(mockUsername, mockOAuthToken);
-    if (account) {
-      setPlatforms(prev => prev.map(p => 
-        p.name === 'eBay' ? { ...p, connected: true } : p
-      ));
+    try {
+      // Step 1: Get authorization URL from our edge function
+      const { data, error } = await supabase.functions.invoke('ebay-oauth', {
+        body: { 
+          action: 'get_auth_url',
+          state: crypto.randomUUID() // Generate random state for security
+        }
+      });
+
+      if (error) throw error;
+
+      // Step 2: Redirect to eBay OAuth page
+      window.location.href = data.auth_url;
+    } catch (error: any) {
+      console.error('eBay OAuth initiation failed:', error);
       toast({
-        title: "eBay Connected Successfully",
-        description: "Your eBay account is now connected and ready to use"
+        title: "Connection Failed",
+        description: error.message || 'Failed to initiate eBay connection',
+        variant: "destructive"
       });
     }
   };
