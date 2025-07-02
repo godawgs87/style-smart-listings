@@ -90,7 +90,7 @@ const EbayCallback = () => {
             Authorization: `Bearer ${session.access_token}`,
             'Content-Type': 'application/json'
           },
-          body: requestBody
+          body: JSON.stringify(requestBody)
         });
 
         console.log('Token exchange response:', {
