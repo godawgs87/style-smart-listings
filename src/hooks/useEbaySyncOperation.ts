@@ -21,9 +21,11 @@ export const useEbaySyncOperation = () => {
       console.log('🔄 Starting eBay sync for listing:', listing.id);
 
       // First check if user has an eBay connection
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      console.log('🔍 Auth check result:', { user: !!user, authError });
       if (!user) {
-        throw new Error('Authentication required');
+        console.error('❌ No authenticated user found');
+        throw new Error('Please sign in to sync listings to eBay');
       }
 
       console.log('👤 User authenticated, checking eBay account...');
