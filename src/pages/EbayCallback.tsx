@@ -112,6 +112,10 @@ const EbayCallback = () => {
           throw exchangeError;
         }
 
+        console.log('Full response data:', data);
+        console.log('data.success:', data?.success);
+        console.log('typeof data.success:', typeof data?.success);
+        
         if (data?.success) {
           // Clear any pending OAuth data
           localStorage.removeItem('ebay_oauth_pending');
@@ -124,6 +128,7 @@ const EbayCallback = () => {
           // Redirect to settings page
           navigate('/settings');
         } else {
+          console.error('eBay connection failed - missing success flag in response:', data);
           throw new Error('Failed to complete eBay connection');
         }
 
