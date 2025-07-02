@@ -23,7 +23,7 @@ export const useEbayConnection = () => {
           return false;
         }
 
-        console.log('eBay accounts found:', accounts);
+        console.log('🔍 eBay accounts found:', accounts);
         
         const hasRealConnection = accounts && accounts.length > 0 && 
           accounts.some(acc => 

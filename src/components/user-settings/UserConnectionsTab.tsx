@@ -35,22 +35,37 @@ const UserConnectionsTab = () => {
     { name: 'Depop', connected: false, autoList: false, icon: '🎨' }
   ]);
 
-  // Check for pending eBay OAuth on component mount
+  // Check for pending eBay OAuth on component mount and when URL changes
   useEffect(() => {
     const initializeConnections = async () => {
+      console.log('🔄 Initializing eBay connections...');
+      
       // Handle pending OAuth first
       const pendingCompleted = await handlePendingOAuth();
+      console.log('✅ Pending OAuth handled:', pendingCompleted);
       
       // Check current connection status
       const isConnected = await checkEbayConnection();
+      console.log('🔍 Current connection status:', isConnected);
+      
+      const finalStatus = pendingCompleted || isConnected;
+      console.log('📊 Final eBay status:', finalStatus);
       
       setPlatforms(prev => prev.map(p => 
-        p.name === 'eBay' ? { ...p, connected: pendingCompleted || isConnected } : p
+        p.name === 'eBay' ? { ...p, connected: finalStatus } : p
       ));
     };
 
     initializeConnections();
-  }, []);
+    
+    // Also check when the page loads (in case user just came back from OAuth)
+    const timer = setTimeout(() => {
+      console.log('⏰ Re-checking eBay connection after delay...');
+      initializeConnections();
+    }, 2000);
+    
+    return () => clearTimeout(timer);
+  }, []); // Run once on mount and after delays
 
   const handleEbayConnect = async () => {
     await connectEbay();
