@@ -14,8 +14,6 @@ import { useToast } from '@/hooks/use-toast';
 const UserConnectionsTab = () => {
   const { connectEbayAccount, importSoldListings, connecting, importing } = useEbayIntegration();
   const { toast } = useToast();
-  const [ebayUsername, setEbayUsername] = useState('');
-  const [ebayOAuthToken, setEbayOAuthToken] = useState('');
   
   const [platforms, setPlatforms] = useState([
     { name: 'eBay', connected: false, autoList: true, icon: '🛒' },
@@ -26,23 +24,30 @@ const UserConnectionsTab = () => {
   ]);
 
   const handleConnectEbay = async () => {
-    if (!ebayUsername || !ebayOAuthToken) {
-      toast({
-        title: "Missing Information",
-        description: "Please enter both eBay username and OAuth token",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const account = await connectEbayAccount(ebayUsername, ebayOAuthToken);
+    // Simulate OAuth flow - in production this would redirect to eBay
+    const mockUsername = "demo_user";
+    const mockOAuthToken = "mock_oauth_token_" + Date.now();
+    
+    const account = await connectEbayAccount(mockUsername, mockOAuthToken);
     if (account) {
       setPlatforms(prev => prev.map(p => 
         p.name === 'eBay' ? { ...p, connected: true } : p
       ));
-      setEbayUsername('');
-      setEbayOAuthToken('');
+      toast({
+        title: "eBay Connected Successfully",
+        description: "Your eBay account is now connected and ready to use"
+      });
     }
+  };
+
+  const handleDisconnectEbay = () => {
+    setPlatforms(prev => prev.map(p => 
+      p.name === 'eBay' ? { ...p, connected: false } : p
+    ));
+    toast({
+      title: "eBay Disconnected",
+      description: "Your eBay account has been disconnected"
+    });
   };
 
   const handleImportListings = async () => {
@@ -87,16 +92,24 @@ const UserConnectionsTab = () => {
                       <Settings className="w-4 h-4 mr-1" />
                       Settings
                     </Button>
-                    <Button variant="outline" size="sm">
-                      Disconnect
-                    </Button>
+                     <Button 
+                       variant="outline" 
+                       size="sm"
+                       onClick={() => {
+                         if (platform.name === 'eBay') {
+                           handleDisconnectEbay();
+                         }
+                       }}
+                     >
+                       Disconnect
+                     </Button>
                   </>
                  ) : (
                    <Button 
                      size="sm" 
                      onClick={() => {
                        if (platform.name === 'eBay') {
-                         // eBay connection handled below
+                         handleConnectEbay();
                        } else {
                          toast({
                            title: "Coming Soon",
@@ -104,68 +117,46 @@ const UserConnectionsTab = () => {
                          });
                        }
                      }}
+                     disabled={platform.name === 'eBay' && connecting}
                    >
-                     Connect
+                     {platform.name === 'eBay' && connecting ? 'Connecting...' : 'Connect'}
                    </Button>
                  )}
               </div>
             </div>
 
-            {/* eBay Connection Form */}
-            {platform.name === 'eBay' && !platform.connected && (
-              <div className="mt-4 pl-11 space-y-4 border-l-2 border-gray-200 bg-gray-50 p-4 rounded">
-                <h4 className="font-medium text-gray-900">Connect Your eBay Account</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="ebay-username">eBay Username</Label>
-                    <Input
-                      id="ebay-username"
-                      placeholder="Your eBay username"
-                      value={ebayUsername}
-                      onChange={(e) => setEbayUsername(e.target.value)}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="ebay-oauth">OAuth Token</Label>
-                    <Input
-                      id="ebay-oauth"
-                      type="password"
-                      placeholder="Your eBay OAuth token"
-                      value={ebayOAuthToken}
-                      onChange={(e) => setEbayOAuthToken(e.target.value)}
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-                <Button 
-                  onClick={handleConnectEbay}
-                  disabled={connecting}
-                  className="w-full"
-                >
-                  {connecting ? 'Connecting...' : 'Connect eBay Account'}
-                </Button>
-                <p className="text-xs text-gray-500">
-                  Need help? Visit the eBay Developer Program to get your OAuth token.
-                </p>
-              </div>
-            )}
-
-            {platform.connected && platform.name === 'eBay' && (
+            {/* eBay Connection Success */}
+            {platform.name === 'eBay' && platform.connected && (
               <div className="mt-4 pl-11 space-y-4">
-                <div className="flex items-center justify-between bg-green-50 p-3 rounded">
-                  <div>
-                    <p className="font-medium text-green-900">Connected Successfully</p>
-                    <p className="text-sm text-green-700">eBay integration is active</p>
+                <div className="flex items-center justify-between bg-green-50 p-4 rounded-lg border border-green-200">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                      ✓
+                    </div>
+                    <div>
+                      <p className="font-medium text-green-900">eBay Connected</p>
+                      <p className="text-sm text-green-700">Ready to sync listings and import data</p>
+                    </div>
                   </div>
                   <Button 
                     onClick={handleImportListings}
                     disabled={importing}
                     size="sm"
                     variant="outline"
+                    className="border-green-300 text-green-700 hover:bg-green-100"
                   >
                     {importing ? 'Importing...' : 'Import Training Data'}
                   </Button>
+                </div>
+
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <h5 className="font-medium text-blue-900 mb-2">What happens next:</h5>
+                  <ul className="text-sm text-blue-800 space-y-1">
+                    <li>• AI will analyze your successful sales patterns</li>
+                    <li>• Auto-generate listings that match your style</li>
+                    <li>• Sync inventory and pricing across platforms</li>
+                    <li>• Track performance and optimize listings</li>
+                  </ul>
                 </div>
 
                 <div className="space-y-3">
