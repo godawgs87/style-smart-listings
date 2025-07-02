@@ -192,6 +192,17 @@ const UserConnectionsTab = () => {
 
       if (error) {
         console.error('Edge function error:', error);
+        
+        // Check if it's a configuration error
+        if (error.message?.includes('Client ID') || error.message?.includes('configuration')) {
+          toast({
+            title: "eBay Not Configured",
+            description: "Please configure your eBay API credentials in the project settings first.",
+            variant: "destructive"
+          });
+          return;
+        }
+        
         throw error;
       }
 
