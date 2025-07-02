@@ -68,6 +68,62 @@ serve(async (req) => {
       )
     }
 
+    if (action === 'get_auth_url') {
+      console.log('Getting auth URL...')
+      
+      const ebayClientId = Deno.env.get('EBAY_CLIENT_ID')
+      const { state } = requestBody
+      
+      if (!ebayClientId) {
+        console.error('eBay Client ID not configured')
+        return new Response(
+          JSON.stringify({ error: 'eBay Client ID is not configured' }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 500 
+          }
+        )
+      }
+
+      const redirectUri = 'https://preview--hustly-mvp.lovable.app/ebay/callback'
+      const baseUrl = 'https://auth.sandbox.ebay.com'
+      
+      const scopes = [
+        'https://api.ebay.com/oauth/api_scope',
+        'https://api.ebay.com/oauth/api_scope/sell.marketing.readonly',
+        'https://api.ebay.com/oauth/api_scope/sell.marketing',
+        'https://api.ebay.com/oauth/api_scope/sell.inventory.readonly',
+        'https://api.ebay.com/oauth/api_scope/sell.inventory',
+        'https://api.ebay.com/oauth/api_scope/sell.account.readonly',
+        'https://api.ebay.com/oauth/api_scope/sell.account',
+        'https://api.ebay.com/oauth/api_scope/sell.fulfillment.readonly',
+        'https://api.ebay.com/oauth/api_scope/sell.fulfillment'
+      ].join(' ')
+
+      const authUrl = new URL(`${baseUrl}/oauth2/authorize`)
+      authUrl.searchParams.set('client_id', ebayClientId)
+      authUrl.searchParams.set('redirect_uri', redirectUri)
+      authUrl.searchParams.set('response_type', 'code')
+      authUrl.searchParams.set('scope', scopes)
+      authUrl.searchParams.set('state', state || 'default_state')
+
+      console.log('Generated OAuth URL:', authUrl.toString())
+
+      return new Response(
+        JSON.stringify({ 
+          auth_url: authUrl.toString(),
+          debug_info: {
+            client_id: ebayClientId ? 'present' : 'missing',
+            redirect_uri: redirectUri
+          }
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200 
+        }
+      )
+    }
+
     console.log('Unknown action:', action)
     return new Response(
       JSON.stringify({ error: 'Unknown action' }),
