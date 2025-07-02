@@ -60,11 +60,12 @@ serve(async (req) => {
     }
 
     if (!openAIApiKey) {
+      console.error('OpenAI API key not found in environment variables');
       return new Response(JSON.stringify({ 
         success: false, 
-        error: 'OpenAI API key not configured' 
+        error: 'OpenAI API key not configured. Please set OPENAI_API_KEY in edge function secrets.' 
       }), {
-        status: 500,
+        status: 200, // Return 200 so frontend gets the error message
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
