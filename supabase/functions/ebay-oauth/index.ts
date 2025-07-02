@@ -9,6 +9,7 @@ const corsHeaders = {
 serve(async (req) => {
   console.log('=== EBAY OAUTH FUNCTION START ===');
   console.log('Method:', req.method);
+  console.log('URL:', req.url);
 
   if (req.method === 'OPTIONS') {
     console.log('Handling CORS preflight');
@@ -17,53 +18,56 @@ serve(async (req) => {
 
   try {
     console.log('Reading request body...');
-    const requestData = await req.json();
+    console.log('Request headers:', Object.fromEntries(req.headers.entries()));
     
-    console.log('=== REQUEST DEBUG ===');
-    console.log('Raw request data:', requestData);
-    console.log('Request data type:', typeof requestData);
-    console.log('Request data keys:', Object.keys(requestData));
-    
-    const { action, code, state } = requestData;
-    
-    console.log('=== PARAMETER DEBUG ===');
-    console.log('action:', action);
-    console.log('action type:', typeof action);
-    console.log('code present:', !!code);
-    console.log('state:', state);
-    
-    // Test action
-    if (action === 'test') {
-      console.log('✅ Test action triggered');
+    // ✅ FIXED: Read the body only once, no cloning
+    let requestData;
+    try {
+      requestData = await req.json();
+      console.log('Parsed request data:', requestData);
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError);
       return new Response(JSON.stringify({
-        message: 'Function working',
-        debug: { received: requestData }
+        error: 'Invalid JSON in request body',
+        details: parseError.message
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400
+      });
+    }
+
+    const { action, code, state } = requestData;
+    console.log('Action:', action, 'Code present:', !!code, 'State:', state);
+
+    if (action === 'test') {
+      console.log('Test action - returning success');
+      return new Response(JSON.stringify({
+        message: 'Function working'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // Debug action
     if (action === 'debug') {
-      console.log('✅ Debug action triggered');
+      console.log('Debug action - checking environment');
       const ebayClientId = Deno.env.get('EBAY_CLIENT_ID');
       const ebayClientSecret = Deno.env.get('EBAY_CLIENT_SECRET');
+      console.log('Client ID present:', !!ebayClientId);
+      console.log('Client Secret present:', !!ebayClientSecret);
       
       return new Response(JSON.stringify({
-        status: 'debug_ok',
+        status: 'ok',
         config: {
           clientId: ebayClientId ? 'configured' : 'missing',
           clientSecret: ebayClientSecret ? 'configured' : 'missing'
-        },
-        request: requestData
+        }
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // Get auth URL action
     if (action === 'get_auth_url') {
-      console.log('✅ Get auth URL action triggered');
+      console.log('✅ Get auth URL action - generating eBay OAuth URL');
       const ebayClientId = Deno.env.get('EBAY_CLIENT_ID');
       
       if (!ebayClientId) {
@@ -85,6 +89,7 @@ serve(async (req) => {
       authUrl.searchParams.set('state', state || 'default');
 
       console.log('Generated auth URL:', authUrl.toString());
+      
       return new Response(JSON.stringify({
         auth_url: authUrl.toString()
       }), {
@@ -92,21 +97,15 @@ serve(async (req) => {
       });
     }
 
-    // Exchange code action
     if (action === 'exchange_code') {
-      console.log('✅ Exchange code action triggered');
-      
+      console.log('=== TOKEN EXCHANGE START ===');
       const ebayClientId = Deno.env.get('EBAY_CLIENT_ID');
       const ebayClientSecret = Deno.env.get('EBAY_CLIENT_SECRET');
       
-      console.log('Environment check:', {
-        hasClientId: !!ebayClientId,
-        hasClientSecret: !!ebayClientSecret,
-        hasCode: !!code
-      });
+      console.log('Credentials check - Client ID:', !!ebayClientId, 'Secret:', !!ebayClientSecret, 'Code:', !!code);
 
       if (!ebayClientId || !ebayClientSecret || !code) {
-        console.error('Missing required data');
+        console.error('Missing credentials or code');
         return new Response(JSON.stringify({
           error: 'Missing credentials or code',
           details: {
@@ -120,27 +119,151 @@ serve(async (req) => {
         });
       }
 
-      // For now, just return a success response to test the flow
-      console.log('Returning test success response');
-      return new Response(JSON.stringify({
-        success: true,
-        message: 'Test eBay connection successful',
-        account: {
-          id: 'test-id',
-          platform: 'ebay',
-          username: 'test_user',
-          connected_at: new Date().toISOString()
+      console.log('Making eBay token request...');
+      
+      try {
+        const tokenResponse = await fetch('https://auth.sandbox.ebay.com/identity/v1/oauth2/token', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Authorization': `Basic ${btoa(`${ebayClientId}:${ebayClientSecret}`)}`
+          },
+          body: new URLSearchParams({
+            grant_type: 'authorization_code',
+            code: code,
+            redirect_uri: 'https://preview--hustly-mvp.lovable.app/ebay/callback'
+          })
+        });
+
+        console.log('eBay response status:', tokenResponse.status);
+        
+        if (!tokenResponse.ok) {
+          const error = await tokenResponse.text();
+          console.error('eBay error response:', error);
+          return new Response(JSON.stringify({
+            error: 'Token exchange failed',
+            details: error
+          }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 500
+          });
         }
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+
+        const tokenData = await tokenResponse.json();
+        console.log('eBay token data received, access_token present:', !!tokenData.access_token);
+
+        // Store in database with CORRECT schema fields
+        console.log('Creating Supabase client...');
+        const supabase = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '', 
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        );
+
+        const authHeader = req.headers.get('authorization');
+        console.log('Auth header present:', !!authHeader);
+        
+        if (!authHeader) {
+          console.error('No auth header provided');
+          return new Response(JSON.stringify({
+            error: 'No auth header'
+          }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 401
+          });
+        }
+
+        console.log('Getting user from auth header...');
+        const { data: { user }, error: userError } = await supabase.auth.getUser(
+          authHeader.replace('Bearer ', '')
+        );
+        
+        console.log('User lookup result - User found:', !!user, 'Error:', userError?.message);
+        
+        if (userError || !user) {
+          console.error('User authentication failed:', userError);
+          return new Response(JSON.stringify({
+            error: 'User not found or authentication failed'
+          }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 401
+          });
+        }
+
+        console.log('Storing marketplace account for user:', user.id);
+        
+        // Calculate expiration time
+        const expiresIn = tokenData.expires_in || 7200;
+        const expirationTime = new Date(Date.now() + expiresIn * 1000);
+
+        // ✅ CORRECT database fields
+        const marketplaceAccountData = {
+          user_id: user.id,
+          platform: 'ebay',
+          account_username: 'ebay_user',
+          oauth_token: tokenData.access_token,
+          refresh_token: tokenData.refresh_token || null,
+          oauth_expires_at: expirationTime.toISOString(),
+          is_connected: true,
+          is_active: true,
+          platform_settings: {
+            sandbox: true,
+            scopes: ['https://api.ebay.com/oauth/api_scope']
+          }
+        };
+
+        console.log('Inserting marketplace account data...');
+        
+        const { data: accountData, error: dbError } = await supabase
+          .from('marketplace_accounts')
+          .upsert(marketplaceAccountData, {
+            onConflict: 'user_id,platform'
+          })
+          .select()
+          .single();
+
+        console.log('Database operation result - Data:', !!accountData, 'Error:', dbError?.message);
+        
+        if (dbError) {
+          console.error('Database error details:', dbError);
+          return new Response(JSON.stringify({
+            error: 'Failed to store account',
+            details: dbError.message
+          }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 500
+          });
+        }
+
+        console.log('eBay connection stored successfully');
+        
+        return new Response(JSON.stringify({
+          success: true,
+          message: 'eBay connected successfully',
+          account: {
+            id: accountData?.id,
+            platform: 'ebay',
+            username: marketplaceAccountData.account_username,
+            connected_at: new Date().toISOString()
+          }
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+
+      } catch (fetchError) {
+        console.error('Network error during eBay token exchange:', fetchError);
+        return new Response(JSON.stringify({
+          error: 'Network error during token exchange',
+          details: fetchError.message
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500
+        });
+      }
     }
 
-    // Unknown action
-    console.log('❌ Unknown action received:', action);
+    console.log('Unknown action received:', action);
     return new Response(JSON.stringify({
-      error: `Unknown action: ${action}`,
-      received: requestData
+      error: `Unknown action: ${action}`
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400
@@ -148,7 +271,7 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('=== FUNCTION ERROR ===');
-    console.error('Error:', error);
+    console.error('Error type:', typeof error);
     console.error('Error message:', error.message);
     console.error('Error stack:', error.stack);
     
