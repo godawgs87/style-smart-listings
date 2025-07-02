@@ -7,12 +7,20 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  console.log('=== EBAY OAUTH FUNCTION START ===')
+  console.log('Method:', req.method)
+  console.log('Headers:', Object.fromEntries(req.headers.entries()))
+  
   if (req.method === 'OPTIONS') {
+    console.log('Handling CORS preflight')
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const { action, code, state } = await req.json()
+    const body = await req.text()
+    console.log('Raw body:', body)
+    const { action, code, state } = JSON.parse(body)
+    console.log('Parsed action:', action, 'code present:', !!code, 'state:', state)
     
     if (action === 'test') {
       return new Response(
@@ -61,16 +69,20 @@ serve(async (req) => {
     }
     
     if (action === 'exchange_code') {
+      console.log('=== TOKEN EXCHANGE START ===')
       const ebayClientId = Deno.env.get('EBAY_CLIENT_ID')
       const ebayClientSecret = Deno.env.get('EBAY_CLIENT_SECRET')
+      console.log('Credentials check - Client ID:', !!ebayClientId, 'Secret:', !!ebayClientSecret, 'Code:', !!code)
       
       if (!ebayClientId || !ebayClientSecret || !code) {
+        console.log('Missing credentials or code')
         return new Response(
           JSON.stringify({ error: 'Missing credentials or code' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
         )
       }
 
+      console.log('Making eBay token request...')
       const tokenResponse = await fetch('https://auth.sandbox.ebay.com/identity/v1/oauth2/token', {
         method: 'POST',
         headers: {
@@ -84,8 +96,10 @@ serve(async (req) => {
         })
       })
 
+      console.log('eBay response status:', tokenResponse.status)
       if (!tokenResponse.ok) {
         const error = await tokenResponse.text()
+        console.log('eBay error response:', error)
         return new Response(
           JSON.stringify({ error: 'Token exchange failed', details: error }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
@@ -93,14 +107,17 @@ serve(async (req) => {
       }
 
       const tokenData = await tokenResponse.json()
+      console.log('eBay token data received:', !!tokenData.access_token)
       
       // Store in database
+      console.log('Creating Supabase client...')
       const supabase = createClient(
         Deno.env.get('SUPABASE_URL') ?? '',
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
       )
 
       const authHeader = req.headers.get('authorization')
+      console.log('Auth header present:', !!authHeader)
       if (!authHeader) {
         return new Response(
           JSON.stringify({ error: 'No auth header' }),
@@ -108,7 +125,9 @@ serve(async (req) => {
         )
       }
 
-      const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
+      console.log('Getting user from auth header...')
+      const { data: { user }, error: userError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
+      console.log('User found:', !!user, 'Error:', userError)
       if (!user) {
         return new Response(
           JSON.stringify({ error: 'User not found' }),
@@ -116,7 +135,8 @@ serve(async (req) => {
         )
       }
 
-      await supabase.from('marketplace_accounts').upsert({
+      console.log('Storing marketplace account for user:', user.id)
+      const { data: accountData, error: dbError } = await supabase.from('marketplace_accounts').upsert({
         user_id: user.id,
         platform: 'ebay',
         oauth_token: tokenData.access_token,
@@ -128,6 +148,16 @@ serve(async (req) => {
         platform_settings: { sandbox: true }
       }, { onConflict: 'user_id,platform' })
 
+      console.log('Database operation result:', !!accountData, 'Error:', dbError)
+      if (dbError) {
+        console.log('Database error details:', dbError)
+        return new Response(
+          JSON.stringify({ error: 'Failed to store account', details: dbError.message }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        )
+      }
+
+      console.log('eBay connection stored successfully')
       return new Response(
         JSON.stringify({ success: true, message: 'eBay connected', username: 'ebay_user' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
