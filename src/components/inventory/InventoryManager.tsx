@@ -52,7 +52,7 @@ const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) =>
     try {
       const success = await operations.updateListing(listingId, updates);
       if (success) {
-        setTimeout(() => inventory.refetch(), 500);
+        inventory.refetch();
       }
     } catch (error) {
       console.error('Failed to update listing:', error);
@@ -65,7 +65,7 @@ const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) =>
       const success = await operations.deleteListing(listingId);
       if (success) {
         setSelectedItems(prev => prev.filter(id => id !== listingId));
-        setTimeout(() => inventory.refetch(), 500);
+        inventory.refetch();
       }
     } catch (error) {
       console.error('Failed to delete listing:', error);
@@ -122,8 +122,8 @@ const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) =>
     return filtered;
   }, [inventory.listings, filters.searchTerm, filters.statusFilter, filters.categoryFilter]);
 
-  // Show loading state
-  if (inventory.loading) {
+  // Show loading state only when actually loading and no data
+  if (inventory.loading && inventory.listings.length === 0) {
     return (
       <div className={`min-h-screen bg-gray-50 ${isMobile ? 'pb-20' : ''}`}>
         <StreamlinedHeader
@@ -176,8 +176,8 @@ const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) =>
     );
   }
 
-  // Show empty state
-  if (!inventory.loading && filteredListings.length === 0 && inventory.listings.length === 0) {
+  // Show empty state only when not loading and no data
+  if (!inventory.loading && filteredListings.length === 0 && inventory.listings.length === 0 && !inventory.error) {
     return (
       <div className={`min-h-screen bg-gray-50 ${isMobile ? 'pb-20' : ''}`}>
         <StreamlinedHeader
@@ -235,6 +235,16 @@ const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) =>
               <span className="text-yellow-800 text-sm">
                 Showing cached inventory due to connection timeout. Data may not be current.
               </span>
+            </div>
+          </div>
+        )}
+
+        {/* Show loading indicator when refreshing */}
+        {inventory.loading && inventory.listings.length > 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+              <span className="text-blue-800 text-sm">Refreshing inventory...</span>
             </div>
           </div>
         )}

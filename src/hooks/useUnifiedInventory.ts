@@ -155,7 +155,7 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
         setLoading(false);
       }
     }
-  }, [fetchInventory, toast, options, cachedListings]);
+  }, [fetchInventory, toast, options]);
 
   const refetch = useCallback(() => {
     console.log('🔄 Refetching unified inventory data...');
