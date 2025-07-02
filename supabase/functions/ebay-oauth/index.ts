@@ -17,34 +17,22 @@ serve(async (req) => {
   }
 
   try {
-    let requestBody
-    try {
-      requestBody = await req.json()
-      console.log('Request body:', requestBody)
-    } catch (e) {
-      console.error('Failed to parse JSON:', e)
-      return new Response(
-        JSON.stringify({ error: 'Invalid JSON in request body' }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400 
-        }
-      )
-    }
-
+    const requestBody = await req.json()
+    console.log('Request body:', requestBody)
+    
     const { action } = requestBody
+    console.log('Action received:', action)
 
+    // Test endpoint
     if (action === 'test') {
       console.log('Test action - returning success')
       return new Response(
         JSON.stringify({ message: 'Function is working', timestamp: new Date().toISOString() }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200 
-        }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       )
     }
 
+    // Debug endpoint
     if (action === 'debug') {
       const ebayClientId = Deno.env.get('EBAY_CLIENT_ID')
       const ebayClientSecret = Deno.env.get('EBAY_CLIENT_SECRET')
@@ -61,13 +49,11 @@ serve(async (req) => {
             clientSecret: ebayClientSecret ? 'configured' : 'missing'
           }
         }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200 
-        }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       )
     }
 
+    // Get auth URL
     if (action === 'get_auth_url') {
       console.log('Getting auth URL...')
       
@@ -78,10 +64,7 @@ serve(async (req) => {
         console.error('eBay Client ID not configured')
         return new Response(
           JSON.stringify({ error: 'eBay Client ID is not configured' }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 500 
-          }
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
         )
       }
 
@@ -117,26 +100,22 @@ serve(async (req) => {
             redirect_uri: redirectUri
           }
         }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200 
-        }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       )
     }
 
+    // Exchange code for token
     if (action === 'exchange_code') {
       console.log('=== TOKEN EXCHANGE START ===')
       const { code, state } = requestBody
-      console.log('Code present:', code ? 'YES' : 'NO')
+      console.log('Code present:', !!code)
+      console.log('State:', state)
       
       if (!code) {
         console.error('No authorization code provided')
         return new Response(
           JSON.stringify({ error: 'No authorization code provided' }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 400 
-          }
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
         )
       }
 
@@ -147,10 +126,7 @@ serve(async (req) => {
         console.error('eBay credentials not configured')
         return new Response(
           JSON.stringify({ error: 'eBay credentials not configured' }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 500 
-          }
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
         )
       }
 
@@ -189,28 +165,76 @@ serve(async (req) => {
               error: `eBay token exchange failed (${tokenResponse.status})`,
               ebay_error: responseText
             }),
-            { 
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 500 
-            }
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
           )
         }
 
         const tokenData = JSON.parse(responseText)
         console.log('Token exchange successful!')
+        console.log('Access token received:', !!tokenData.access_token)
         
-        // For now, just return success without storing in database
+        // Store the token in the database
+        const supabase = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        )
+
+        // Get user from auth header
+        const authHeader = req.headers.get('authorization')
+        if (!authHeader) {
+          return new Response(
+            JSON.stringify({ error: 'No authorization header' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+          )
+        }
+
+        const token = authHeader.replace('Bearer ', '')
+        const { data: { user }, error: userError } = await supabase.auth.getUser(token)
+        
+        if (userError || !user) {
+          console.error('User auth error:', userError)
+          return new Response(
+            JSON.stringify({ error: 'Authentication failed' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+          )
+        }
+
+        console.log('Storing eBay connection for user:', user.id)
+
+        // Store marketplace account
+        const { data: account, error: dbError } = await supabase
+          .from('marketplace_accounts')
+          .upsert({
+            user_id: user.id,
+            platform: 'ebay',
+            oauth_token: tokenData.access_token,
+            refresh_token: tokenData.refresh_token,
+            oauth_expires_at: new Date(Date.now() + (tokenData.expires_in * 1000)).toISOString(),
+            account_username: 'ebay_user',
+            is_connected: true,
+            is_active: true,
+            platform_settings: { sandbox: true }
+          }, {
+            onConflict: 'user_id,platform'
+          })
+
+        if (dbError) {
+          console.error('Database error:', dbError)
+          return new Response(
+            JSON.stringify({ error: 'Failed to store account' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+          )
+        }
+
+        console.log('eBay account stored successfully')
+        
         return new Response(
           JSON.stringify({ 
             success: true,
-            message: 'Token exchange successful',
-            has_access_token: !!tokenData.access_token,
+            message: 'eBay account connected successfully',
             username: 'ebay_user'
           }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200 
-          }
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
         )
 
       } catch (fetchError) {
@@ -220,21 +244,15 @@ serve(async (req) => {
             error: 'Network error during token exchange',
             details: fetchError.message
           }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 500 
-          }
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
         )
       }
     }
 
     console.log('Unknown action:', action)
     return new Response(
-      JSON.stringify({ error: 'Unknown action' }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400 
-      }
+      JSON.stringify({ error: `Unknown action: ${action}` }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
     )
 
   } catch (error) {
@@ -249,10 +267,7 @@ serve(async (req) => {
         message: error.message,
         timestamp: new Date().toISOString()
       }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500 
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     )
   }
 })
