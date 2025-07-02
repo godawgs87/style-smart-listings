@@ -25,6 +25,7 @@ export const useEbaySyncOperation = () => {
         throw new Error('Authentication required');
       }
 
+      console.log('👤 User authenticated, checking eBay account...');
       const { data: ebayAccount, error: accountError } = await supabase
         .from('marketplace_accounts')
         .select('*')
@@ -35,10 +36,23 @@ export const useEbaySyncOperation = () => {
         .single();
 
       if (accountError || !ebayAccount) {
+        console.error('❌ No eBay account found:', accountError);
         throw new Error('eBay account not connected. Please connect your eBay account first.');
       }
 
-      // Use the list-to-ebay edge function
+      console.log('✅ eBay account found:', ebayAccount.account_username);
+
+      // Check token expiration
+      if (ebayAccount.oauth_expires_at) {
+        const expirationDate = new Date(ebayAccount.oauth_expires_at);
+        const now = new Date();
+        if (now >= expirationDate) {
+          throw new Error('eBay token has expired. Please reconnect your eBay account.');
+        }
+      }
+
+      // Use the list-to-ebay edge function with account info
+      console.log('📡 Calling eBay integration function...');
       const { data, error } = await supabase.functions.invoke('list-to-ebay', {
         body: {
           listing: {
@@ -49,18 +63,26 @@ export const useEbaySyncOperation = () => {
             shippingCost: listing.shipping_cost || 9.95,
             photos: listing.photos || [],
             condition: listing.condition || 'Used',
-            category: listing.category || 'Other'
+            category: listing.category || 'Other',
+            brand: (listing as any).brand,
+            weight_oz: (listing as any).weight_oz
+          },
+          accountInfo: {
+            oauth_token: ebayAccount.oauth_token,
+            account_id: ebayAccount.account_id,
+            account_username: ebayAccount.account_username
           }
         }
       });
 
       if (error) {
-        console.error('❌ eBay sync failed:', error);
-        throw error;
+        console.error('❌ eBay sync failed with error:', error);
+        throw new Error(`eBay sync failed: ${error.message}`);
       }
 
-      if (!data.success) {
-        throw new Error(data.error || 'eBay listing failed');
+      if (!data?.success) {
+        console.error('❌ eBay sync returned failure:', data);
+        throw new Error(data?.error || 'eBay listing failed');
       }
 
       // Create platform_listing record

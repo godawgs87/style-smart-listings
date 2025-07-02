@@ -13,103 +13,181 @@ serve(async (req) => {
   }
 
   try {
-    const { listing } = await req.json()
+    const { listing, accountInfo } = await req.json()
+    console.log('🔄 Starting eBay listing creation for:', listing.id)
     
-    const ebayApiKey = Deno.env.get('EBAY_API_KEY')
-    if (!ebayApiKey) {
-      throw new Error('eBay API key not configured')
+    if (!accountInfo?.oauth_token) {
+      throw new Error('No eBay OAuth token found. Please reconnect your eBay account.')
     }
 
-    // Get OAuth token (this is simplified - in production you'd need proper OAuth flow)
-    const tokenResponse = await fetch('https://api.ebay.com/identity/v1/oauth2/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': `Basic ${btoa(ebayApiKey + ':')}`
-      },
-      body: 'grant_type=client_credentials&scope=https://api.ebay.com/oauth/api_scope'
-    })
-
-    if (!tokenResponse.ok) {
-      throw new Error('Failed to get eBay OAuth token')
+    const ebayClientId = Deno.env.get('EBAY_CLIENT_ID')
+    const ebayClientSecret = Deno.env.get('EBAY_CLIENT_SECRET')
+    
+    if (!ebayClientId || !ebayClientSecret) {
+      throw new Error('eBay API credentials not configured')
     }
 
-    const tokenData = await tokenResponse.json()
-    const accessToken = tokenData.access_token
+    // Use the stored OAuth token
+    const accessToken = accountInfo.oauth_token
+    console.log('📡 Using stored OAuth token for eBay API')
 
-    // Create eBay listing using Trading API
-    const listingXml = `<?xml version="1.0" encoding="utf-8"?>
-    <AddFixedPriceItemRequest xmlns="urn:ebay:apis:eBLBaseComponents">
-      <RequesterCredentials>
-        <eBayAuthToken>${accessToken}</eBayAuthToken>
-      </RequesterCredentials>
-      <Item>
-        <Title>${listing.title}</Title>
-        <Description><![CDATA[${listing.description}]]></Description>
-        <PrimaryCategory>
-          <CategoryID>281</CategoryID>
-        </PrimaryCategory>
-        <StartPrice>${listing.price}</StartPrice>
-        <ConditionID>3000</ConditionID>
-        <ListingDuration>Days_7</ListingDuration>
-        <ListingType>FixedPriceItem</ListingType>
-        <Currency>USD</Currency>
-        <Country>US</Country>
-        <Location>United States</Location>
-        <ShippingDetails>
-          <ShippingType>Flat</ShippingType>
-          <ShippingServiceOptions>
-            <ShippingServicePriority>1</ShippingServicePriority>
-            <ShippingService>USPSGround</ShippingService>
-            <ShippingServiceCost>${listing.shippingCost}</ShippingServiceCost>
-          </ShippingServiceOptions>
-        </ShippingDetails>
-        <PictureDetails>
-          ${listing.photos.map((photo: string, index: number) => 
-            `<PictureURL>${photo}</PictureURL>`
-          ).join('')}
-        </PictureDetails>
-      </Item>
-    </AddFixedPriceItemRequest>`
+    // Map condition to eBay condition IDs
+    const conditionMap: Record<string, number> = {
+      'New': 1000,
+      'Like New': 1500,
+      'Excellent': 2000,
+      'Very Good': 2500,
+      'Good': 3000,
+      'Acceptable': 4000,
+      'Used': 3000
+    }
+    
+    const conditionId = conditionMap[listing.condition] || 3000
 
-    const ebayResponse = await fetch('https://api.ebay.com/ws/api.dll', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'text/xml',
-        'X-EBAY-API-COMPATIBILITY-LEVEL': '967',
-        'X-EBAY-API-DEV-NAME': ebayApiKey,
-        'X-EBAY-API-APP-NAME': ebayApiKey,
-        'X-EBAY-API-CERT-NAME': ebayApiKey,
-        'X-EBAY-API-CALL-NAME': 'AddFixedPriceItem',
-        'X-EBAY-API-SITEID': '0'
-      },
-      body: listingXml
-    })
-
-    const responseText = await ebayResponse.text()
-    console.log('eBay API Response:', responseText)
-
-    // Parse response to check for success
-    if (responseText.includes('<Ack>Success</Ack>')) {
-      const itemIdMatch = responseText.match(/<ItemID>(\d+)<\/ItemID>/)
-      const itemId = itemIdMatch ? itemIdMatch[1] : null
-
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          itemId: itemId,
-          message: 'Item successfully listed on eBay'
-        }),
-        { 
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json' 
-          } 
+    // Create eBay listing using REST API
+    const listingPayload = {
+      product: {
+        title: listing.title.substring(0, 80), // eBay title limit
+        description: listing.description || 'No description provided',
+        imageUrls: listing.photos?.slice(0, 12) || [], // eBay allows max 12 images
+        aspects: {
+          Brand: [listing.brand || 'Unbranded'],
+          Condition: [listing.condition || 'Used']
         }
-      )
-    } else {
-      throw new Error('eBay listing failed: ' + responseText)
+      },
+      condition: 'USED_EXCELLENT',
+      conditionDescription: listing.condition || 'Used',
+      packageWeightAndSize: {
+        packageType: 'BULKY_GOODS',
+        weight: {
+          value: listing.weight_oz ? (listing.weight_oz / 16).toString() : '1',
+          unit: 'POUND'
+        }
+      },
+      availability: {
+        shipToLocationAvailability: {
+          quantity: 1
+        }
+      },
+      pricing: {
+        price: {
+          value: listing.price.toString(),
+          currency: 'USD'
+        },
+        pricingVisibility: 'IMMEDIATE'
+      },
+      fulfillmentPolicy: {
+        fulfillmentPolicyId: 'DEFAULT'
+      },
+      paymentPolicy: {
+        paymentPolicyId: 'DEFAULT'
+      },
+      returnPolicy: {
+        returnPolicyId: 'DEFAULT'
+      },
+      categoryId: '281', // Default category - should be mapped properly
+      listingDuration: 'GTC',
+      listingFormat: 'FIXED_PRICE'
     }
+
+    console.log('📤 Sending listing to eBay API...')
+    
+    const ebayResponse = await fetch('https://api.ebay.com/sell/inventory/v1/inventory_item', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(listingPayload)
+    })
+
+    const responseData = await ebayResponse.json()
+    console.log('📥 eBay API Response:', responseData)
+
+    if (!ebayResponse.ok) {
+      // Handle token expiration
+      if (ebayResponse.status === 401) {
+        throw new Error('eBay token expired. Please reconnect your eBay account.')
+      }
+      
+      throw new Error(`eBay API Error: ${responseData.errors?.[0]?.message || 'Unknown error'}`)
+    }
+
+    // For inventory API, we need to create an offer to actually list the item
+    const offerId = `${listing.id}-${Date.now()}`
+    const offerPayload = {
+      sku: responseData.sku || listing.id,
+      marketplaceId: 'EBAY_US',
+      format: 'FIXED_PRICE',
+      availableQuantity: 1,
+      pricing: {
+        price: {
+          value: listing.price.toString(),
+          currency: 'USD'
+        }
+      },
+      pricingVisibility: 'IMMEDIATE',
+      listingDescription: listing.description || 'No description provided',
+      listingPolicies: {
+        fulfillmentPolicyId: 'DEFAULT',
+        paymentPolicyId: 'DEFAULT',
+        returnPolicyId: 'DEFAULT'
+      },
+      categoryId: '281'
+    }
+
+    const offerResponse = await fetch('https://api.ebay.com/sell/inventory/v1/offer', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(offerPayload)
+    })
+
+    const offerData = await offerResponse.json()
+    console.log('📥 eBay Offer Response:', offerData)
+
+    if (!offerResponse.ok) {
+      throw new Error(`eBay Offer Error: ${offerData.errors?.[0]?.message || 'Unknown error'}`)
+    }
+
+    // Publish the offer to create the actual listing
+    const publishResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/offer/${offerData.offerId}/publish`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    })
+
+    const publishData = await publishResponse.json()
+    console.log('📥 eBay Publish Response:', publishData)
+
+    if (!publishResponse.ok) {
+      throw new Error(`eBay Publish Error: ${publishData.errors?.[0]?.message || 'Unknown error'}`)
+    }
+
+    const itemId = publishData.listingId
+    console.log('✅ eBay listing created successfully:', itemId)
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        itemId: itemId,
+        message: 'Item successfully listed on eBay',
+        fees: publishData.fees || {}
+      }),
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
+      }
+    )
 
   } catch (error) {
     console.error('eBay listing error:', error)
