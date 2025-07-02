@@ -129,24 +129,48 @@ serve(async (req) => {
       console.log('Code received:', code ? 'present' : 'missing')
       console.log('State received:', state ? 'present' : 'missing')
       
+      if (!code) {
+        throw new Error('No authorization code provided')
+      }
+
+      if (!ebayConfig.clientId || !ebayConfig.clientSecret) {
+        throw new Error('eBay credentials not configured')
+      }
+      
       // Step 2: Exchange authorization code for access token
+      console.log('Making token exchange request to:', `${baseUrl}/identity/v1/oauth2/token`)
+      console.log('Using redirect URI:', ebayConfig.redirectUri)
+      
+      const tokenRequestBody = new URLSearchParams({
+        grant_type: 'authorization_code',
+        code: code,
+        redirect_uri: ebayConfig.redirectUri
+      })
+      
+      console.log('Token request body:', tokenRequestBody.toString())
+      
       const tokenResponse = await fetch(`${baseUrl}/identity/v1/oauth2/token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           'Authorization': `Basic ${btoa(`${ebayConfig.clientId}:${ebayConfig.clientSecret}`)}`
         },
-        body: new URLSearchParams({
-          grant_type: 'authorization_code',
-          code: code,
-          redirect_uri: ebayConfig.redirectUri
-        })
+        body: tokenRequestBody
       })
+
+      console.log('Token response status:', tokenResponse.status)
+      console.log('Token response headers:', Object.fromEntries(tokenResponse.headers.entries()))
 
       if (!tokenResponse.ok) {
         const errorText = await tokenResponse.text()
-        console.error('eBay token exchange failed:', errorText)
-        throw new Error(`Token exchange failed: ${tokenResponse.status}`)
+        console.error('eBay token exchange failed:', {
+          status: tokenResponse.status,
+          statusText: tokenResponse.statusText,
+          errorText: errorText,
+          redirectUri: ebayConfig.redirectUri,
+          clientId: ebayConfig.clientId ? `${ebayConfig.clientId.substring(0, 8)}...` : 'MISSING'
+        })
+        throw new Error(`Token exchange failed: ${tokenResponse.status} - ${errorText}`)
       }
 
       const tokenData = await tokenResponse.json()
