@@ -1,5 +1,6 @@
 
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Camera, Package, BarChart3 } from "lucide-react";
@@ -20,6 +21,8 @@ const Index = () => {
 
   console.log('Index render - loading:', loading, 'user:', !!user, 'view:', currentView);
 
+  const navigate = useNavigate();
+
   const handleNavigation = useCallback((view: ViewType) => {
     console.log('Navigating to:', view);
     const pageMap = {
@@ -29,11 +32,11 @@ const Index = () => {
     };
 
     if (view in pageMap) {
-      window.location.href = pageMap[view as keyof typeof pageMap];
+      navigate(pageMap[view as keyof typeof pageMap]);
     } else {
       setCurrentView(view);
     }
-  }, []);
+  }, [navigate]);
 
   // Show loading state during initial auth check
   if (loading) {
@@ -45,7 +48,7 @@ const Index = () => {
   if (!user) {
     console.log('Showing auth form - no user');
     // Redirect to dedicated auth page
-    window.location.href = '/auth';
+    navigate('/auth');
     return <LoadingState message="Redirecting..." fullPage />;
   }
 
@@ -54,8 +57,8 @@ const Index = () => {
     console.log('Showing create listing view');
     return (
       <CreateListing 
-        onBack={() => handleNavigation('dashboard')}
-        onViewListings={() => window.location.href = '/inventory'}
+      onBack={() => handleNavigation('dashboard')}
+        onViewListings={() => navigate('/inventory')}
       />
     );
   }
@@ -77,7 +80,7 @@ const Index = () => {
       icon: Package,
       title: 'Inventory Manager',
       description: 'Track purchases, calculate profits, and manage your reseller inventory.',
-      action: () => window.location.href = '/inventory',
+      action: () => navigate('/inventory'),
       buttonText: 'Manage Inventory',
       buttonClass: 'border hover:bg-green-50',
       iconColor: 'text-green-600',
@@ -87,7 +90,7 @@ const Index = () => {
       icon: BarChart3,
       title: 'Sales Operations',
       description: 'Monitor active listings, track performance, and optimize sales.',
-      action: () => window.location.href = '/active-listings',
+      action: () => navigate('/active-listings'),
       buttonText: 'View Operations',
       buttonClass: 'border hover:bg-orange-50',
       iconColor: 'text-orange-600',

@@ -47,17 +47,21 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
       // Use reasonable limit with timeout protection
       const limit = Math.min(options.limit || 50, 100);
 
-      // Simplified query - only essential fields
+      // Optimized query - essential fields with better performance
       let query = supabase
         .from('listings')
-        .select('id, title, price, status, category, condition, created_at, user_id')
+        .select(`
+          id, title, price, status, category, condition, created_at, updated_at,
+          purchase_price, cost_basis, net_profit, profit_margin,
+          shipping_cost, user_id
+        `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(limit);
 
-      // Create timeout promise
+      // Create timeout promise - longer timeout since we have indexes now
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Query timeout - using cached data')), 3000)
+        setTimeout(() => reject(new Error('Query timeout - using cached data')), 8000)
       );
 
       // Race the query against timeout
@@ -70,7 +74,7 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
 
       console.log('✅ Fetched listings:', data?.length || 0);
       
-      // Transform minimal data to full Listing interface
+      // Transform data to full Listing interface with received data
       const transformedData: Listing[] = (data || []).map(item => ({
         ...item,
         description: null,
@@ -78,13 +82,13 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
         keywords: null,
         photos: null,
         price_research: null,
-        shipping_cost: 9.95,
-        purchase_price: null,
+        shipping_cost: item.shipping_cost || 9.95,
+        purchase_price: item.purchase_price || null,
         purchase_date: null,
-        cost_basis: null,
+        cost_basis: item.cost_basis || null,
         fees_paid: 0,
-        net_profit: null,
-        profit_margin: null,
+        net_profit: item.net_profit || null,
+        profit_margin: item.profit_margin || null,
         listed_date: null,
         sold_date: null,
         sold_price: null,
@@ -101,7 +105,7 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
         age_group: null,
         clothing_size: null,
         shoe_size: null,
-        updated_at: item.created_at // Use created_at as fallback
+        updated_at: item.updated_at || item.created_at
       }));
       
       return transformedData;

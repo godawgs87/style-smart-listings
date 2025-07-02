@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Settings, ArrowLeft, Package, Home, Plus, Loader2, BarChart3, Database } from 'lucide-react';
@@ -26,9 +27,11 @@ const UnifiedMobileNavigation = ({
   loading,
   notifications
 }: UnifiedMobileNavigationProps) => {
+  const navigate = useNavigate();
+  
   const handleSettingsClick = () => {
     if (loading) return;
-    window.location.href = '/settings';
+    navigate('/settings');
   };
 
   if (showBack && onBack) {
