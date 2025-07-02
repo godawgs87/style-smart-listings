@@ -24,7 +24,7 @@ serve(async (req) => {
     
     let requestData
     try {
-      // Read the body as text first
+      // Read the body only once
       const bodyText = await req.text()
       console.log('Raw request body as text:', bodyText)
       console.log('Body length:', bodyText.length)
