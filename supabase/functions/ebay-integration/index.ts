@@ -56,21 +56,27 @@ serve(async (req) => {
     }
 
     const { action, ...params } = requestData;
+    logStep("Processing action", { action, params });
 
     switch (action) {
       case 'connect_account':
+        logStep("Calling connectEbayAccount");
         return await connectEbayAccount(supabaseClient, user.id, params);
       
       case 'import_sold_listings':
+        logStep("Calling importSoldListings");
         return await importSoldListings(supabaseClient, user.id, params);
       
       case 'publish_listing':
+        logStep("Calling publishListing");
         return await publishListing(supabaseClient, user.id, params);
       
       case 'sync_listing_status':
+        logStep("Calling syncListingStatus");
         return await syncListingStatus(supabaseClient, user.id, params);
       
       default:
+        logStep("Unknown action", { action });
         throw new Error(`Unknown action: ${action}`);
     }
 
