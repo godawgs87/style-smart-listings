@@ -16,35 +16,43 @@ export const useListingDetails = () => {
     error?: string;
   }> => {
     try {
-      console.log('🔍 Fetching only photos for listing:', listingId);
+      console.log('🔍 Fetching minimal data for listing:', listingId);
       
-      // Only fetch essential fields to avoid timeouts - just photos for image display
+      // Fetch just ID and photos with timeout protection
       const { data, error } = await supabase
         .from('listings')
         .select('id, photos')
         .eq('id', listingId)
+        .abortSignal(AbortSignal.timeout(5000)) // 5 second timeout
         .single();
 
       if (error) {
         console.error('❌ Details query error:', error);
+        // Return empty photos array if timeout, so UI doesn't break
+        if (error.code === '57014') {
+          return { 
+            details: { id: listingId, photos: [] },
+            error: 'timeout'
+          };
+        }
         return { details: null, error: error.message };
       }
 
-      console.log('🔍 Raw photos from DB:', data.photos);
-
-      // Only return photos to minimize data transfer and processing
       const transformedDetails = {
         id: data.id,
         photos: Array.isArray(data.photos) ? data.photos : []
       };
 
-      console.log('✅ Successfully fetched photos only');
-      console.log('🔍 Transformed photos:', transformedDetails.photos);
+      console.log('✅ Successfully fetched listing data');
       return { details: transformedDetails };
 
     } catch (error: any) {
       console.error('💥 Exception in fetchListingDetails:', error);
-      return { details: null, error: error.message };
+      // Fallback for any errors
+      return { 
+        details: { id: listingId, photos: [] },
+        error: error.message 
+      };
     }
   }, []);
 

@@ -227,26 +227,33 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
   const ebayClientId = Deno.env.get('EBAY_CLIENT_ID');
   const ebayClientSecret = Deno.env.get('EBAY_CLIENT_SECRET');
 
-  // Get listing data
+  // Get listing data with timeout protection and essential fields only
   logStep("Fetching listing data", { listingId });
-  const { data: listing, error: listingError } = await supabaseClient
-    .from('listings')
-    .select('*')
-    .eq('id', listingId)
-    .eq('user_id', userId)
-    .single();
+  
+  try {
+    const { data: listing, error: listingError } = await supabaseClient
+      .from('listings')
+      .select('id, title, description, price, condition, brand, category, photos')
+      .eq('id', listingId)
+      .eq('user_id', userId)
+      .abortSignal(AbortSignal.timeout(10000)) // 10 second timeout
+      .single();
 
-  if (listingError) {
-    logStep("Listing fetch error", { error: listingError });
-    throw new Error(`Failed to fetch listing: ${listingError.message}`);
+    if (listingError) {
+      logStep("Listing fetch error", { error: listingError });
+      throw new Error(`Failed to fetch listing: ${listingError.message}`);
+    }
+    
+    if (!listing) {
+      logStep("Listing not found", { listingId });
+      throw new Error('Listing not found');
+    }
+    
+    logStep("Listing data retrieved", { title: listing.title, price: listing.price });
+  } catch (timeoutError) {
+    logStep("Listing fetch timeout", { error: timeoutError.message });
+    throw new Error('Listing fetch timeout - database may be overloaded. Please try again.');
   }
-  
-  if (!listing) {
-    logStep("Listing not found", { listingId });
-    throw new Error('Listing not found');
-  }
-  
-  logStep("Listing data retrieved", { title: listing.title, price: listing.price });
 
   // Get eBay account
   logStep("Fetching eBay account", { userId });
