@@ -69,6 +69,9 @@ serve(async (req) => {
       authUrl.searchParams.set('scope', scopes)
       authUrl.searchParams.set('state', state)
 
+      console.log('Generated OAuth URL:', authUrl.toString())
+      console.log('Redirect URI being sent:', ebayConfig.redirectUri)
+
       return new Response(
         JSON.stringify({ auth_url: authUrl.toString() }),
         { 
