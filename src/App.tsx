@@ -3,6 +3,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
 import Index from '@/pages/Index';
+import AuthPage from '@/pages/AuthPage';
 import CreateListing from '@/pages/CreateListing';
 import DataManagement from '@/pages/DataManagement';
 import UserSettings from '@/pages/UserSettings';
@@ -17,6 +18,7 @@ const App = () => {
         <div className="min-h-screen bg-gray-50">
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/auth" element={<AuthPage onAuthSuccess={() => window.location.href = '/'} />} />
             <Route path="/inventory" element={<SimpleInventoryPage />} />
             <Route path="/create" element={<CreateListing onBack={() => window.location.href = '/'} onViewListings={() => window.location.href = '/inventory'} />} />
             <Route path="/active-listings" element={<ActiveListingsPage onBack={() => window.location.href = '/'} />} />

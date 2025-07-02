@@ -44,11 +44,9 @@ const Index = () => {
   // Show auth form if no user
   if (!user) {
     console.log('Showing auth form - no user');
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
-        <AuthForm onAuthSuccess={() => console.log('Auth success')} />
-      </div>
-    );
+    // Redirect to dedicated auth page
+    window.location.href = '/auth';
+    return <LoadingState message="Redirecting..." fullPage />;
   }
 
   // Show create listing view
