@@ -106,13 +106,13 @@ const AuthPage = ({ onAuthSuccess }: AuthPageProps) => {
       id: 'starter',
       name: 'Side Hustler',
       price: '$19',
-      period: '.99/mo',
-      description: 'For casual resellers',
+      period: '/mo',
+      description: 'For new resellers testing the platform',
       features: [
-        '250 listings/month',
-        'Up to 3 marketplaces',
-        'Unlimited AI listings',
-        'Basic analytics + shipping tools'
+        '50 AI photo analyses/month',
+        'Single marketplace connection (eBay)',
+        'Basic inventory management',
+        'Standard email support'
       ],
       buttonText: 'Start Free Trial',
       buttonVariant: 'default' as const,
@@ -121,15 +121,15 @@ const AuthPage = ({ onAuthSuccess }: AuthPageProps) => {
     {
       id: 'professional',
       name: 'Serious Seller',
-      price: '$39',
-      period: '.99/mo',
-      description: 'Best for part-time sellers',
+      price: '$49',
+      period: '/mo',
+      description: 'Best for serious resellers with growing businesses',
       features: [
-        'Unlimited listings',
-        'Up to 5 marketplaces',
-        'AI listings + inventory tracking',
-        'Performance analytics',
-        'Priority support'
+        '200 AI photo analyses/month',
+        '4 marketplace integrations (eBay, Poshmark, Mercari, Depop)',
+        'Bulk upload and processing',
+        'Advanced analytics and reporting',
+        'Priority support with live chat'
       ],
       buttonText: 'Start Free Trial',
       buttonVariant: 'default' as const,
@@ -138,14 +138,15 @@ const AuthPage = ({ onAuthSuccess }: AuthPageProps) => {
     {
       id: 'enterprise',
       name: 'Full-Time Flipper',
-      price: '$59',
-      period: '.99/mo',
-      description: 'Advanced tools for pro sellers',
+      price: '$89',
+      period: '/mo',
+      description: 'Advanced tools for power sellers and reselling teams',
       features: [
-        'Everything in Pro +',
-        'Automation & smart relisting',
-        'Trend analysis & batch tools',
-        'Unlimited marketplace support'
+        'Unlimited AI photo analyses',
+        'All marketplace integrations + future platforms',
+        'Team collaboration features',
+        'API access and webhooks',
+        'Dedicated customer success manager'
       ],
       buttonText: 'Start Free Trial',
       buttonVariant: 'default' as const,
@@ -154,11 +155,11 @@ const AuthPage = ({ onAuthSuccess }: AuthPageProps) => {
     {
       id: 'founders',
       name: 'Founders Plan',
-      price: '$29',
+      price: '$39',
       period: '.99/mo',
       description: 'Lifetime pricing – first 100 users only',
       features: [
-        'Everything in Elite Plan',
+        'Everything in Serious Seller Plan',
         'Locked-in rate for life',
         'Exclusive early-adopter badge',
         'Direct product influence & feedback'

@@ -105,13 +105,20 @@ const UserBillingTab = () => {
                   disabled={creating}
                   variant="outline"
                 >
-                  {creating ? 'Processing...' : 'Side Hustler - $19.99/mo'}
+                  {creating ? 'Processing...' : 'Side Hustler - $19/mo'}
                 </Button>
                 <Button 
                   onClick={() => handleUpgrade('professional')}
                   disabled={creating}
                 >
-                  {creating ? 'Processing...' : 'Serious Seller - $39.99/mo'}
+                  {creating ? 'Processing...' : 'Serious Seller - $49/mo'}
+                </Button>
+                <Button 
+                  onClick={() => handleUpgrade('enterprise')}
+                  disabled={creating}
+                  variant="outline"
+                >
+                  {creating ? 'Processing...' : 'Full-Time Flipper - $89/mo'}
                 </Button>
               </div>
             </>
