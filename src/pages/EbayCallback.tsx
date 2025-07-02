@@ -84,38 +84,31 @@ const EbayCallback = () => {
         
         console.log('Sending request to ebay-oauth with body:', requestBody);
 
-        // Exchange the authorization code for access token
-        const { data, error: exchangeError } = await supabase.functions.invoke('ebay-oauth', {
+        // Exchange the authorization code for access token - FIXED: Use direct fetch
+        const response = await fetch(`https://ekzaaptxfwixgmbrooqr.supabase.co/functions/v1/ebay-oauth`, {
+          method: 'POST',
           headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json'
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVremFhcHR4ZndpeGdtYnJvb3FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA2ODI2NzksImV4cCI6MjA2NjI1ODY3OX0.C5ivIgxoapGcsGpZJo_hOF9XUzRuXeVgyCbmawDeCes'
           },
-          body: requestBody  // Don't stringify - Supabase handles this
+          body: JSON.stringify({
+            action: 'exchange_code',
+            code: code,
+            state: state
+          })
         });
 
-        console.log('Token exchange response:', {
-          hasData: !!data,
-          hasError: !!exchangeError,
-          errorMessage: exchangeError?.message,
-          errorDetails: exchangeError,
-          responseData: data
-        });
+        console.log('Response status:', response.status);
 
-        if (exchangeError) {
-          console.error('Token exchange error details:', exchangeError);
-          
-          // Try to extract more error details
-          if (exchangeError.context) {
-            console.error('Error context:', exchangeError.context);
-          }
-          
-          throw exchangeError;
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Function returned error:', errorText);
+          throw new Error(`Function error: ${response.status} - ${errorText}`);
         }
 
-        console.log('Full response data:', data);
-        console.log('JSON.stringify(data):', JSON.stringify(data, null, 2));
-        console.log('data.success:', data?.success);
-        console.log('typeof data.success:', typeof data?.success);
+        const data = await response.json();
+        console.log('Token exchange response:', data);
         
         if (data?.success) {
           // Clear any pending OAuth data

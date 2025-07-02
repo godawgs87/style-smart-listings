@@ -50,18 +50,26 @@ export const useEbayConnection = () => {
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session) {
-          const { data, error } = await supabase.functions.invoke('ebay-oauth', {
+          const response = await fetch(`https://ekzaaptxfwixgmbrooqr.supabase.co/functions/v1/ebay-oauth`, {
+            method: 'POST',
             headers: {
-              Authorization: `Bearer ${session.access_token}`
+              'Authorization': `Bearer ${session.access_token}`,
+              'Content-Type': 'application/json',
+              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVremFhcHR4ZndpeGdtYnJvb3FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA2ODI2NzksImV4cCI6MjA2NjI1ODY3OX0.C5ivIgxoapGcsGpZJo_hOF9XUzRuXeVgyCbmawDeCes'
             },
-            body: { 
+            body: JSON.stringify({
               action: 'exchange_code',
               code: code,
               state: state
-            }
+            })
           });
 
-          if (error) throw error;
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Function error: ${response.status} - ${errorText}`);
+          }
+
+          const data = await response.json();
 
           if (data.success) {
             localStorage.removeItem('ebay_oauth_pending');
@@ -91,13 +99,18 @@ export const useEbayConnection = () => {
     try {
       console.log('Starting eBay connection process...');
       
-      // Test the function first
-      const { data: testData, error: testError } = await supabase.functions.invoke('ebay-oauth', {
-        body: { action: 'test' }
+      // Test the function first - FIXED: Use direct fetch
+      const testResponse = await fetch(`https://ekzaaptxfwixgmbrooqr.supabase.co/functions/v1/ebay-oauth`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVremFhcHR4ZndpeGdtYnJvb3FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA2ODI2NzksImV4cCI6MjA2NjI1ODY3OX0.C5ivIgxoapGcsGpZJo_hOF9XUzRuXeVgyCbmawDeCes'
+        },
+        body: JSON.stringify({ action: 'test' })
       });
       
-      if (testError) {
-        console.error('Function test failed:', testError);
+      if (!testResponse.ok) {
+        console.error('Function test failed:', testResponse.status);
         toast({
           title: "Function Error", 
           description: "Edge function is not responding properly",
@@ -106,22 +119,32 @@ export const useEbayConnection = () => {
         return;
       }
       
+      const testData = await testResponse.json();
+      
       console.log('Function test successful:', testData);
       
-      // Let's also test the debug endpoint
-      const { data: debugData, error: debugError } = await supabase.functions.invoke('ebay-oauth', {
-        body: { action: 'debug' }
+      // Let's also test the debug endpoint - FIXED: Use direct fetch
+      const debugResponse = await fetch(`https://ekzaaptxfwixgmbrooqr.supabase.co/functions/v1/ebay-oauth`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVremFhcHR4ZndpeGdtYnJvb3FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA2ODI2NzksImV4cCI6MjA2NjI1ODY3OX0.C5ivIgxoapGcsGpZJo_hOF9XUzRuXeVgyCbmawDeCes'
+        },
+        body: JSON.stringify({ action: 'debug' })
       });
 
-      if (debugError) {
-        console.error('Debug check failed:', debugError);
+      if (!debugResponse.ok) {
+        const errorText = await debugResponse.text();
+        console.error('Debug check failed:', errorText);
         toast({
           title: "Configuration Error",
-          description: `Failed to check eBay configuration: ${debugError.message}`,
+          description: `Failed to check eBay configuration: ${errorText}`,
           variant: "destructive"
         });
         return;
       }
+
+      const debugData = await debugResponse.json();
 
       console.log('eBay configuration status:', debugData);
 
@@ -134,18 +157,24 @@ export const useEbayConnection = () => {
         return;
       }
 
-      // Now proceed with OAuth
-      const { data, error } = await supabase.functions.invoke('ebay-oauth', {
-        body: { 
+      // Now proceed with OAuth - FIXED: Use direct fetch
+      const authResponse = await fetch(`https://ekzaaptxfwixgmbrooqr.supabase.co/functions/v1/ebay-oauth`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVremFhcHR4ZndpeGdtYnJvb3FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA2ODI2NzksImV4cCI6MjA2NjI1ODY3OX0.C5ivIgxoapGcsGpZJo_hOF9XUzRuXeVgyCbmawDeCes'
+        },
+        body: JSON.stringify({
           action: 'get_auth_url',
           state: crypto.randomUUID()
-        }
+        })
       });
 
-      if (error) {
-        console.error('Edge function error:', error);
+      if (!authResponse.ok) {
+        const errorText = await authResponse.text();
+        console.error('Edge function error:', errorText);
         
-        if (error.message?.includes('Client ID') || error.message?.includes('configuration')) {
+        if (errorText.includes('Client ID') || errorText.includes('configuration')) {
           toast({
             title: "eBay Not Configured",
             description: "Please configure your eBay API credentials in the project settings first.",
@@ -154,8 +183,10 @@ export const useEbayConnection = () => {
           return;
         }
         
-        throw error;
+        throw new Error(`Function error: ${authResponse.status} - ${errorText}`);
       }
+
+      const data = await authResponse.json();
 
       console.log('Received OAuth URL data:', data);
 
