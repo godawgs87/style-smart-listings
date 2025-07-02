@@ -94,11 +94,24 @@ serve(async (req) => {
       const ebayClientId = Deno.env.get('EBAY_CLIENT_ID')
       const ebayClientSecret = Deno.env.get('EBAY_CLIENT_SECRET')
       console.log('Credentials check - Client ID:', !!ebayClientId, 'Secret:', !!ebayClientSecret, 'Code:', !!code)
+      console.log('EBAY_CLIENT_ID value:', ebayClientId ? `${ebayClientId.substring(0, 10)}...` : 'MISSING')
+      console.log('EBAY_CLIENT_SECRET value:', ebayClientSecret ? `${ebayClientSecret.substring(0, 10)}...` : 'MISSING')
+      console.log('Code value:', code ? `${code.substring(0, 20)}...` : 'MISSING')
       
       if (!ebayClientId || !ebayClientSecret || !code) {
-        console.error('Missing credentials or code')
+        console.error('Missing credentials or code - Details:')
+        console.error('- EBAY_CLIENT_ID present:', !!ebayClientId)
+        console.error('- EBAY_CLIENT_SECRET present:', !!ebayClientSecret)
+        console.error('- Authorization code present:', !!code)
         return new Response(
-          JSON.stringify({ error: 'Missing credentials or code' }),
+          JSON.stringify({ 
+            error: 'Missing credentials or code',
+            details: {
+              clientId: !!ebayClientId,
+              clientSecret: !!ebayClientSecret,
+              code: !!code
+            }
+          }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
         )
       }
