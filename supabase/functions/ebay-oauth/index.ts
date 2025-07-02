@@ -56,6 +56,26 @@ serve(async (req) => {
       ? 'https://api.sandbox.ebay.com'
       : 'https://api.ebay.com'
 
+    if (action === 'debug') {
+      return new Response(
+        JSON.stringify({ 
+          status: 'ok',
+          config: {
+            clientId: ebayConfig.clientId ? 'configured' : 'missing',
+            clientSecret: ebayConfig.clientSecret ? 'configured' : 'missing',
+            redirectUri: ebayConfig.redirectUri,
+            sandbox: ebayConfig.sandbox,
+            baseUrl,
+            apiUrl
+          }
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200 
+        }
+      )
+    }
+
     if (action === 'get_auth_url') {
       // Step 1: Generate authorization URL
       const scopes = [

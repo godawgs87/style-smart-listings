@@ -90,6 +90,33 @@ export const useEbayConnection = () => {
     try {
       console.log('Starting eBay connection process...');
       
+      // First check if credentials are configured
+      const { data: debugData, error: debugError } = await supabase.functions.invoke('ebay-oauth', {
+        body: { action: 'debug' }
+      });
+
+      if (debugError) {
+        console.error('Debug check failed:', debugError);
+        toast({
+          title: "Configuration Error",
+          description: "Failed to check eBay configuration. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log('eBay configuration status:', debugData);
+
+      if (debugData.config.clientId === 'missing' || debugData.config.clientSecret === 'missing') {
+        toast({
+          title: "eBay Not Configured",
+          description: "Please configure your eBay API credentials first. Check the project settings.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Now proceed with OAuth
       const { data, error } = await supabase.functions.invoke('ebay-oauth', {
         body: { 
           action: 'get_auth_url',
