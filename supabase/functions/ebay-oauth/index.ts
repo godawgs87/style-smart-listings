@@ -101,7 +101,7 @@ serve(async (req) => {
       authUrl.searchParams.set('client_id', ebayClientId);
       authUrl.searchParams.set('redirect_uri', redirectUri);
       authUrl.searchParams.set('response_type', 'code');
-      authUrl.searchParams.set('scope', 'https://api.ebay.com/oauth/api_scope');
+      authUrl.searchParams.set('scope', 'https://api.ebay.com/oauth/api_scope https://api.ebay.com/oauth/api_scope/sell.inventory https://api.ebay.com/oauth/api_scope/sell.account.readonly');
       authUrl.searchParams.set('state', state || 'default');
 
       console.log('Generated auth URL:', authUrl.toString());
@@ -223,7 +223,11 @@ serve(async (req) => {
           is_active: true,
           platform_settings: {
             sandbox: false,
-            scopes: ['https://api.ebay.com/oauth/api_scope']
+            scopes: [
+              'https://api.ebay.com/oauth/api_scope',
+              'https://api.ebay.com/oauth/api_scope/sell.inventory',
+              'https://api.ebay.com/oauth/api_scope/sell.account.readonly'
+            ]
           }
         };
 

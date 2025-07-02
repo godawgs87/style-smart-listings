@@ -226,35 +226,126 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
     throw new Error('eBay account not connected');
   }
 
-  // Transform listing data for eBay API
-  const ebayListing = transformListingForEbay(listing);
-
-  // Simulate eBay API call
-  // In real implementation, this would call eBay's AddFixedPriceItem API
-  const mockEbayResponse = {
-    itemId: `ebay_${Date.now()}`,
-    listingUrl: `https://ebay.com/itm/${Date.now()}`,
-    fees: {
-      insertionFee: 0.35,
-      finalValueFee: 0.10
+  // Check token expiration
+  if (ebayAccount.oauth_expires_at) {
+    const expirationDate = new Date(ebayAccount.oauth_expires_at);
+    const now = new Date();
+    if (now >= expirationDate) {
+      throw new Error('eBay token has expired. Please reconnect your eBay account.');
     }
+  }
+
+  // Use eBay Sell API Inventory endpoint
+  const inventoryItemSku = `hustly_${listingId}_${Date.now()}`;
+  
+  // First create inventory item
+  const inventoryResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${inventoryItemSku}`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${ebayAccount.oauth_token}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    },
+    body: JSON.stringify({
+      availability: {
+        shipToLocationAvailability: {
+          quantity: 1
+        }
+      },
+      condition: getEbayCondition(listing.condition),
+      product: {
+        title: listing.title.substring(0, 80),
+        description: listing.description || 'Quality item in good condition.',
+        aspects: {},
+        brand: listing.brand || 'Unbranded',
+        mpn: 'Does Not Apply'
+      }
+    })
+  });
+
+  if (!inventoryResponse.ok) {
+    const errorData = await inventoryResponse.text();
+    console.error('eBay inventory creation failed:', errorData);
+    throw new Error(`eBay inventory creation failed: ${errorData}`);
+  }
+
+  // Then create the offer
+  const offerResponse = await fetch('https://api.ebay.com/sell/inventory/v1/offer', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${ebayAccount.oauth_token}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    },
+    body: JSON.stringify({
+      sku: inventoryItemSku,
+      marketplaceId: 'EBAY_US',
+      format: 'FIXED_PRICE',
+      pricingSummary: {
+        price: {
+          value: listing.price.toString(),
+          currency: 'USD'
+        }
+      },
+      listingDescription: listing.description || 'Quality item in good condition.',
+      listingPolicies: {
+        fulfillmentPolicyId: 'DEFAULT',
+        paymentPolicyId: 'DEFAULT',
+        returnPolicyId: 'DEFAULT'
+      },
+      categoryId: '293' // Electronics default
+    })
+  });
+
+  if (!offerResponse.ok) {
+    const errorData = await offerResponse.text();
+    console.error('eBay offer creation failed:', errorData);
+    throw new Error(`eBay offer creation failed: ${errorData}`);
+  }
+
+  const offerData = await offerResponse.json();
+  const offerId = offerData.offerId;
+
+  // Finally publish the offer
+  const publishResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/offer/${offerId}/publish`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${ebayAccount.oauth_token}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    }
+  });
+
+  if (!publishResponse.ok) {
+    const errorData = await publishResponse.text();
+    console.error('eBay publish failed:', errorData);
+    throw new Error(`eBay publish failed: ${errorData}`);
+  }
+
+  const publishData = await publishResponse.json();
+  const ebayItemId = publishData.listingId;
+  
+  const ebayResponse = {
+    itemId: ebayItemId,
+    listingUrl: `https://ebay.com/itm/${ebayItemId}`,
+    fees: { insertionFee: 0.35, finalValueFee: 0.10 }
   };
 
   // Create platform listing record
   const platformListingData = {
     user_id: userId,
-    listing_id: listingId,
+    listing_id: params.listingId,
     marketplace_account_id: ebayAccount.id,
     platform: 'ebay',
-    platform_listing_id: mockEbayResponse.itemId,
-    platform_url: mockEbayResponse.listingUrl,
+    platform_listing_id: ebayResponse.itemId,
+    platform_url: ebayResponse.listingUrl,
     status: 'active',
     sync_status: 'synced',
     last_synced_at: new Date().toISOString(),
     platform_data: {
-      ebay_item_id: mockEbayResponse.itemId,
+      ebay_item_id: ebayResponse.itemId,
       listing_format: 'FixedPriceItem',
-      fees: mockEbayResponse.fees
+      fees: ebayResponse.fees
     },
     performance_metrics: {
       views: 0,
@@ -286,14 +377,14 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
 
   logStep("Listing published successfully", { 
     listingId,
-    ebayItemId: mockEbayResponse.itemId 
+    ebayItemId: ebayResponse.itemId 
   });
 
   return new Response(JSON.stringify({
     status: 'success',
-    platform_listing_id: mockEbayResponse.itemId,
-    platform_url: mockEbayResponse.listingUrl,
-    fees: mockEbayResponse.fees,
+    platform_listing_id: ebayResponse.itemId,
+    platform_url: ebayResponse.listingUrl,
+    fees: ebayResponse.fees,
     message: 'Listing published to eBay successfully'
   }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -450,4 +541,18 @@ function mapCategoryToEbay(category: string): string {
   };
   
   return categoryMap[category] || '293'; // Default to Electronics
+}
+
+function getEbayCondition(condition: string): string {
+  const conditionMap: Record<string, string> = {
+    'New': 'NEW',
+    'Like New': 'LIKE_NEW',
+    'Excellent': 'EXCELLENT',
+    'Very Good': 'VERY_GOOD', 
+    'Good': 'GOOD',
+    'Acceptable': 'ACCEPTABLE',
+    'Used': 'USED'
+  };
+  
+  return conditionMap[condition] || 'USED';
 }
