@@ -21,6 +21,22 @@ serve(async (req) => {
       )
     }
     
+    if (action === 'debug') {
+      const ebayClientId = Deno.env.get('EBAY_CLIENT_ID')
+      const ebayClientSecret = Deno.env.get('EBAY_CLIENT_SECRET')
+      
+      return new Response(
+        JSON.stringify({
+          status: 'ok',
+          config: {
+            clientId: ebayClientId ? 'configured' : 'missing',
+            clientSecret: ebayClientSecret ? 'configured' : 'missing'
+          }
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    
     if (action === 'get_auth_url') {
       const ebayClientId = Deno.env.get('EBAY_CLIENT_ID')
       if (!ebayClientId) {
