@@ -137,14 +137,32 @@ const UserConnectionsTab = () => {
     }
   };
 
-  const handleDisconnectEbay = () => {
-    setPlatforms(prev => prev.map(p => 
-      p.name === 'eBay' ? { ...p, connected: false } : p
-    ));
-    toast({
-      title: "eBay Disconnected",
-      description: "Your eBay account has been disconnected"
-    });
+  const handleDisconnectEbay = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        await supabase
+          .from('marketplace_accounts')
+          .update({ is_connected: false, is_active: false })
+          .eq('platform', 'ebay')
+          .eq('user_id', session.user.id);
+      }
+
+      setPlatforms(prev => prev.map(p => 
+        p.name === 'eBay' ? { ...p, connected: false } : p
+      ));
+      toast({
+        title: "eBay Disconnected",
+        description: "Your eBay account has been disconnected"
+      });
+    } catch (error) {
+      console.error('Failed to disconnect eBay:', error);
+      toast({
+        title: "Disconnect Failed",
+        description: "Failed to disconnect eBay account",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleImportListings = async () => {
@@ -185,7 +203,16 @@ const UserConnectionsTab = () => {
               <div className="flex items-center space-x-2">
                 {platform.connected ? (
                   <>
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        toast({
+                          title: "eBay Settings",
+                          description: "eBay integration settings will be available soon"
+                        });
+                      }}
+                    >
                       <Settings className="w-4 h-4 mr-1" />
                       Settings
                     </Button>

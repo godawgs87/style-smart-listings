@@ -139,12 +139,18 @@ serve(async (req) => {
       }
 
       // Step 4: Store the connection in database
-      const { data: authData } = await supabase.auth.getUser(
-        req.headers.get('Authorization')?.replace('Bearer ', '') ?? ''
+      const authHeader = req.headers.get('Authorization')
+      if (!authHeader) {
+        throw new Error('No authorization header provided')
+      }
+
+      const { data: authData, error: authError } = await supabase.auth.getUser(
+        authHeader.replace('Bearer ', '')
       )
 
-      if (!authData.user) {
-        throw new Error('User not authenticated')
+      if (authError || !authData.user) {
+        console.error('Authentication error:', authError)
+        throw new Error(`Authentication error: ${authError?.message || 'User not found'}`)
       }
 
       const expiresAt = new Date(Date.now() + (tokenData.expires_in * 1000)).toISOString()
