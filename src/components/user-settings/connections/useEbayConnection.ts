@@ -107,7 +107,7 @@ export const useEbayConnection = () => {
       
       console.log('Function test successful:', testData);
       
-      // First check if credentials are configured
+      // Let's also test the debug endpoint
       const { data: debugData, error: debugError } = await supabase.functions.invoke('ebay-oauth', {
         body: { action: 'debug' }
       });
@@ -116,7 +116,7 @@ export const useEbayConnection = () => {
         console.error('Debug check failed:', debugError);
         toast({
           title: "Configuration Error",
-          description: "Failed to check eBay configuration. Please try again.",
+          description: `Failed to check eBay configuration: ${debugError.message}`,
           variant: "destructive"
         });
         return;

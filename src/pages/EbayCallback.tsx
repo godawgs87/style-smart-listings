@@ -92,11 +92,19 @@ const EbayCallback = () => {
         console.log('Token exchange response:', {
           hasData: !!data,
           hasError: !!exchangeError,
-          errorMessage: exchangeError?.message
+          errorMessage: exchangeError?.message,
+          errorDetails: exchangeError,
+          responseData: data
         });
 
         if (exchangeError) {
-          console.error('Token exchange error:', exchangeError);
+          console.error('Token exchange error details:', exchangeError);
+          
+          // Try to extract more error details
+          if (exchangeError.context) {
+            console.error('Error context:', exchangeError.context);
+          }
+          
           throw exchangeError;
         }
 
