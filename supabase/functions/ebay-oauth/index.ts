@@ -22,26 +22,21 @@ serve(async (req) => {
     console.log('Request method:', req.method)
     console.log('Request URL:', req.url)
     
-    // Clone the request so we can read the body multiple times
-    const clonedReq = req.clone()
-    
     let requestData
     try {
-      // First try to read as text to see what we get
-      const bodyText = await clonedReq.text()
+      // Handle both direct requests and Supabase Functions invoke
+      const bodyText = await req.text()
       console.log('Raw request body as text:', bodyText)
       console.log('Body length:', bodyText.length)
       
+      // Allow empty body for test/debug actions
       if (!bodyText || bodyText.trim() === '') {
-        console.error('Empty request body received')
-        return new Response(
-          JSON.stringify({ error: 'Empty request body' }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-        )
+        console.log('Empty request body - using default for test')
+        requestData = { action: 'test' }
+      } else {
+        // Parse the JSON
+        requestData = JSON.parse(bodyText)
       }
-      
-      // Now parse the JSON
-      requestData = JSON.parse(bodyText)
       console.log('Parsed request data:', requestData)
     } catch (parseError) {
       console.error('JSON parse error:', parseError)
