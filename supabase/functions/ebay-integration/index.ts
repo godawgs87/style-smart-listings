@@ -230,8 +230,9 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
   // Get listing data with timeout protection and essential fields only
   logStep("Fetching listing data", { listingId });
   
+  let listing;
   try {
-    const { data: listing, error: listingError } = await supabaseClient
+    const { data: listingData, error: listingError } = await supabaseClient
       .from('listings')
       .select('id, title, description, price, condition, brand, category, photos')
       .eq('id', listingId)
@@ -244,11 +245,12 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
       throw new Error(`Failed to fetch listing: ${listingError.message}`);
     }
     
-    if (!listing) {
+    if (!listingData) {
       logStep("Listing not found", { listingId });
       throw new Error('Listing not found');
     }
     
+    listing = listingData;
     logStep("Listing data retrieved", { title: listing.title, price: listing.price });
   } catch (timeoutError) {
     logStep("Listing fetch timeout", { error: timeoutError.message });
