@@ -56,12 +56,19 @@ export const useEbaySyncOperation = () => {
 
       // Use the ebay-integration edge function with account info
       console.log('📡 Calling eBay integration function...');
+      console.log('📋 Function payload:', {
+        action: 'publish_listing',
+        listingId: listing.id
+      });
+      
       const { data, error } = await supabase.functions.invoke('ebay-integration', {
         body: {
           action: 'publish_listing',
           listingId: listing.id
         }
       });
+
+      console.log('📥 Function response:', { data, error });
 
       if (error) {
         console.error('❌ eBay sync failed with error:', error);
