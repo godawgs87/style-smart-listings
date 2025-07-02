@@ -44,62 +44,65 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
 
       console.log('🔍 Fetching unified inventory for user:', user.id);
 
-      // EMERGENCY: Database is overloaded, return minimal mock data immediately
-      console.log('📋 Database overloaded - returning emergency fallback data');
-      
-      const emergencyData = [
-        {
-          id: '1',
-          title: 'Emergency Fallback Item 1',
-          price: 25.99,
-          status: 'draft',
-          created_at: new Date().toISOString(),
-          user_id: user.id
-        },
-        {
-          id: '2', 
-          title: 'Emergency Fallback Item 2',
-          price: 45.99,
-          status: 'active', 
-          created_at: new Date().toISOString(),
-          user_id: user.id
-        }
-      ];
+      let data = null;
+      try {
+        // Try minimal query first
+        const response = await supabase
+          .from('listings')
+          .select('id, title, price, status, created_at, user_id')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(25)
+          .abortSignal(AbortSignal.timeout(8000));
 
-      // Transform emergency data to full Listing interface
-      const transformedData: Listing[] = emergencyData.map(item => ({
+        if (response.error) {
+          console.error('❌ Database error:', response.error);
+          throw response.error;
+        }
+
+        data = response.data;
+        console.log('✅ Successfully fetched listings:', data?.length || 0);
+
+      } catch (err: any) {
+        console.error('❌ Database query failed:', err);
+        // Return empty array on any error to show proper empty state
+        return [];
+      }
+
+      // Transform actual data to full Listing interface
+      const transformedData: Listing[] = (data || []).map(item => ({
         ...item,
-        category: 'Electronics',
-        condition: 'good',
-        description: 'Emergency fallback item - database temporarily unavailable',
-        measurements: {},
-        keywords: null,
-        photos: null,
-        price_research: null,
-        shipping_cost: 9.95,
-        purchase_price: null,
-        purchase_date: null,
-        cost_basis: null,
-        fees_paid: 0,
-        net_profit: null,
-        profit_margin: null,
-        listed_date: null,
-        sold_date: null,
-        sold_price: null,
-        days_to_sell: null,
-        is_consignment: false,
-        consignment_percentage: null,
-        consignor_name: null,
-        consignor_contact: null,
-        source_location: null,
-        source_type: null,
-        performance_notes: null,
-        category_id: null,
-        gender: null,
-        age_group: null,
-        clothing_size: null,
-        shoe_size: null,
-        updated_at: item.created_at
+        category: item.category || 'Electronics',
+        condition: item.condition || 'good',
+        description: item.description || null,
+        measurements: item.measurements || {},
+        keywords: item.keywords || null,
+        photos: item.photos || null,
+        price_research: item.price_research || null,
+        shipping_cost: item.shipping_cost || 9.95,
+        purchase_price: item.purchase_price || null,
+        purchase_date: item.purchase_date || null,
+        cost_basis: item.cost_basis || null,
+        fees_paid: item.fees_paid || 0,
+        net_profit: item.net_profit || null,
+        profit_margin: item.profit_margin || null,
+        listed_date: item.listed_date || null,
+        sold_date: item.sold_date || null,
+        sold_price: item.sold_price || null,
+        days_to_sell: item.days_to_sell || null,
+        is_consignment: item.is_consignment || false,
+        consignment_percentage: item.consignment_percentage || null,
+        consignor_name: item.consignor_name || null,
+        consignor_contact: item.consignor_contact || null,
+        source_location: item.source_location || null,
+        source_type: item.source_type || null,
+        performance_notes: item.performance_notes || null,
+        category_id: item.category_id || null,
+        gender: item.gender || null,
+        age_group: item.age_group || null,
+        clothing_size: item.clothing_size || null,
+        shoe_size: item.shoe_size || null,
+        updated_at: item.updated_at || item.created_at
       }));
 
       return transformedData;
