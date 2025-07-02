@@ -207,6 +207,10 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
     throw new Error('Listing ID required');
   }
 
+  // Get eBay credentials for token refresh
+  const ebayClientId = Deno.env.get('EBAY_CLIENT_ID');
+  const ebayClientSecret = Deno.env.get('EBAY_CLIENT_SECRET');
+
   // Get listing data
   logStep("Fetching listing data", { listingId });
   const { data: listing, error: listingError } = await supabaseClient
@@ -255,7 +259,7 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
     expiresAt: ebayAccount.oauth_expires_at 
   });
 
-  // Check token expiration
+  // Check token expiration and refresh if needed
   if (ebayAccount.oauth_expires_at) {
     const expirationDate = new Date(ebayAccount.oauth_expires_at);
     const now = new Date();
@@ -266,7 +270,63 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
     });
     
     if (now >= expirationDate) {
-      throw new Error('eBay token has expired. Please reconnect your eBay account.');
+      logStep("Token expired, attempting refresh", { refreshTokenPresent: !!ebayAccount.refresh_token });
+      
+      if (!ebayAccount.refresh_token) {
+        throw new Error('eBay token has expired and no refresh token available. Please reconnect your eBay account.');
+      }
+      
+      // Refresh the token
+      try {
+        const refreshResponse = await fetch('https://api.ebay.com/identity/v1/oauth2/token', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Authorization': `Basic ${btoa(`${ebayClientId}:${ebayClientSecret}`)}`
+          },
+          body: new URLSearchParams({
+            grant_type: 'refresh_token',
+            refresh_token: ebayAccount.refresh_token
+          })
+        });
+
+        if (!refreshResponse.ok) {
+          const error = await refreshResponse.text();
+          logStep("Token refresh failed", { status: refreshResponse.status, error });
+          throw new Error('Failed to refresh eBay token. Please reconnect your eBay account.');
+        }
+
+        const tokenData = await refreshResponse.json();
+        logStep("Token refreshed successfully", { newTokenPresent: !!tokenData.access_token });
+
+        // Update the account with new token
+        const newExpirationTime = new Date(Date.now() + (tokenData.expires_in || 7200) * 1000);
+        
+        const { error: updateError } = await supabaseClient
+          .from('marketplace_accounts')
+          .update({
+            oauth_token: tokenData.access_token,
+            refresh_token: tokenData.refresh_token || ebayAccount.refresh_token,
+            oauth_expires_at: newExpirationTime.toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', ebayAccount.id);
+
+        if (updateError) {
+          logStep("Failed to update refreshed token", { error: updateError });
+          throw new Error('Failed to save refreshed token');
+        }
+
+        // Update the local ebayAccount object
+        ebayAccount.oauth_token = tokenData.access_token;
+        ebayAccount.oauth_expires_at = newExpirationTime.toISOString();
+        
+        logStep("Token refresh complete", { newExpiresAt: newExpirationTime.toISOString() });
+        
+      } catch (refreshError) {
+        logStep("Token refresh error", { error: refreshError.message });
+        throw new Error(`Failed to refresh eBay token: ${refreshError.message}`);
+      }
     }
   }
 
