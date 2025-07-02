@@ -18,11 +18,20 @@ serve(async (req) => {
 
   try {
     console.log('Reading request body...')
-    const text = await req.text()
-    console.log('Raw request body:', text)
     
     let requestData
     try {
+      const text = await req.text()
+      console.log('Raw request body:', text)
+      
+      if (!text || text.trim() === '') {
+        console.error('Empty request body received')
+        return new Response(
+          JSON.stringify({ error: 'Empty request body' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        )
+      }
+      
       requestData = JSON.parse(text)
       console.log('Parsed request data:', requestData)
     } catch (parseError) {

@@ -76,17 +76,21 @@ const EbayCallback = () => {
           tokenPresent: !!session.access_token
         });
 
+        const requestBody = { 
+          action: 'exchange_code',
+          code: code,
+          state: state
+        };
+        
+        console.log('Sending request to ebay-oauth with body:', requestBody);
+
         // Exchange the authorization code for access token
         const { data, error: exchangeError } = await supabase.functions.invoke('ebay-oauth', {
           headers: {
             Authorization: `Bearer ${session.access_token}`,
             'Content-Type': 'application/json'
           },
-          body: { 
-            action: 'exchange_code',
-            code: code,
-            state: state
-          }
+          body: requestBody
         });
 
         console.log('Token exchange response:', {
