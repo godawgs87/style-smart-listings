@@ -19,10 +19,15 @@ serve(async (req) => {
   try {
     logStep("Function started");
 
-    const ebayApiKey = Deno.env.get('EBAY_API_KEY');
-    if (!ebayApiKey) {
-      throw new Error('EBAY_API_KEY is not configured');
+    // Verify eBay credentials are configured
+    const ebayClientId = Deno.env.get('EBAY_CLIENT_ID');
+    const ebayClientSecret = Deno.env.get('EBAY_CLIENT_SECRET');
+    
+    if (!ebayClientId || !ebayClientSecret) {
+      throw new Error('eBay credentials not configured. Missing EBAY_CLIENT_ID or EBAY_CLIENT_SECRET');
     }
+    
+    logStep("eBay credentials verified", { clientIdPresent: !!ebayClientId, clientSecretPresent: !!ebayClientSecret });
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -203,6 +208,7 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
   }
 
   // Get listing data
+  logStep("Fetching listing data", { listingId });
   const { data: listing, error: listingError } = await supabaseClient
     .from('listings')
     .select('*')
@@ -210,26 +216,55 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
     .eq('user_id', userId)
     .single();
 
-  if (listingError || !listing) {
+  if (listingError) {
+    logStep("Listing fetch error", { error: listingError });
+    throw new Error(`Failed to fetch listing: ${listingError.message}`);
+  }
+  
+  if (!listing) {
+    logStep("Listing not found", { listingId });
     throw new Error('Listing not found');
   }
+  
+  logStep("Listing data retrieved", { title: listing.title, price: listing.price });
 
   // Get eBay account
+  logStep("Fetching eBay account", { userId });
   const { data: ebayAccount, error: accountError } = await supabaseClient
     .from('marketplace_accounts')
     .select('*')
     .eq('user_id', userId)
     .eq('platform', 'ebay')
+    .eq('is_connected', true)
+    .eq('is_active', true)
     .single();
 
-  if (accountError || !ebayAccount) {
-    throw new Error('eBay account not connected');
+  if (accountError) {
+    logStep("eBay account fetch error", { error: accountError });
+    throw new Error(`Failed to fetch eBay account: ${accountError.message}`);
   }
+  
+  if (!ebayAccount) {
+    logStep("No eBay account found", { userId });
+    throw new Error('eBay account not connected. Please connect your eBay account first.');
+  }
+  
+  logStep("eBay account retrieved", { 
+    username: ebayAccount.account_username,
+    tokenPresent: !!ebayAccount.oauth_token,
+    expiresAt: ebayAccount.oauth_expires_at 
+  });
 
   // Check token expiration
   if (ebayAccount.oauth_expires_at) {
     const expirationDate = new Date(ebayAccount.oauth_expires_at);
     const now = new Date();
+    logStep("Checking token expiration", { 
+      expiresAt: expirationDate.toISOString(), 
+      now: now.toISOString(),
+      expired: now >= expirationDate 
+    });
+    
     if (now >= expirationDate) {
       throw new Error('eBay token has expired. Please reconnect your eBay account.');
     }
@@ -237,6 +272,25 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
 
   // Use eBay Sell API Inventory endpoint
   const inventoryItemSku = `hustly_${listingId}_${Date.now()}`;
+  logStep("Creating eBay inventory item", { sku: inventoryItemSku });
+  
+  const inventoryPayload = {
+    availability: {
+      shipToLocationAvailability: {
+        quantity: 1
+      }
+    },
+    condition: getEbayCondition(listing.condition),
+    product: {
+      title: listing.title.substring(0, 80),
+      description: listing.description || 'Quality item in good condition.',
+      aspects: {},
+      brand: listing.brand || 'Unbranded',
+      mpn: 'Does Not Apply'
+    }
+  };
+  
+  logStep("Inventory payload", inventoryPayload);
   
   // First create inventory item
   const inventoryResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${inventoryItemSku}`, {
@@ -246,30 +300,50 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
       'Content-Type': 'application/json',
       'Accept': 'application/json'
     },
-    body: JSON.stringify({
-      availability: {
-        shipToLocationAvailability: {
-          quantity: 1
-        }
-      },
-      condition: getEbayCondition(listing.condition),
-      product: {
-        title: listing.title.substring(0, 80),
-        description: listing.description || 'Quality item in good condition.',
-        aspects: {},
-        brand: listing.brand || 'Unbranded',
-        mpn: 'Does Not Apply'
-      }
-    })
+    body: JSON.stringify(inventoryPayload)
+  });
+
+  logStep("Inventory response status", { 
+    status: inventoryResponse.status, 
+    statusText: inventoryResponse.statusText 
   });
 
   if (!inventoryResponse.ok) {
     const errorData = await inventoryResponse.text();
-    console.error('eBay inventory creation failed:', errorData);
-    throw new Error(`eBay inventory creation failed: ${errorData}`);
+    logStep("eBay inventory creation failed", { 
+      status: inventoryResponse.status,
+      error: errorData 
+    });
+    throw new Error(`eBay inventory creation failed (${inventoryResponse.status}): ${errorData}`);
   }
+  
+  const inventoryData = await inventoryResponse.json();
+  logStep("Inventory created successfully", inventoryData);
 
   // Then create the offer
+  logStep("Creating eBay offer");
+  
+  const offerPayload = {
+    sku: inventoryItemSku,
+    marketplaceId: 'EBAY_US',
+    format: 'FIXED_PRICE',
+    pricingSummary: {
+      price: {
+        value: listing.price.toString(),
+        currency: 'USD'
+      }
+    },
+    listingDescription: listing.description || 'Quality item in good condition.',
+    listingPolicies: {
+      fulfillmentPolicyId: 'DEFAULT',
+      paymentPolicyId: 'DEFAULT',
+      returnPolicyId: 'DEFAULT'
+    },
+    categoryId: '293' // Electronics default
+  };
+  
+  logStep("Offer payload", offerPayload);
+  
   const offerResponse = await fetch('https://api.ebay.com/sell/inventory/v1/offer', {
     method: 'POST',
     headers: {
@@ -277,36 +351,30 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
       'Content-Type': 'application/json',
       'Accept': 'application/json'
     },
-    body: JSON.stringify({
-      sku: inventoryItemSku,
-      marketplaceId: 'EBAY_US',
-      format: 'FIXED_PRICE',
-      pricingSummary: {
-        price: {
-          value: listing.price.toString(),
-          currency: 'USD'
-        }
-      },
-      listingDescription: listing.description || 'Quality item in good condition.',
-      listingPolicies: {
-        fulfillmentPolicyId: 'DEFAULT',
-        paymentPolicyId: 'DEFAULT',
-        returnPolicyId: 'DEFAULT'
-      },
-      categoryId: '293' // Electronics default
-    })
+    body: JSON.stringify(offerPayload)
+  });
+
+  logStep("Offer response status", { 
+    status: offerResponse.status, 
+    statusText: offerResponse.statusText 
   });
 
   if (!offerResponse.ok) {
     const errorData = await offerResponse.text();
-    console.error('eBay offer creation failed:', errorData);
-    throw new Error(`eBay offer creation failed: ${errorData}`);
+    logStep("eBay offer creation failed", { 
+      status: offerResponse.status,
+      error: errorData 
+    });
+    throw new Error(`eBay offer creation failed (${offerResponse.status}): ${errorData}`);
   }
 
   const offerData = await offerResponse.json();
   const offerId = offerData.offerId;
+  logStep("Offer created successfully", { offerId });
 
   // Finally publish the offer
+  logStep("Publishing eBay offer", { offerId });
+  
   const publishResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/offer/${offerId}/publish`, {
     method: 'POST',
     headers: {
@@ -316,14 +384,23 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
     }
   });
 
+  logStep("Publish response status", { 
+    status: publishResponse.status, 
+    statusText: publishResponse.statusText 
+  });
+
   if (!publishResponse.ok) {
     const errorData = await publishResponse.text();
-    console.error('eBay publish failed:', errorData);
-    throw new Error(`eBay publish failed: ${errorData}`);
+    logStep("eBay publish failed", { 
+      status: publishResponse.status,
+      error: errorData 
+    });
+    throw new Error(`eBay publish failed (${publishResponse.status}): ${errorData}`);
   }
 
   const publishData = await publishResponse.json();
   const ebayItemId = publishData.listingId;
+  logStep("Offer published successfully", { ebayItemId });
   
   const ebayResponse = {
     itemId: ebayItemId,
