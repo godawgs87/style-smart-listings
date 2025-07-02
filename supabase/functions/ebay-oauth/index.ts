@@ -18,8 +18,20 @@ serve(async (req) => {
 
   try {
     console.log('Reading request body...')
-    const requestData = await req.json()
-    console.log('Request data:', requestData)
+    const text = await req.text()
+    console.log('Raw request body:', text)
+    
+    let requestData
+    try {
+      requestData = JSON.parse(text)
+      console.log('Parsed request data:', requestData)
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError)
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body', details: parseError.message }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
     
     const { action, code, state } = requestData
     console.log('Action:', action, 'Code present:', !!code, 'State:', state)
