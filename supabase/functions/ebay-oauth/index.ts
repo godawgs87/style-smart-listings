@@ -24,10 +24,37 @@ serve(async (req) => {
     
     let requestData
     try {
-      // Handle Supabase Functions invoke format
-      const bodyText = await req.text()
+      // For Supabase Functions invoke, the body might be passed differently
+      let bodyText = ''
+      
+      // Try to read the body
+      if (req.body) {
+        bodyText = await req.text()
+      }
+      
       console.log('Raw request body as text:', bodyText)
       console.log('Body length:', bodyText.length)
+      
+      // If no body from text(), try reading from the request stream
+      if (!bodyText && req.body) {
+        const reader = req.body.getReader()
+        const chunks = []
+        let done = false
+        
+        while (!done) {
+          const { value, done: readerDone } = await reader.read()
+          done = readerDone
+          if (value) {
+            chunks.push(value)
+          }
+        }
+        
+        if (chunks.length > 0) {
+          const decoder = new TextDecoder()
+          bodyText = decoder.decode(new Uint8Array(chunks.flat()))
+          console.log('Body from stream:', bodyText)
+        }
+      }
       
       if (!bodyText || bodyText.trim() === '') {
         console.log('Empty request body - treating as test')
