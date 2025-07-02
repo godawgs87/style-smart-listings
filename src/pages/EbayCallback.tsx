@@ -113,6 +113,7 @@ const EbayCallback = () => {
         }
 
         console.log('Full response data:', data);
+        console.log('JSON.stringify(data):', JSON.stringify(data, null, 2));
         console.log('data.success:', data?.success);
         console.log('typeof data.success:', typeof data?.success);
         
