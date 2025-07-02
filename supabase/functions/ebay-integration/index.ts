@@ -19,15 +19,16 @@ serve(async (req) => {
   try {
     logStep("Function started");
 
-    // Verify eBay credentials are configured
+    // Quick validation of eBay credentials
     const ebayClientId = Deno.env.get('EBAY_CLIENT_ID');
     const ebayClientSecret = Deno.env.get('EBAY_CLIENT_SECRET');
     
     if (!ebayClientId || !ebayClientSecret) {
-      throw new Error('eBay credentials not configured. Missing EBAY_CLIENT_ID or EBAY_CLIENT_SECRET');
+      logStep("ERROR: eBay credentials missing");
+      throw new Error('eBay credentials not configured');
     }
     
-    logStep("eBay credentials verified", { clientIdPresent: !!ebayClientId, clientSecretPresent: !!ebayClientSecret });
+    logStep("eBay credentials verified");
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",

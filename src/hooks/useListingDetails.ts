@@ -12,16 +12,16 @@ export const useListingDetails = () => {
   const loadingKeys = useMemo(() => Array.from(loadingDetails), [loadingDetails]);
 
   const fetchListingDetails = useCallback(async (listingId: string): Promise<{
-    details: Listing | null;
+    details: Partial<Listing> | null;
     error?: string;
   }> => {
     try {
-      console.log('🔍 Fetching selective details for listing:', listingId);
+      console.log('🔍 Fetching only photos for listing:', listingId);
       
-      // Use selective columns instead of * to avoid timeout
+      // Only fetch essential fields to avoid timeouts - just photos for image display
       const { data, error } = await supabase
         .from('listings')
-        .select('id, title, description, price, status, category, condition, shipping_cost, measurements, keywords, photos, price_research, created_at, updated_at, purchase_price, purchase_date, is_consignment, consignment_percentage, consignor_name, consignor_contact, source_location, source_type, cost_basis, fees_paid, listed_date, days_to_sell, performance_notes, sold_price, sold_date, net_profit, profit_margin, user_id')
+        .select('id, photos')
         .eq('id', listingId)
         .single();
 
@@ -30,22 +30,16 @@ export const useListingDetails = () => {
         return { details: null, error: error.message };
       }
 
-      console.log('🔍 Raw details from DB - shipping_cost:', data.shipping_cost, typeof data.shipping_cost);
+      console.log('🔍 Raw photos from DB:', data.photos);
 
-      // Transform to match Listing interface
-      const transformedDetails: Listing = {
-        ...data,
-        price: Number(data.price) || 0,
-        measurements: data.measurements && typeof data.measurements === 'object' 
-          ? data.measurements as { length?: string; width?: string; height?: string; weight?: string; }
-          : {},
-        keywords: Array.isArray(data.keywords) ? data.keywords : [],
-        photos: Array.isArray(data.photos) ? data.photos : [],
-        shipping_cost: data.shipping_cost !== null ? Number(data.shipping_cost) : null,
+      // Only return photos to minimize data transfer and processing
+      const transformedDetails = {
+        id: data.id,
+        photos: Array.isArray(data.photos) ? data.photos : []
       };
 
-      console.log('✅ Successfully fetched selective listing details');
-      console.log('🔍 Transformed shipping_cost:', transformedDetails.shipping_cost, typeof transformedDetails.shipping_cost);
+      console.log('✅ Successfully fetched photos only');
+      console.log('🔍 Transformed photos:', transformedDetails.photos);
       return { details: transformedDetails };
 
     } catch (error: any) {
