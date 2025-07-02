@@ -35,12 +35,13 @@ serve(async (req) => {
       sandbox: true // Change to false for production
     }
 
+    console.log('=== eBay OAuth Request ===')
+    console.log('Action:', action)
     console.log('eBay Config:', {
       clientId: ebayConfig.clientId ? `${ebayConfig.clientId.substring(0, 8)}...` : 'MISSING',
       clientSecret: ebayConfig.clientSecret ? 'SET' : 'MISSING',
       redirectUri: ebayConfig.redirectUri,
-      sandbox: ebayConfig.sandbox,
-      action: action
+      sandbox: ebayConfig.sandbox
     })
 
     // Validate required configuration
@@ -90,11 +91,6 @@ serve(async (req) => {
         'https://api.ebay.com/oauth/api_scope/sell.fulfillment'
       ].join(' ')
 
-      // Validate required parameters
-      if (!ebayConfig.clientId) {
-        throw new Error('eBay Client ID is not configured')
-      }
-
       const authUrl = new URL(`${baseUrl}/oauth2/authorize`)
       authUrl.searchParams.set('client_id', ebayConfig.clientId)
       authUrl.searchParams.set('redirect_uri', ebayConfig.redirectUri)
@@ -103,9 +99,6 @@ serve(async (req) => {
       authUrl.searchParams.set('state', state || 'default_state')
 
       console.log('Generated OAuth URL:', authUrl.toString())
-      console.log('Redirect URI being sent:', ebayConfig.redirectUri)
-      console.log('Client ID (partial):', ebayConfig.clientId ? `${ebayConfig.clientId.substring(0, 8)}...` : 'MISSING')
-      console.log('Scopes:', scopes)
 
       return new Response(
         JSON.stringify({ 
@@ -124,8 +117,7 @@ serve(async (req) => {
     }
 
     if (action === 'exchange_code') {
-      console.log('Starting token exchange process...')
-      console.log('Request headers:', Object.fromEntries(req.headers.entries()))
+      console.log('=== Starting Token Exchange ===')
       console.log('Code received:', code ? 'present' : 'missing')
       console.log('State received:', state ? 'present' : 'missing')
       
@@ -133,128 +125,144 @@ serve(async (req) => {
         throw new Error('No authorization code provided')
       }
 
-      if (!ebayConfig.clientId || !ebayConfig.clientSecret) {
-        throw new Error('eBay credentials not configured')
-      }
+      // Create the token request
+      const tokenUrl = `${baseUrl}/identity/v1/oauth2/token`
+      const credentials = btoa(`${ebayConfig.clientId}:${ebayConfig.clientSecret}`)
       
-      // Step 2: Exchange authorization code for access token
-      console.log('Making token exchange request to:', `${baseUrl}/identity/v1/oauth2/token`)
-      console.log('Using redirect URI:', ebayConfig.redirectUri)
-      
-      const tokenRequestBody = new URLSearchParams({
+      const formData = new URLSearchParams({
         grant_type: 'authorization_code',
         code: code,
         redirect_uri: ebayConfig.redirectUri
       })
-      
-      console.log('Token request body:', tokenRequestBody.toString())
-      
-      const tokenResponse = await fetch(`${baseUrl}/identity/v1/oauth2/token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': `Basic ${btoa(`${ebayConfig.clientId}:${ebayConfig.clientSecret}`)}`
-        },
-        body: tokenRequestBody
-      })
 
-      console.log('Token response status:', tokenResponse.status)
-      console.log('Token response headers:', Object.fromEntries(tokenResponse.headers.entries()))
+      console.log('Token exchange details:')
+      console.log('- URL:', tokenUrl)
+      console.log('- Redirect URI:', ebayConfig.redirectUri)
+      console.log('- Form data:', formData.toString())
+      console.log('- Client ID:', ebayConfig.clientId ? ebayConfig.clientId.substring(0, 10) + '...' : 'MISSING')
 
-      if (!tokenResponse.ok) {
-        const errorText = await tokenResponse.text()
-        console.error('eBay token exchange failed:', {
-          status: tokenResponse.status,
-          statusText: tokenResponse.statusText,
-          errorText: errorText,
-          redirectUri: ebayConfig.redirectUri,
-          clientId: ebayConfig.clientId ? `${ebayConfig.clientId.substring(0, 8)}...` : 'MISSING'
-        })
-        throw new Error(`Token exchange failed: ${tokenResponse.status} - ${errorText}`)
-      }
-
-      const tokenData = await tokenResponse.json()
-      console.log('eBay token exchange successful:', { 
-        access_token: tokenData.access_token ? 'present' : 'missing',
-        refresh_token: tokenData.refresh_token ? 'present' : 'missing',
-        expires_in: tokenData.expires_in
-      })
-
-      // Step 3: Get user info
-      const userResponse = await fetch(`${apiUrl}/commerce/identity/v1/user/`, {
-        headers: {
-          'Authorization': `Bearer ${tokenData.access_token}`,
-          'Content-Type': 'application/json'
-        }
-      })
-
-      let userInfo = { username: 'Unknown User' }
-      if (userResponse.ok) {
-        userInfo = await userResponse.json()
-      }
-
-      // Step 4: Store the connection in database
-      const authHeader = req.headers.get('Authorization')
-      console.log('Auth header check:', {
-        headerPresent: !!authHeader,
-        headerValue: authHeader ? `${authHeader.substring(0, 20)}...` : 'missing'
-      })
-      
-      if (!authHeader) {
-        console.error('No authorization header provided')
-        throw new Error('No authorization header provided')
-      }
-
-      console.log('Attempting to validate user with Supabase...')
-      const { data: authData, error: authError } = await supabase.auth.getUser(
-        authHeader.replace('Bearer ', '')
-      )
-
-      console.log('Supabase auth result:', {
-        userPresent: !!authData?.user,
-        userId: authData?.user?.id,
-        error: authError?.message
-      })
-
-      if (authError || !authData.user) {
-        console.error('Authentication error:', authError)
-        throw new Error(`Authentication error: ${authError?.message || 'User not found'}`)
-      }
-
-      const expiresAt = new Date(Date.now() + (tokenData.expires_in * 1000)).toISOString()
-
-      const { error: upsertError } = await supabase
-        .from('marketplace_accounts')
-        .upsert({
-          user_id: authData.user.id,
-          platform: 'ebay',
-          account_username: userInfo.username,
-          oauth_token: tokenData.access_token,
-          refresh_token: tokenData.refresh_token,
-          oauth_expires_at: expiresAt,
-          is_connected: true,
-          is_active: true,
-          last_sync_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id,platform'
+      try {
+        const tokenResponse = await fetch(tokenUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Authorization': `Basic ${credentials}`,
+            'Accept': 'application/json'
+          },
+          body: formData
         })
 
-      if (upsertError) {
-        console.error('Database upsert error:', upsertError)
-        throw upsertError
-      }
+        console.log('Token response status:', tokenResponse.status)
+        console.log('Token response headers:', Object.fromEntries(tokenResponse.headers.entries()))
 
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          username: userInfo.username,
-          expires_at: expiresAt
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200 
+        const responseText = await tokenResponse.text()
+        console.log('Token response body:', responseText)
+
+        if (!tokenResponse.ok) {
+          console.error('=== eBay Token Exchange Failed ===')
+          console.error('Status:', tokenResponse.status)
+          console.error('Status text:', tokenResponse.statusText)
+          console.error('Response body:', responseText)
+          
+          // Try to parse error details
+          let errorDetails = responseText
+          try {
+            const errorJson = JSON.parse(responseText)
+            errorDetails = JSON.stringify(errorJson, null, 2)
+          } catch (e) {
+            // Response is not JSON, use as-is
+          }
+          
+          throw new Error(`eBay token exchange failed (${tokenResponse.status}): ${errorDetails}`)
         }
-      )
+
+        const tokenData = JSON.parse(responseText)
+        console.log('=== Token Exchange Success ===')
+        console.log('Access token received:', tokenData.access_token ? 'YES' : 'NO')
+        console.log('Refresh token received:', tokenData.refresh_token ? 'YES' : 'NO')
+        console.log('Expires in:', tokenData.expires_in)
+
+        if (!tokenData.access_token) {
+          throw new Error('No access token in eBay response')
+        }
+
+        // Get user info
+        let userInfo = { username: 'Unknown User' }
+        try {
+          const userResponse = await fetch(`${apiUrl}/commerce/identity/v1/user/`, {
+            headers: {
+              'Authorization': `Bearer ${tokenData.access_token}`,
+              'Content-Type': 'application/json'
+            }
+          })
+
+          if (userResponse.ok) {
+            userInfo = await userResponse.json()
+            console.log('User info retrieved:', userInfo.username)
+          } else {
+            console.warn('Failed to get user info:', userResponse.status)
+          }
+        } catch (error) {
+          console.warn('Error getting user info:', error)
+        }
+
+        // Store in database
+        const authHeader = req.headers.get('Authorization')
+        if (!authHeader) {
+          throw new Error('No authorization header provided')
+        }
+
+        const { data: authData, error: authError } = await supabase.auth.getUser(
+          authHeader.replace('Bearer ', '')
+        )
+
+        if (authError || !authData.user) {
+          console.error('Authentication error:', authError)
+          throw new Error(`Authentication error: ${authError?.message || 'User not found'}`)
+        }
+
+        const expiresAt = new Date(Date.now() + (tokenData.expires_in * 1000)).toISOString()
+
+        const { error: upsertError } = await supabase
+          .from('marketplace_accounts')
+          .upsert({
+            user_id: authData.user.id,
+            platform: 'ebay',
+            account_username: userInfo.username,
+            oauth_token: tokenData.access_token,
+            refresh_token: tokenData.refresh_token,
+            oauth_expires_at: expiresAt,
+            is_connected: true,
+            is_active: true,
+            last_sync_at: new Date().toISOString()
+          }, {
+            onConflict: 'user_id,platform'
+          })
+
+        if (upsertError) {
+          console.error('Database upsert error:', upsertError)
+          throw upsertError
+        }
+
+        console.log('=== eBay Connection Complete ===')
+
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            username: userInfo.username,
+            expires_at: expiresAt
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200 
+          }
+        )
+
+      } catch (fetchError) {
+        console.error('=== Network Error During Token Exchange ===')
+        console.error('Error:', fetchError)
+        throw new Error(`Network error during token exchange: ${fetchError.message}`)
+      }
     }
 
     return new Response(
@@ -266,9 +274,15 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('eBay OAuth error:', error)
+    console.error('=== eBay OAuth Error ===')
+    console.error('Error:', error)
+    console.error('Stack:', error.stack)
+    
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        timestamp: new Date().toISOString()
+      }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500 
