@@ -1,9 +1,10 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Eye, Edit, Trash2, Copy, MoreVertical, Check, X, ExternalLink } from 'lucide-react';
+import { Eye, Edit, Trash2, Copy, MoreVertical, Check, X } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import EbaySyncButton from '../EbaySyncButton';
 import type { Listing } from '@/types/Listing';
 
@@ -30,6 +31,16 @@ const TableCellActions = ({
   onDuplicate,
   onSyncComplete
 }: TableCellActionsProps) => {
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const handleDeleteClick = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const handleConfirmDelete = () => {
+    onDelete();
+    setShowDeleteDialog(false);
+  };
   return (
     <TableCell>
       {isEditing ? (
@@ -80,7 +91,7 @@ const TableCellActions = ({
               </div>
             </DropdownMenuItem>
             <DropdownMenuItem 
-              onClick={onDelete}
+              onClick={handleDeleteClick}
               className="text-red-600"
             >
               <Trash2 className="w-4 h-4 mr-2" />
@@ -89,6 +100,27 @@ const TableCellActions = ({
           </DropdownMenuContent>
         </DropdownMenu>
       )}
+      
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent className="bg-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Listing</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{listing.title}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </TableCell>
   );
 };

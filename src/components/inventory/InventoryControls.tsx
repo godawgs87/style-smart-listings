@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { RefreshCw, Plus, Search } from 'lucide-react';
+import { RefreshCw, Plus, Search, Trash2 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import InventorySyncManager from './InventorySyncManager';
 
 interface InventoryControlsProps {
@@ -23,6 +24,7 @@ interface InventoryControlsProps {
   onRefresh: () => void;
   onCreateListing: () => void;
   onSyncComplete: () => void;
+  onBulkDelete?: (selectedIds: string[]) => void;
 }
 
 const InventoryControls = ({
@@ -39,7 +41,8 @@ const InventoryControls = ({
   onClearFilters,
   onRefresh,
   onCreateListing,
-  onSyncComplete
+  onSyncComplete,
+  onBulkDelete
 }: InventoryControlsProps) => {
   const hasActiveFilters = searchTerm || statusFilter !== 'all' || categoryFilter !== 'all';
 
@@ -57,6 +60,35 @@ const InventoryControls = ({
         </div>
         
         <div className="flex gap-2 flex-wrap">
+          {/* Bulk Actions - Show when items are selected */}
+          {selectedCount > 0 && onBulkDelete && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm">
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete ({selectedCount})
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="bg-white">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Selected Items</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete {selectedCount} selected item{selectedCount !== 1 ? 's' : ''}? This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => onBulkDelete(selectedItems)}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+          
           {/* Sync Manager Component */}
           <InventorySyncManager 
             selectedItems={selectedItems}

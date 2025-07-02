@@ -86,6 +86,21 @@ const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) =>
     }
   }, [operations, inventory]);
 
+  const handleBulkDelete = useCallback(async (selectedIds: string[]): Promise<void> => {
+    try {
+      // Delete all selected items
+      const deletePromises = selectedIds.map(id => operations.deleteListing(id));
+      await Promise.all(deletePromises);
+      
+      // Clear selection and refresh
+      setSelectedItems([]);
+      inventory.refetch();
+    } catch (error) {
+      console.error('Failed to delete listings:', error);
+      throw error;
+    }
+  }, [operations, inventory]);
+
   const handlePreviewListing = useCallback((listing: Listing) => {
     setPreviewListing(listing);
   }, []);
@@ -268,6 +283,7 @@ const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) =>
           onRefresh={inventory.refetch}
           onCreateListing={onCreateListing}
           onSyncComplete={inventory.refetch}
+          onBulkDelete={handleBulkDelete}
         />
 
         <OptimisticInventoryTableView
