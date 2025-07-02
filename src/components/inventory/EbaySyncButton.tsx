@@ -13,6 +13,7 @@ const EbaySyncButton = ({ listing, onSyncComplete }: EbaySyncButtonProps) => {
   const { syncToEbay, syncing } = useEbaySyncOperation();
 
   const handleSync = async () => {
+    console.log('🔄 EbaySyncButton: handleSync clicked for listing:', listing.id);
     const result = await syncToEbay(listing);
     if (result.success && onSyncComplete) {
       onSyncComplete();
