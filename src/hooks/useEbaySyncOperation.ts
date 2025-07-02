@@ -15,6 +15,7 @@ export const useEbaySyncOperation = () => {
   const { toast } = useToast();
 
   const syncToEbay = useCallback(async (listing: Listing): Promise<SyncResult> => {
+    console.log('🚀 Starting eBay sync operation for listing:', listing.id);
     try {
       setSyncing(true);
       console.log('🔄 Starting eBay sync for listing:', listing.id);
