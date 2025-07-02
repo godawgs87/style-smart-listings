@@ -18,26 +18,32 @@ serve(async (req) => {
 
   try {
     console.log('Reading request body...')
+    console.log('Request headers:', Object.fromEntries(req.headers.entries()))
     
     let requestData
     try {
-      const text = await req.text()
-      console.log('Raw request body:', text)
-      
-      if (!text || text.trim() === '') {
-        console.error('Empty request body received')
-        return new Response(
-          JSON.stringify({ error: 'Empty request body' }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-        )
-      }
-      
-      requestData = JSON.parse(text)
+      requestData = await req.json()
       console.log('Parsed request data:', requestData)
     } catch (parseError) {
       console.error('JSON parse error:', parseError)
+      console.error('Request method:', req.method)
+      console.error('Request URL:', req.url)
+      
+      // Try to read as text to see what we got
+      try {
+        const text = await req.text()
+        console.error('Raw request body as text:', text)
+      } catch (textError) {
+        console.error('Could not even read as text:', textError)
+      }
+      
       return new Response(
-        JSON.stringify({ error: 'Invalid JSON in request body', details: parseError.message }),
+        JSON.stringify({ 
+          error: 'Invalid JSON in request body', 
+          details: parseError.message,
+          method: req.method,
+          url: req.url
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       )
     }
