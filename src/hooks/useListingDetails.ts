@@ -16,34 +16,15 @@ export const useListingDetails = () => {
     error?: string;
   }> => {
     try {
-      console.log('🔍 Fetching minimal data for listing:', listingId);
+      console.log('🔍 Skipping individual fetch - using unified inventory data for:', listingId);
       
-      // Fetch just ID and photos with timeout protection
-      const { data, error } = await supabase
-        .from('listings')
-        .select('id, photos')
-        .eq('id', listingId)
-        .abortSignal(AbortSignal.timeout(5000)) // 5 second timeout
-        .single();
-
-      if (error) {
-        console.error('❌ Details query error:', error);
-        // Return empty photos array if timeout, so UI doesn't break
-        if (error.code === '57014') {
-          return { 
-            details: { id: listingId, photos: [] },
-            error: 'timeout'
-          };
-        }
-        return { details: null, error: error.message };
-      }
-
+      // Return empty data since all data should now come from unified inventory
       const transformedDetails = {
-        id: data.id,
-        photos: Array.isArray(data.photos) ? data.photos : []
+        id: listingId,
+        photos: []
       };
 
-      console.log('✅ Successfully fetched listing data');
+      console.log('✅ Using unified inventory data');
       return { details: transformedDetails };
 
     } catch (error: any) {

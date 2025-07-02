@@ -50,7 +50,7 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
         .select(`
           id, title, price, status, category, condition, created_at, updated_at,
           purchase_price, cost_basis, net_profit, profit_margin,
-          shipping_cost, user_id
+          shipping_cost, user_id, photos, description, keywords, measurements
         `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
@@ -63,13 +63,15 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
 
       console.log('✅ Fetched listings:', data?.length || 0);
       
-      // Transform data to full Listing interface with received data
+      // Transform data to full Listing interface with actual data
       const transformedData: Listing[] = (data || []).map(item => ({
         ...item,
-        description: null,
-        measurements: {},
-        keywords: null,
-        photos: null,
+        description: item.description || null,
+        measurements: (typeof item.measurements === 'object' && item.measurements !== null) 
+          ? item.measurements as any 
+          : {},
+        keywords: Array.isArray(item.keywords) ? item.keywords : null,
+        photos: Array.isArray(item.photos) ? item.photos : null,
         price_research: null,
         shipping_cost: item.shipping_cost || 9.95,
         purchase_price: item.purchase_price || null,
