@@ -28,8 +28,18 @@ const EbayCallback = () => {
 
         console.log('Processing eBay OAuth callback with code:', code);
 
+        // Get current session for authentication
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) {
+          throw new Error('User not authenticated');
+        }
+
         // Exchange the authorization code for access token
         const { data, error: exchangeError } = await supabase.functions.invoke('ebay-oauth', {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`
+          },
           body: { 
             action: 'exchange_code',
             code: code,
