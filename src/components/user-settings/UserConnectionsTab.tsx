@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Link, Settings } from 'lucide-react';
+import { Link, Settings, RefreshCw } from 'lucide-react';
 import { useEbayIntegration } from '@/hooks/useEbayIntegration';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,6 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 const UserConnectionsTab = () => {
   const { connectEbayAccount, importSoldListings, connecting, importing } = useEbayIntegration();
   const { toast } = useToast();
+  const [refreshing, setRefreshing] = useState(false);
   
   const [platforms, setPlatforms] = useState([
     { name: 'eBay', connected: false, autoList: true, icon: '🛒' },
@@ -50,9 +51,23 @@ const UserConnectionsTab = () => {
 
             if (data.success) {
               localStorage.removeItem('ebay_oauth_pending');
-              setPlatforms(prev => prev.map(p => 
-                p.name === 'eBay' ? { ...p, connected: true } : p
-              ));
+              
+              // Refresh the connection status from database
+              const { data: { session } } = await supabase.auth.getSession();
+              if (session) {
+                const { data: accounts } = await supabase
+                  .from('marketplace_accounts')
+                  .select('*')
+                  .eq('platform', 'ebay')
+                  .eq('user_id', session.user.id)
+                  .eq('is_connected', true);
+                
+                const hasConnection = accounts && accounts.length > 0;
+                setPlatforms(prev => prev.map(p => 
+                  p.name === 'eBay' ? { ...p, connected: hasConnection } : p
+                ));
+              }
+              
               toast({
                 title: "eBay Connected Successfully",
                 description: `Your eBay account (${data.username}) is now connected and ready to use`
@@ -74,32 +89,94 @@ const UserConnectionsTab = () => {
     handlePendingOAuth();
   }, [toast]);
 
-  // Check for existing eBay connection on mount
+  // Check for existing eBay connection on mount and when user changes
   useEffect(() => {
     const checkEbayConnection = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-          const { data: accounts } = await supabase
+          const { data: accounts, error } = await supabase
             .from('marketplace_accounts')
             .select('*')
             .eq('platform', 'ebay')
+            .eq('user_id', session.user.id)
             .eq('is_connected', true)
-            .single();
+            .eq('is_active', true);
 
-          if (accounts) {
-            setPlatforms(prev => prev.map(p => 
-              p.name === 'eBay' ? { ...p, connected: true } : p
-            ));
+          if (error) {
+            console.error('Error checking eBay connection:', error);
+            return;
           }
+
+          console.log('eBay accounts found:', accounts);
+          
+          const hasRealConnection = accounts && accounts.length > 0 && 
+            accounts.some(acc => 
+              acc.oauth_token && 
+              acc.oauth_token !== 'mock_oauth_token_1751473213527' &&
+              !acc.oauth_token.startsWith('mock_')
+            );
+
+          setPlatforms(prev => prev.map(p => 
+            p.name === 'eBay' ? { ...p, connected: hasRealConnection } : p
+          ));
         }
       } catch (error) {
-        console.log('No existing eBay connection found');
+        console.error('Error checking eBay connection:', error);
+        setPlatforms(prev => prev.map(p => 
+          p.name === 'eBay' ? { ...p, connected: false } : p
+        ));
       }
     };
 
     checkEbayConnection();
   }, []);
+
+  const refreshConnectionStatus = async () => {
+    setRefreshing(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const { data: accounts, error } = await supabase
+          .from('marketplace_accounts')
+          .select('*')
+          .eq('platform', 'ebay')
+          .eq('user_id', session.user.id)
+          .eq('is_connected', true)
+          .eq('is_active', true);
+
+        if (error) {
+          console.error('Error refreshing eBay connection:', error);
+          return;
+        }
+
+        const hasRealConnection = accounts && accounts.length > 0 && 
+          accounts.some(acc => 
+            acc.oauth_token && 
+            acc.oauth_token !== 'mock_oauth_token_1751473213527' &&
+            !acc.oauth_token.startsWith('mock_')
+          );
+
+        setPlatforms(prev => prev.map(p => 
+          p.name === 'eBay' ? { ...p, connected: hasRealConnection } : p
+        ));
+
+        toast({
+          title: "Status Refreshed",
+          description: hasRealConnection ? "eBay connection verified" : "No active eBay connection found"
+        });
+      }
+    } catch (error) {
+      console.error('Error refreshing connection status:', error);
+      toast({
+        title: "Refresh Failed",
+        description: "Failed to refresh connection status",
+        variant: "destructive"
+      });
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const handleConnectEbay = async () => {
     try {
@@ -141,16 +218,23 @@ const UserConnectionsTab = () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        await supabase
+        // Delete all eBay connections for this user
+        const { error } = await supabase
           .from('marketplace_accounts')
-          .update({ is_connected: false, is_active: false })
+          .delete()
           .eq('platform', 'ebay')
           .eq('user_id', session.user.id);
+
+        if (error) {
+          console.error('Error disconnecting eBay:', error);
+          throw error;
+        }
       }
 
       setPlatforms(prev => prev.map(p => 
         p.name === 'eBay' ? { ...p, connected: false } : p
       ));
+      
       toast({
         title: "eBay Disconnected",
         description: "Your eBay account has been disconnected"
@@ -201,7 +285,7 @@ const UserConnectionsTab = () => {
                 </div>
               </div>
               <div className="flex items-center space-x-2">
-                {platform.connected ? (
+                  {platform.connected ? (
                   <>
                     <Button 
                       variant="outline" 
@@ -215,6 +299,15 @@ const UserConnectionsTab = () => {
                     >
                       <Settings className="w-4 h-4 mr-1" />
                       Settings
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={refreshConnectionStatus}
+                      disabled={refreshing}
+                    >
+                      <RefreshCw className={`w-4 h-4 mr-1 ${refreshing ? 'animate-spin' : ''}`} />
+                      {refreshing ? 'Refreshing...' : 'Refresh'}
                     </Button>
                      <Button 
                        variant="outline" 
@@ -384,3 +477,5 @@ const UserConnectionsTab = () => {
 };
 
 export default UserConnectionsTab;
+
+// IMPORTANT: UserConnectionsTab.tsx is 480 lines long. This file is getting too long and should be refactored after completion.
