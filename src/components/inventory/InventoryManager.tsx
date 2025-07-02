@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useMemo } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Badge } from '@/components/ui/badge';
@@ -7,8 +6,8 @@ import UnifiedMobileNavigation from '@/components/UnifiedMobileNavigation';
 import { useUnifiedInventory } from '@/hooks/useUnifiedInventory';
 import { useListingOperations } from '@/hooks/useListingOperations';
 import { useInventoryFilters } from '@/hooks/useInventoryFilters';
-import OptimisticInventoryTable from './OptimisticInventoryTable';
-import ImprovedInventoryControls from './ImprovedInventoryControls';
+import OptimisticInventoryTableView from './OptimisticInventoryTableView';
+import InventoryControls from './InventoryControls';
 import InventoryStatsCards from './InventoryStatsCards';
 import InventoryErrorSection from './InventoryErrorSection';
 import InventoryEmptyState from './InventoryEmptyState';
@@ -16,12 +15,12 @@ import InventoryLoadingState from './InventoryLoadingState';
 import ListingDetailView from './ListingDetailView';
 import type { Listing } from '@/types/Listing';
 
-interface OptimizedInventoryManagerProps {
+interface InventoryManagerProps {
   onCreateListing: () => void;
   onBack: () => void;
 }
 
-const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInventoryManagerProps) => {
+const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) => {
   const isMobile = useIsMobile();
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [previewListing, setPreviewListing] = useState<Listing | null>(null);
@@ -162,9 +161,6 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
             error={inventory.error}
             onRetry={inventory.refetch}
             onClearFilters={handleRetryWithFilters}
-            onUseFallback={() => {}}
-            onShowDiagnostic={() => {}}
-            fallbackDataCount={0}
           />
         </div>
         {isMobile && (
@@ -190,7 +186,7 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
           onBack={onBack}
         />
         <div className="max-w-7xl mx-auto p-4 space-y-6">
-          <ImprovedInventoryControls
+          <InventoryControls
             searchTerm={filters.searchTerm}
             statusFilter={filters.statusFilter}
             categoryFilter={filters.categoryFilter}
@@ -245,7 +241,7 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
 
         <InventoryStatsCards stats={inventory.stats} />
 
-        <ImprovedInventoryControls
+        <InventoryControls
           searchTerm={filters.searchTerm}
           statusFilter={filters.statusFilter}
           categoryFilter={filters.categoryFilter}
@@ -260,7 +256,7 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
           onCreateListing={onCreateListing}
         />
 
-        <OptimisticInventoryTable
+        <OptimisticInventoryTableView
           listings={filteredListings}
           selectedListings={selectedItems}
           onSelectListing={handleSelectListing}
@@ -269,7 +265,6 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
           onDeleteListing={handleDeleteListing}
           onDuplicateListing={handleDuplicateListing}
           onPreviewListing={handlePreviewListing}
-          useVirtualization={filteredListings.length > 25}
         />
       </div>
 
@@ -296,4 +291,4 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
   );
 };
 
-export default OptimizedInventoryManager;
+export default InventoryManager;

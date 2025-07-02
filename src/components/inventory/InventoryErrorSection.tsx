@@ -8,9 +8,6 @@ interface InventoryErrorSectionProps {
   error: string;
   onRetry: () => void;
   onClearFilters: () => void;
-  onUseFallback: () => void;
-  onShowDiagnostic: () => void;
-  fallbackDataCount: number;
 }
 
 const InventoryErrorSection = ({ 
