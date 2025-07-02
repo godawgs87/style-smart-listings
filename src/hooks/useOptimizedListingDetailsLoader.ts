@@ -65,7 +65,7 @@ export const useOptimizedListingDetailsLoader = (
     };
 
     loadListingDetails();
-  }, [listing.id, needsDetails, loadDetails]);
+  }, [listing.id, needsDetails]); // Removed loadDetails from dependencies to prevent infinite loop
 
   const isLoading = isLoadingDetails(listing.id);
 
