@@ -124,6 +124,110 @@ serve(async (req) => {
       )
     }
 
+    if (action === 'exchange_code') {
+      console.log('=== TOKEN EXCHANGE START ===')
+      const { code, state } = requestBody
+      console.log('Code present:', code ? 'YES' : 'NO')
+      
+      if (!code) {
+        console.error('No authorization code provided')
+        return new Response(
+          JSON.stringify({ error: 'No authorization code provided' }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 400 
+          }
+        )
+      }
+
+      const ebayClientId = Deno.env.get('EBAY_CLIENT_ID')
+      const ebayClientSecret = Deno.env.get('EBAY_CLIENT_SECRET')
+      
+      if (!ebayClientId || !ebayClientSecret) {
+        console.error('eBay credentials not configured')
+        return new Response(
+          JSON.stringify({ error: 'eBay credentials not configured' }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 500 
+          }
+        )
+      }
+
+      const redirectUri = 'https://preview--hustly-mvp.lovable.app/ebay/callback'
+      const tokenUrl = 'https://auth.sandbox.ebay.com/identity/v1/oauth2/token'
+      
+      const formData = new URLSearchParams({
+        grant_type: 'authorization_code',
+        code: code,
+        redirect_uri: redirectUri
+      })
+
+      console.log('Making token exchange request to:', tokenUrl)
+      
+      try {
+        const credentials = btoa(`${ebayClientId}:${ebayClientSecret}`)
+        
+        const tokenResponse = await fetch(tokenUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Authorization': `Basic ${credentials}`,
+            'Accept': 'application/json'
+          },
+          body: formData
+        })
+
+        console.log('Token response status:', tokenResponse.status)
+        const responseText = await tokenResponse.text()
+        console.log('Token response body:', responseText)
+
+        if (!tokenResponse.ok) {
+          console.error('eBay token exchange failed:', responseText)
+          return new Response(
+            JSON.stringify({ 
+              error: `eBay token exchange failed (${tokenResponse.status})`,
+              ebay_error: responseText
+            }),
+            { 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 500 
+            }
+          )
+        }
+
+        const tokenData = JSON.parse(responseText)
+        console.log('Token exchange successful!')
+        
+        // For now, just return success without storing in database
+        return new Response(
+          JSON.stringify({ 
+            success: true,
+            message: 'Token exchange successful',
+            has_access_token: !!tokenData.access_token,
+            username: 'ebay_user'
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200 
+          }
+        )
+
+      } catch (fetchError) {
+        console.error('Fetch error during token exchange:', fetchError)
+        return new Response(
+          JSON.stringify({ 
+            error: 'Network error during token exchange',
+            details: fetchError.message
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 500 
+          }
+        )
+      }
+    }
+
     console.log('Unknown action:', action)
     return new Response(
       JSON.stringify({ error: 'Unknown action' }),
