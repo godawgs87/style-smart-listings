@@ -6,6 +6,9 @@ verify_jwt = true
 [functions.ebay-integration]
 verify_jwt = true
 
+[functions.ebay-oauth]
+verify_jwt = false
+
 [functions.subscription-management]
 verify_jwt = true
 
