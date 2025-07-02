@@ -1,23 +1,33 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
-import { Link, Settings, RefreshCw } from 'lucide-react';
+import { Link } from 'lucide-react';
 import { useEbayIntegration } from '@/hooks/useEbayIntegration';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { EbayConnectionCard } from './connections/EbayConnectionCard';
+import { EbaySuccessSection } from './connections/EbaySuccessSection';
+import { GenericPlatformCard } from './connections/GenericPlatformCard';
+import { PlatformSettingsSection } from './connections/PlatformSettingsSection';
+import { useEbayConnection } from './connections/useEbayConnection';
+
+interface Platform {
+  name: string;
+  connected: boolean;
+  autoList: boolean;
+  icon: string;
+}
 
 const UserConnectionsTab = () => {
-  const { connectEbayAccount, importSoldListings, connecting, importing } = useEbayIntegration();
-  const { toast } = useToast();
-  const [refreshing, setRefreshing] = useState(false);
+  const { importSoldListings, connecting, importing } = useEbayIntegration();
+  const {
+    checkEbayConnection,
+    handlePendingOAuth,
+    connectEbay,
+    disconnectEbay,
+    refreshConnectionStatus,
+    refreshing
+  } = useEbayConnection();
   
-  const [platforms, setPlatforms] = useState([
+  const [platforms, setPlatforms] = useState<Platform[]>([
     { name: 'eBay', connected: false, autoList: true, icon: '🛒' },
     { name: 'Mercari', connected: false, autoList: false, icon: '📦' },
     { name: 'Poshmark', connected: false, autoList: false, icon: '👗' },
@@ -27,248 +37,53 @@ const UserConnectionsTab = () => {
 
   // Check for pending eBay OAuth on component mount
   useEffect(() => {
-    const handlePendingOAuth = async () => {
-      const pendingOAuth = localStorage.getItem('ebay_oauth_pending');
-      if (pendingOAuth) {
-        try {
-          const { code, state } = JSON.parse(pendingOAuth);
-          const { data: { session } } = await supabase.auth.getSession();
-          
-          if (session) {
-            // User is now authenticated, complete the OAuth flow
-            const { data, error } = await supabase.functions.invoke('ebay-oauth', {
-              headers: {
-                Authorization: `Bearer ${session.access_token}`
-              },
-              body: { 
-                action: 'exchange_code',
-                code: code,
-                state: state
-              }
-            });
-
-            if (error) throw error;
-
-            if (data.success) {
-              localStorage.removeItem('ebay_oauth_pending');
-              
-              // Refresh the connection status from database
-              const { data: { session } } = await supabase.auth.getSession();
-              if (session) {
-                const { data: accounts } = await supabase
-                  .from('marketplace_accounts')
-                  .select('*')
-                  .eq('platform', 'ebay')
-                  .eq('user_id', session.user.id)
-                  .eq('is_connected', true);
-                
-                const hasConnection = accounts && accounts.length > 0;
-                setPlatforms(prev => prev.map(p => 
-                  p.name === 'eBay' ? { ...p, connected: hasConnection } : p
-                ));
-              }
-              
-              toast({
-                title: "eBay Connected Successfully",
-                description: `Your eBay account (${data.username}) is now connected and ready to use`
-              });
-            }
-          }
-        } catch (error: any) {
-          console.error('Failed to complete pending eBay OAuth:', error);
-          localStorage.removeItem('ebay_oauth_pending');
-          toast({
-            title: "Connection Failed",
-            description: "Failed to complete eBay connection. Please try again.",
-            variant: "destructive"
-          });
-        }
-      }
+    const initializeConnections = async () => {
+      // Handle pending OAuth first
+      const pendingCompleted = await handlePendingOAuth();
+      
+      // Check current connection status
+      const isConnected = await checkEbayConnection();
+      
+      setPlatforms(prev => prev.map(p => 
+        p.name === 'eBay' ? { ...p, connected: pendingCompleted || isConnected } : p
+      ));
     };
 
-    handlePendingOAuth();
-  }, [toast]);
-
-  // Check for existing eBay connection on mount and when user changes
-  useEffect(() => {
-    const checkEbayConnection = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          const { data: accounts, error } = await supabase
-            .from('marketplace_accounts')
-            .select('*')
-            .eq('platform', 'ebay')
-            .eq('user_id', session.user.id)
-            .eq('is_connected', true)
-            .eq('is_active', true);
-
-          if (error) {
-            console.error('Error checking eBay connection:', error);
-            return;
-          }
-
-          console.log('eBay accounts found:', accounts);
-          
-          const hasRealConnection = accounts && accounts.length > 0 && 
-            accounts.some(acc => 
-              acc.oauth_token && 
-              acc.oauth_token !== 'mock_oauth_token_1751473213527' &&
-              !acc.oauth_token.startsWith('mock_')
-            );
-
-          setPlatforms(prev => prev.map(p => 
-            p.name === 'eBay' ? { ...p, connected: hasRealConnection } : p
-          ));
-        }
-      } catch (error) {
-        console.error('Error checking eBay connection:', error);
-        setPlatforms(prev => prev.map(p => 
-          p.name === 'eBay' ? { ...p, connected: false } : p
-        ));
-      }
-    };
-
-    checkEbayConnection();
+    initializeConnections();
   }, []);
 
-  const refreshConnectionStatus = async () => {
-    setRefreshing(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        const { data: accounts, error } = await supabase
-          .from('marketplace_accounts')
-          .select('*')
-          .eq('platform', 'ebay')
-          .eq('user_id', session.user.id)
-          .eq('is_connected', true)
-          .eq('is_active', true);
-
-        if (error) {
-          console.error('Error refreshing eBay connection:', error);
-          return;
-        }
-
-        const hasRealConnection = accounts && accounts.length > 0 && 
-          accounts.some(acc => 
-            acc.oauth_token && 
-            acc.oauth_token !== 'mock_oauth_token_1751473213527' &&
-            !acc.oauth_token.startsWith('mock_')
-          );
-
-        setPlatforms(prev => prev.map(p => 
-          p.name === 'eBay' ? { ...p, connected: hasRealConnection } : p
-        ));
-
-        toast({
-          title: "Status Refreshed",
-          description: hasRealConnection ? "eBay connection verified" : "No active eBay connection found"
-        });
-      }
-    } catch (error) {
-      console.error('Error refreshing connection status:', error);
-      toast({
-        title: "Refresh Failed",
-        description: "Failed to refresh connection status",
-        variant: "destructive"
-      });
-    } finally {
-      setRefreshing(false);
-    }
+  const handleEbayConnect = async () => {
+    await connectEbay();
   };
 
-  const handleConnectEbay = async () => {
-    try {
-      console.log('Starting eBay connection process...');
-      
-      // Step 1: Get authorization URL from our edge function
-      const { data, error } = await supabase.functions.invoke('ebay-oauth', {
-        body: { 
-          action: 'get_auth_url',
-          state: crypto.randomUUID() // Generate random state for security
-        }
-      });
-
-      if (error) {
-        console.error('Edge function error:', error);
-        
-        // Check if it's a configuration error
-        if (error.message?.includes('Client ID') || error.message?.includes('configuration')) {
-          toast({
-            title: "eBay Not Configured",
-            description: "Please configure your eBay API credentials in the project settings first.",
-            variant: "destructive"
-          });
-          return;
-        }
-        
-        throw error;
-      }
-
-      console.log('Received OAuth URL data:', data);
-
-      if (!data.auth_url) {
-        throw new Error('No authorization URL received from server');
-      }
-
-      // Step 2: Redirect to eBay OAuth page
-      console.log('Redirecting to eBay OAuth URL:', data.auth_url);
-      window.location.href = data.auth_url;
-    } catch (error: any) {
-      console.error('eBay OAuth initiation failed:', error);
-      toast({
-        title: "Connection Failed",
-        description: error.message || 'Failed to initiate eBay connection. Please check your eBay app configuration.',
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleDisconnectEbay = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        // Delete all eBay connections for this user
-        const { error } = await supabase
-          .from('marketplace_accounts')
-          .delete()
-          .eq('platform', 'ebay')
-          .eq('user_id', session.user.id);
-
-        if (error) {
-          console.error('Error disconnecting eBay:', error);
-          throw error;
-        }
-      }
-
+  const handleEbayDisconnect = async () => {
+    const success = await disconnectEbay();
+    if (success) {
       setPlatforms(prev => prev.map(p => 
         p.name === 'eBay' ? { ...p, connected: false } : p
       ));
-      
-      toast({
-        title: "eBay Disconnected",
-        description: "Your eBay account has been disconnected"
-      });
-    } catch (error) {
-      console.error('Failed to disconnect eBay:', error);
-      toast({
-        title: "Disconnect Failed",
-        description: "Failed to disconnect eBay account",
-        variant: "destructive"
-      });
     }
   };
 
-  const handleImportListings = async () => {
-    const success = await importSoldListings(10);
-    if (success) {
-      toast({
-        title: "Training Data Updated",
-        description: "Your AI will now better match your selling style"
-      });
-    }
+  const handleEbayRefresh = async () => {
+    const isConnected = await refreshConnectionStatus();
+    setPlatforms(prev => prev.map(p => 
+      p.name === 'eBay' ? { ...p, connected: isConnected } : p
+    ));
   };
+
+  const handleImportListings = async () => {
+    await importSoldListings(10);
+  };
+
+  const handleGenericDisconnect = (platformName: string) => {
+    setPlatforms(prev => prev.map(p => 
+      p.name === platformName ? { ...p, connected: false } : p
+    ));
+  };
+
+  const ebayPlatform = platforms.find(p => p.name === 'eBay')!;
+  const otherPlatforms = platforms.filter(p => p.name !== 'eBay');
 
   return (
     <Card className="p-6">
@@ -278,208 +93,57 @@ const UserConnectionsTab = () => {
       </div>
 
       <div className="space-y-6">
-        {platforms.map((platform, index) => (
+        {/* eBay Section */}
+        <div>
+          <EbayConnectionCard
+            connected={ebayPlatform.connected}
+            connecting={connecting}
+            refreshing={refreshing}
+            onConnect={handleEbayConnect}
+            onDisconnect={handleEbayDisconnect}
+            onRefresh={handleEbayRefresh}
+            onImportTrainingData={handleImportListings}
+            importing={importing}
+          />
+
+          {ebayPlatform.connected && (
+            <EbaySuccessSection
+              onImportTrainingData={handleImportListings}
+              importing={importing}
+            />
+          )}
+
+          {ebayPlatform.connected && (
+            <PlatformSettingsSection
+              platform={ebayPlatform}
+              index={0}
+              platforms={platforms}
+              setPlatforms={setPlatforms}
+            />
+          )}
+
+          <Separator className="mt-6" />
+        </div>
+
+        {/* Other Platforms */}
+        {otherPlatforms.map((platform, index) => (
           <div key={platform.name}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <span className="text-2xl">{platform.icon}</span>
-                <div>
-                  <div className="flex items-center space-x-2">
-                    <Label className="font-medium">{platform.name}</Label>
-                    <Badge variant={platform.connected ? "default" : "secondary"}>
-                      {platform.connected ? 'Connected' : 'Not Connected'}
-                    </Badge>
-                  </div>
-                  {platform.connected && (
-                    <p className="text-sm text-gray-600">Last sync: 2 hours ago</p>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                  {platform.connected ? (
-                  <>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => {
-                        toast({
-                          title: "eBay Settings",
-                          description: "eBay integration settings will be available soon"
-                        });
-                      }}
-                    >
-                      <Settings className="w-4 h-4 mr-1" />
-                      Settings
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={refreshConnectionStatus}
-                      disabled={refreshing}
-                    >
-                      <RefreshCw className={`w-4 h-4 mr-1 ${refreshing ? 'animate-spin' : ''}`} />
-                      {refreshing ? 'Refreshing...' : 'Refresh'}
-                    </Button>
-                     <Button 
-                       variant="outline" 
-                       size="sm"
-                       onClick={() => {
-                         if (platform.name === 'eBay') {
-                           handleDisconnectEbay();
-                         }
-                       }}
-                     >
-                       Disconnect
-                     </Button>
-                  </>
-                 ) : (
-                   <Button 
-                     size="sm" 
-                     onClick={() => {
-                       if (platform.name === 'eBay') {
-                         handleConnectEbay();
-                       } else {
-                         toast({
-                           title: "Coming Soon",
-                           description: `${platform.name} integration will be available soon`
-                         });
-                       }
-                     }}
-                     disabled={platform.name === 'eBay' && connecting}
-                   >
-                     {platform.name === 'eBay' && connecting ? 'Connecting...' : 'Connect'}
-                   </Button>
-                 )}
-              </div>
-            </div>
+            <GenericPlatformCard
+              platform={platform}
+              onConnect={() => {}}
+              onDisconnect={() => handleGenericDisconnect(platform.name)}
+            />
 
-            {/* eBay Connection Success */}
-            {platform.name === 'eBay' && platform.connected && (
-              <div className="mt-4 pl-11 space-y-4">
-                <div className="flex items-center justify-between bg-green-50 p-4 rounded-lg border border-green-200">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                      ✓
-                    </div>
-                    <div>
-                      <p className="font-medium text-green-900">eBay Connected</p>
-                      <p className="text-sm text-green-700">Ready to sync listings and import data</p>
-                    </div>
-                  </div>
-                  <Button 
-                    onClick={handleImportListings}
-                    disabled={importing}
-                    size="sm"
-                    variant="outline"
-                    className="border-green-300 text-green-700 hover:bg-green-100"
-                  >
-                    {importing ? 'Importing...' : 'Import Training Data'}
-                  </Button>
-                </div>
-
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                  <h5 className="font-medium text-blue-900 mb-2">What happens next:</h5>
-                  <ul className="text-sm text-blue-800 space-y-1">
-                    <li>• AI will analyze your successful sales patterns</li>
-                    <li>• Auto-generate listings that match your style</li>
-                    <li>• Sync inventory and pricing across platforms</li>
-                    <li>• Track performance and optimize listings</li>
-                  </ul>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label>Auto-listing</Label>
-                      <p className="text-sm text-gray-600">Automatically list new items</p>
-                    </div>
-                    <Switch
-                      checked={platform.autoList}
-                      onCheckedChange={(checked) => {
-                        const newPlatforms = [...platforms];
-                        newPlatforms[index].autoList = checked;
-                        setPlatforms(newPlatforms);
-                      }}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label>Price sync</Label>
-                      <p className="text-sm text-gray-600">Sync pricing changes across platforms</p>
-                    </div>
-                    <Switch />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label>Inventory sync</Label>
-                      <p className="text-sm text-gray-600">Auto-update inventory levels</p>
-                    </div>
-                    <Switch defaultChecked />
-                  </div>
-                </div>
-              </div>
+            {platform.connected && (
+              <PlatformSettingsSection
+                platform={platform}
+                index={index + 1}
+                platforms={platforms}
+                setPlatforms={setPlatforms}
+              />
             )}
 
-            {platform.connected && platform.name !== 'eBay' && (
-              <div className="mt-4 pl-11 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor={`${platform.name}-api`}>API Key</Label>
-                    <Input
-                      id={`${platform.name}-api`}
-                      type="password"
-                      placeholder="••••••••••••••••"
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor={`${platform.name}-store`}>Store ID</Label>
-                    <Input
-                      id={`${platform.name}-store`}
-                      placeholder="Your store identifier"
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label>Auto-listing</Label>
-                      <p className="text-sm text-gray-600">Automatically list new items</p>
-                    </div>
-                    <Switch
-                      checked={platform.autoList}
-                      onCheckedChange={(checked) => {
-                        const newPlatforms = [...platforms];
-                        newPlatforms[index].autoList = checked;
-                        setPlatforms(newPlatforms);
-                      }}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label>Price sync</Label>
-                      <p className="text-sm text-gray-600">Sync pricing changes across platforms</p>
-                    </div>
-                    <Switch />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label>Inventory sync</Label>
-                      <p className="text-sm text-gray-600">Auto-update inventory levels</p>
-                    </div>
-                    <Switch defaultChecked />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {index < platforms.length - 1 && <Separator className="mt-6" />}
+            {index < otherPlatforms.length - 1 && <Separator className="mt-6" />}
           </div>
         ))}
       </div>
@@ -488,5 +152,3 @@ const UserConnectionsTab = () => {
 };
 
 export default UserConnectionsTab;
-
-// IMPORTANT: UserConnectionsTab.tsx is 480 lines long. This file is getting too long and should be refactored after completion.
