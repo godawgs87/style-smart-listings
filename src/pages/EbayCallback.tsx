@@ -90,7 +90,7 @@ const EbayCallback = () => {
             Authorization: `Bearer ${session.access_token}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify(requestBody)
+          body: requestBody  // Don't stringify - Supabase handles this
         });
 
         console.log('Token exchange response:', {

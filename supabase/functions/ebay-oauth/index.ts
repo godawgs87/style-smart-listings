@@ -24,14 +24,13 @@ serve(async (req) => {
     
     let requestData
     try {
-      // Handle both direct requests and Supabase Functions invoke
+      // Handle Supabase Functions invoke format
       const bodyText = await req.text()
       console.log('Raw request body as text:', bodyText)
       console.log('Body length:', bodyText.length)
       
-      // Allow empty body for test/debug actions
       if (!bodyText || bodyText.trim() === '') {
-        console.log('Empty request body - using default for test')
+        console.log('Empty request body - treating as test')
         requestData = { action: 'test' }
       } else {
         // Parse the JSON
