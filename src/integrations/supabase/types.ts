@@ -9,6 +9,183 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      ai_training_data: {
+        Row: {
+          category: string | null
+          condition_rating: string | null
+          created_at: string
+          days_to_sell: number | null
+          description: string | null
+          external_listing_id: string | null
+          final_price: number | null
+          id: string
+          keywords: string[] | null
+          listing_date: string | null
+          offer_count: number | null
+          raw_data: Json | null
+          sold_date: string | null
+          source_platform: string
+          success_score: number | null
+          title: string
+          training_weight: number | null
+          updated_at: string
+          user_id: string
+          view_count: number | null
+          watcher_count: number | null
+        }
+        Insert: {
+          category?: string | null
+          condition_rating?: string | null
+          created_at?: string
+          days_to_sell?: number | null
+          description?: string | null
+          external_listing_id?: string | null
+          final_price?: number | null
+          id?: string
+          keywords?: string[] | null
+          listing_date?: string | null
+          offer_count?: number | null
+          raw_data?: Json | null
+          sold_date?: string | null
+          source_platform: string
+          success_score?: number | null
+          title: string
+          training_weight?: number | null
+          updated_at?: string
+          user_id: string
+          view_count?: number | null
+          watcher_count?: number | null
+        }
+        Update: {
+          category?: string | null
+          condition_rating?: string | null
+          created_at?: string
+          days_to_sell?: number | null
+          description?: string | null
+          external_listing_id?: string | null
+          final_price?: number | null
+          id?: string
+          keywords?: string[] | null
+          listing_date?: string | null
+          offer_count?: number | null
+          raw_data?: Json | null
+          sold_date?: string | null
+          source_platform?: string
+          success_score?: number | null
+          title?: string
+          training_weight?: number | null
+          updated_at?: string
+          user_id?: string
+          view_count?: number | null
+          watcher_count?: number | null
+        }
+        Relationships: []
+      }
+      ai_user_models: {
+        Row: {
+          category_preferences: Json | null
+          created_at: string
+          description_patterns: Json | null
+          id: string
+          keyword_patterns: Json | null
+          last_trained_at: string | null
+          model_confidence_score: number | null
+          model_version: string
+          pricing_patterns: Json | null
+          style_metrics: Json | null
+          title_patterns: Json | null
+          training_data_count: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category_preferences?: Json | null
+          created_at?: string
+          description_patterns?: Json | null
+          id?: string
+          keyword_patterns?: Json | null
+          last_trained_at?: string | null
+          model_confidence_score?: number | null
+          model_version?: string
+          pricing_patterns?: Json | null
+          style_metrics?: Json | null
+          title_patterns?: Json | null
+          training_data_count?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category_preferences?: Json | null
+          created_at?: string
+          description_patterns?: Json | null
+          id?: string
+          keyword_patterns?: Json | null
+          last_trained_at?: string | null
+          model_confidence_score?: number | null
+          model_version?: string
+          pricing_patterns?: Json | null
+          style_metrics?: Json | null
+          title_patterns?: Json | null
+          training_data_count?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      bulk_sessions: {
+        Row: {
+          completed_items: number
+          created_at: string
+          error_log: Json | null
+          grouped_items: number
+          grouping_results: Json | null
+          id: string
+          processed_photos: number
+          processing_completed_at: string | null
+          processing_started_at: string | null
+          session_name: string | null
+          session_settings: Json | null
+          session_status: string
+          total_photos: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_items?: number
+          created_at?: string
+          error_log?: Json | null
+          grouped_items?: number
+          grouping_results?: Json | null
+          id?: string
+          processed_photos?: number
+          processing_completed_at?: string | null
+          processing_started_at?: string | null
+          session_name?: string | null
+          session_settings?: Json | null
+          session_status?: string
+          total_photos?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_items?: number
+          created_at?: string
+          error_log?: Json | null
+          grouped_items?: number
+          grouping_results?: Json | null
+          id?: string
+          processed_photos?: number
+          processing_completed_at?: string | null
+          processing_started_at?: string | null
+          session_name?: string | null
+          session_settings?: Json | null
+          session_status?: string
+          total_photos?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string
@@ -49,6 +226,71 @@ export type Database = {
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listing_analytics: {
+        Row: {
+          click_through_rate: number | null
+          conversion_events: Json | null
+          created_at: string
+          date: string
+          engagement_score: number | null
+          id: string
+          listing_id: string
+          messages: number
+          offers: number
+          platform: string
+          search_impressions: number | null
+          shares: number
+          updated_at: string
+          user_id: string
+          views: number
+          watchers: number
+        }
+        Insert: {
+          click_through_rate?: number | null
+          conversion_events?: Json | null
+          created_at?: string
+          date?: string
+          engagement_score?: number | null
+          id?: string
+          listing_id: string
+          messages?: number
+          offers?: number
+          platform: string
+          search_impressions?: number | null
+          shares?: number
+          updated_at?: string
+          user_id: string
+          views?: number
+          watchers?: number
+        }
+        Update: {
+          click_through_rate?: number | null
+          conversion_events?: Json | null
+          created_at?: string
+          date?: string
+          engagement_score?: number | null
+          id?: string
+          listing_id?: string
+          messages?: number
+          offers?: number
+          platform?: string
+          search_impressions?: number | null
+          shares?: number
+          updated_at?: string
+          user_id?: string
+          views?: number
+          watchers?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_analytics_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
             referencedColumns: ["id"]
           },
         ]
@@ -327,6 +569,222 @@ export type Database = {
           },
         ]
       }
+      marketplace_accounts: {
+        Row: {
+          account_email: string | null
+          account_id: string | null
+          account_username: string | null
+          api_permissions: string[] | null
+          created_at: string
+          id: string
+          is_active: boolean
+          is_connected: boolean
+          last_sync_at: string | null
+          oauth_expires_at: string | null
+          oauth_token: string | null
+          oauth_token_secret: string | null
+          platform: string
+          platform_settings: Json | null
+          refresh_token: string | null
+          seller_level: string | null
+          store_name: string | null
+          sync_errors: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_email?: string | null
+          account_id?: string | null
+          account_username?: string | null
+          api_permissions?: string[] | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_connected?: boolean
+          last_sync_at?: string | null
+          oauth_expires_at?: string | null
+          oauth_token?: string | null
+          oauth_token_secret?: string | null
+          platform: string
+          platform_settings?: Json | null
+          refresh_token?: string | null
+          seller_level?: string | null
+          store_name?: string | null
+          sync_errors?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_email?: string | null
+          account_id?: string | null
+          account_username?: string | null
+          api_permissions?: string[] | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_connected?: boolean
+          last_sync_at?: string | null
+          oauth_expires_at?: string | null
+          oauth_token?: string | null
+          oauth_token_secret?: string | null
+          platform?: string
+          platform_settings?: Json | null
+          refresh_token?: string | null
+          seller_level?: string | null
+          store_name?: string | null
+          sync_errors?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      platform_listings: {
+        Row: {
+          auto_relist: boolean
+          created_at: string
+          id: string
+          last_synced_at: string | null
+          listing_id: string
+          marketplace_account_id: string
+          performance_metrics: Json | null
+          platform: string
+          platform_data: Json | null
+          platform_listing_id: string | null
+          platform_url: string | null
+          relist_count: number
+          status: string
+          sync_errors: Json | null
+          sync_status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_relist?: boolean
+          created_at?: string
+          id?: string
+          last_synced_at?: string | null
+          listing_id: string
+          marketplace_account_id: string
+          performance_metrics?: Json | null
+          platform: string
+          platform_data?: Json | null
+          platform_listing_id?: string | null
+          platform_url?: string | null
+          relist_count?: number
+          status?: string
+          sync_errors?: Json | null
+          sync_status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_relist?: boolean
+          created_at?: string
+          id?: string
+          last_synced_at?: string | null
+          listing_id?: string
+          marketplace_account_id?: string
+          performance_metrics?: Json | null
+          platform?: string
+          platform_data?: Json | null
+          platform_listing_id?: string | null
+          platform_url?: string | null
+          relist_count?: number
+          status?: string
+          sync_errors?: Json | null
+          sync_status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_listings_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_listings_marketplace_account_id_fkey"
+            columns: ["marketplace_account_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      posting_queue: {
+        Row: {
+          attempts: number
+          created_at: string
+          error_message: string | null
+          id: string
+          last_attempt_at: string | null
+          listing_id: string
+          marketplace_account_id: string
+          max_attempts: number
+          platform: string
+          priority: number
+          processing_data: Json | null
+          queue_status: string
+          result_data: Json | null
+          scheduled_for: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          listing_id: string
+          marketplace_account_id: string
+          max_attempts?: number
+          platform: string
+          priority?: number
+          processing_data?: Json | null
+          queue_status?: string
+          result_data?: Json | null
+          scheduled_for?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          listing_id?: string
+          marketplace_account_id?: string
+          max_attempts?: number
+          platform?: string
+          priority?: number
+          processing_data?: Json | null
+          queue_status?: string
+          result_data?: Json | null
+          scheduled_for?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "posting_queue_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posting_queue_marketplace_account_id_fkey"
+            columns: ["marketplace_account_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           billing_cycle: string | null
@@ -385,6 +843,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_analytics_summary: {
+        Row: {
+          active_listings: number
+          avg_days_to_sell: number | null
+          avg_profit_margin: number | null
+          best_platform: string | null
+          created_at: string
+          date: string
+          engagement_metrics: Json | null
+          id: string
+          sold_listings: number
+          top_category: string | null
+          total_listings: number
+          total_profit: number | null
+          total_revenue: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_listings?: number
+          avg_days_to_sell?: number | null
+          avg_profit_margin?: number | null
+          best_platform?: string | null
+          created_at?: string
+          date?: string
+          engagement_metrics?: Json | null
+          id?: string
+          sold_listings?: number
+          top_category?: string | null
+          total_listings?: number
+          total_profit?: number | null
+          total_revenue?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_listings?: number
+          avg_days_to_sell?: number | null
+          avg_profit_margin?: number | null
+          best_platform?: string | null
+          created_at?: string
+          date?: string
+          engagement_metrics?: Json | null
+          id?: string
+          sold_listings?: number
+          top_category?: string | null
+          total_listings?: number
+          total_profit?: number | null
+          total_revenue?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_profiles: {
         Row: {
