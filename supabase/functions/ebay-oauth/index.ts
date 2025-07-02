@@ -19,11 +19,27 @@ serve(async (req) => {
   try {
     console.log('Reading request body...');
     console.log('Request headers:', Object.fromEntries(req.headers.entries()));
+    console.log('Request method:', req.method);
+    console.log('Content-Type:', req.headers.get('content-type'));
     
-    // ✅ FIXED: Read the body only once, no cloning
+    // Handle different content types and empty bodies
     let requestData;
     try {
-      requestData = await req.json();
+      const body = await req.text();
+      console.log('Raw body text:', body);
+      
+      if (!body || body.trim() === '') {
+        console.error('Empty request body received');
+        return new Response(JSON.stringify({
+          error: 'Empty request body',
+          details: 'No data received in request body'
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400
+        });
+      }
+      
+      requestData = JSON.parse(body);
       console.log('Parsed request data:', requestData);
     } catch (parseError) {
       console.error('JSON parse error:', parseError);
