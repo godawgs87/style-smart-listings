@@ -13,6 +13,7 @@ interface OptimisticInventoryTableViewProps {
   onDeleteListing: (listingId: string) => Promise<void>;
   onPreviewListing?: (listing: Listing) => void;
   onDuplicateListing?: (listing: Listing) => Promise<Listing | null>;
+  onSyncComplete?: () => void;
 }
 
 const OptimisticInventoryTableView = ({
@@ -23,7 +24,8 @@ const OptimisticInventoryTableView = ({
   onDeleteListing,
   onUpdateListing,
   onPreviewListing,
-  onDuplicateListing
+  onDuplicateListing,
+  onSyncComplete
 }: OptimisticInventoryTableViewProps) => {
   const visibleColumns = {
     image: true,
@@ -74,6 +76,7 @@ const OptimisticInventoryTableView = ({
                 onPreviewListing={onPreviewListing}
                 onEditListing={onPreviewListing}
                 onDuplicateListing={onDuplicateListing}
+                onSyncComplete={onSyncComplete}
               />
             );
           })}

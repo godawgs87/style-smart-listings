@@ -19,6 +19,7 @@ interface OptimisticTableRowProps {
   onPreviewListing?: (listing: Listing) => void;
   onEditListing?: (listing: Listing) => void;
   onDuplicateListing?: (listing: Listing) => Promise<Listing | null>;
+  onSyncComplete?: () => void;
 }
 
 const OptimisticTableRow = ({
@@ -32,7 +33,8 @@ const OptimisticTableRow = ({
   onDeleteListing,
   onPreviewListing,
   onEditListing,
-  onDuplicateListing
+  onDuplicateListing,
+  onSyncComplete
 }: OptimisticTableRowProps) => {
   const {
     isEditing,
@@ -96,6 +98,7 @@ const OptimisticTableRow = ({
         onDelete={handleOptimisticDelete}
         onPreview={onPreviewListing}
         onDuplicate={onDuplicateListing}
+        onSyncComplete={onSyncComplete}
       />
     </TableRow>
   );

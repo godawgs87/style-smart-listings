@@ -2,8 +2,9 @@
 import React from 'react';
 import { TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Eye, Edit, Trash2, Copy, MoreVertical, Check, X } from 'lucide-react';
+import { Eye, Edit, Trash2, Copy, MoreVertical, Check, X, ExternalLink } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import EbaySyncButton from '../EbaySyncButton';
 import type { Listing } from '@/types/Listing';
 
 interface TableCellActionsProps {
@@ -15,6 +16,7 @@ interface TableCellActionsProps {
   onDelete: () => void;
   onPreview?: (listing: Listing) => void;
   onDuplicate?: (listing: Listing) => Promise<Listing | null>;
+  onSyncComplete?: () => void;
 }
 
 const TableCellActions = ({
@@ -25,7 +27,8 @@ const TableCellActions = ({
   onCancel,
   onDelete,
   onPreview,
-  onDuplicate
+  onDuplicate,
+  onSyncComplete
 }: TableCellActionsProps) => {
   return (
     <TableCell>
@@ -71,6 +74,11 @@ const TableCellActions = ({
                 Duplicate
               </DropdownMenuItem>
             )}
+            <DropdownMenuItem asChild>
+              <div className="px-2 py-1.5">
+                <EbaySyncButton listing={listing} onSyncComplete={onSyncComplete} />
+              </div>
+            </DropdownMenuItem>
             <DropdownMenuItem 
               onClick={onDelete}
               className="text-red-600"

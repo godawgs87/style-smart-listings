@@ -279,6 +279,7 @@ const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) =>
           onDeleteListing={handleDeleteListing}
           onDuplicateListing={handleDuplicateListing}
           onPreviewListing={handlePreviewListing}
+          onSyncComplete={inventory.refetch}
         />
       </div>
 
