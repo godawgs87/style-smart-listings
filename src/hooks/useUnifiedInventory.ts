@@ -44,8 +44,8 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
 
       console.log('🔍 Fetching unified inventory for user:', user.id);
 
-      // Use very conservative limit to prevent timeouts
-      const limit = Math.min(options.limit || 10, 10);
+      // Use reasonable limit with timeout protection
+      const limit = Math.min(options.limit || 50, 100);
 
       // Simplified query - only essential fields
       let query = supabase

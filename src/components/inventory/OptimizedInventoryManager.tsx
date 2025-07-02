@@ -27,7 +27,7 @@ const OptimizedInventoryManager = ({ onCreateListing, onBack }: OptimizedInvento
   const [previewListing, setPreviewListing] = useState<Listing | null>(null);
 
   const inventoryQueryParams = useMemo(() => ({
-    limit: 10 // Very conservative limit to prevent timeouts
+    limit: 50 // Reasonable limit for inventory
   }), []);
 
   const inventory = useUnifiedInventory(inventoryQueryParams);

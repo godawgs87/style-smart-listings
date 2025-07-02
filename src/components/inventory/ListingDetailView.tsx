@@ -47,7 +47,7 @@ const ListingDetailView = ({ listing, onClose, onEdit }: ListingDetailViewProps)
         <h3 className="font-semibold text-gray-900">Size Information</h3>
         <div className="flex flex-wrap gap-2">
           {sizeFields.map((field, index) => (
-            <Badge key={index} variant="outline" className={`bg-${field.color}-50 text-${field.color}-700`}>
+            <Badge key={index} variant="outline">
               {field.label}: {field.value}
             </Badge>
           ))}
