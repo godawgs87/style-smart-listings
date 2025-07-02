@@ -6,13 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-interface EbayOAuthConfig {
-  clientId: string
-  clientSecret: string
-  redirectUri: string
-  sandbox: boolean
-}
-
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -20,54 +13,51 @@ serve(async (req) => {
   }
 
   try {
+    console.log('=== EBAY OAUTH FUNCTION CALLED ===')
+    console.log('Timestamp:', new Date().toISOString())
+    console.log('Method:', req.method)
+    console.log('Headers:', Object.fromEntries(req.headers.entries()))
+
+    const { action, code, state } = await req.json()
+    console.log('Request body parsed:', { action, code: code ? 'present' : 'missing', state: state ? 'present' : 'missing' })
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { action, code, state } = await req.json()
+    // eBay configuration
+    const ebayClientId = Deno.env.get('EBAY_CLIENT_ID') ?? ''
+    const ebayClientSecret = Deno.env.get('EBAY_CLIENT_SECRET') ?? ''
+    const redirectUri = 'https://preview--hustly-mvp.lovable.app/ebay/callback'
+    const sandbox = true
 
-    // eBay OAuth configuration
-    const ebayConfig: EbayOAuthConfig = {
-      clientId: Deno.env.get('EBAY_CLIENT_ID') ?? '',
-      clientSecret: Deno.env.get('EBAY_CLIENT_SECRET') ?? '',
-      redirectUri: 'https://preview--hustly-mvp.lovable.app/ebay/callback',
-      sandbox: true // Change to false for production
-    }
-
-    console.log('=== eBay OAuth Request ===')
-    console.log('Action:', action)
-    console.log('eBay Config:', {
-      clientId: ebayConfig.clientId ? `${ebayConfig.clientId.substring(0, 8)}...` : 'MISSING',
-      clientSecret: ebayConfig.clientSecret ? 'SET' : 'MISSING',
-      redirectUri: ebayConfig.redirectUri,
-      sandbox: ebayConfig.sandbox
+    console.log('eBay config loaded:', {
+      clientId: ebayClientId ? `${ebayClientId.substring(0, 8)}...` : 'MISSING',
+      clientSecret: ebayClientSecret ? 'SET' : 'MISSING',
+      redirectUri: redirectUri,
+      sandbox: sandbox
     })
 
-    // Validate required configuration
-    if (!ebayConfig.clientId || !ebayConfig.clientSecret) {
-      throw new Error('eBay Client ID and Client Secret must be configured')
-    }
-
-    const baseUrl = ebayConfig.sandbox 
+    const baseUrl = sandbox 
       ? 'https://auth.sandbox.ebay.com'
       : 'https://auth.ebay.com'
 
-    const apiUrl = ebayConfig.sandbox
+    const apiUrl = sandbox
       ? 'https://api.sandbox.ebay.com'
       : 'https://api.ebay.com'
 
     if (action === 'debug') {
-      console.log('=== DEBUG ENDPOINT CALLED ===')
+      console.log('Debug action called')
       return new Response(
         JSON.stringify({ 
           status: 'ok',
           timestamp: new Date().toISOString(),
           config: {
-            clientId: ebayConfig.clientId ? 'configured' : 'missing',
-            clientSecret: ebayConfig.clientSecret ? 'configured' : 'missing',
-            redirectUri: ebayConfig.redirectUri,
-            sandbox: ebayConfig.sandbox,
+            clientId: ebayClientId ? 'configured' : 'missing',
+            clientSecret: ebayClientSecret ? 'configured' : 'missing',
+            redirectUri: redirectUri,
+            sandbox: sandbox,
             baseUrl,
             apiUrl
           }
@@ -80,7 +70,7 @@ serve(async (req) => {
     }
 
     if (action === 'test') {
-      console.log('=== TEST ENDPOINT CALLED ===')
+      console.log('Test action called')
       return new Response(
         JSON.stringify({ 
           message: 'Function is working',
@@ -94,7 +84,12 @@ serve(async (req) => {
     }
 
     if (action === 'get_auth_url') {
-      // Step 1: Generate authorization URL
+      console.log('Getting auth URL...')
+      
+      if (!ebayClientId) {
+        throw new Error('eBay Client ID is not configured')
+      }
+
       const scopes = [
         'https://api.ebay.com/oauth/api_scope',
         'https://api.ebay.com/oauth/api_scope/sell.marketing.readonly',
@@ -108,8 +103,8 @@ serve(async (req) => {
       ].join(' ')
 
       const authUrl = new URL(`${baseUrl}/oauth2/authorize`)
-      authUrl.searchParams.set('client_id', ebayConfig.clientId)
-      authUrl.searchParams.set('redirect_uri', ebayConfig.redirectUri)
+      authUrl.searchParams.set('client_id', ebayClientId)
+      authUrl.searchParams.set('redirect_uri', redirectUri)
       authUrl.searchParams.set('response_type', 'code')
       authUrl.searchParams.set('scope', scopes)
       authUrl.searchParams.set('state', state || 'default_state')
@@ -120,9 +115,9 @@ serve(async (req) => {
         JSON.stringify({ 
           auth_url: authUrl.toString(),
           debug_info: {
-            client_id: ebayConfig.clientId ? 'present' : 'missing',
-            redirect_uri: ebayConfig.redirectUri,
-            sandbox: ebayConfig.sandbox
+            client_id: ebayClientId ? 'present' : 'missing',
+            redirect_uri: redirectUri,
+            sandbox: sandbox
           }
         }),
         { 
@@ -133,35 +128,38 @@ serve(async (req) => {
     }
 
     if (action === 'exchange_code') {
-      // Add immediate logging that should definitely show up
-      console.log('=== EBAY TOKEN EXCHANGE START ===')
-      console.log('Current timestamp:', new Date().toISOString())
-      console.log('Code received:', code ? 'present' : 'missing')
-      console.log('State received:', state ? 'present' : 'missing')
+      console.log('=== TOKEN EXCHANGE START ===')
+      console.log('Code present:', code ? 'YES' : 'NO')
+      console.log('Code length:', code?.length || 0)
       
       if (!code) {
         console.log('ERROR: No authorization code provided')
         throw new Error('No authorization code provided')
       }
 
-      // Log the exact URL and parameters we're about to use
+      if (!ebayClientId || !ebayClientSecret) {
+        console.log('ERROR: eBay credentials not configured')
+        throw new Error('eBay credentials not configured')
+      }
+
+      // Token exchange request
       const tokenUrl = `${baseUrl}/identity/v1/oauth2/token`
       console.log('Token URL:', tokenUrl)
-      console.log('Redirect URI in request:', ebayConfig.redirectUri)
-      console.log('Client ID (first 10 chars):', ebayConfig.clientId?.substring(0, 10))
-      console.log('Client Secret present:', ebayConfig.clientSecret ? 'YES' : 'NO')
+      console.log('Redirect URI:', redirectUri)
 
       const formData = new URLSearchParams({
         grant_type: 'authorization_code',
         code: code,
-        redirect_uri: ebayConfig.redirectUri
+        redirect_uri: redirectUri
       })
 
-      console.log('Form data being sent to eBay:', formData.toString())
+      console.log('Form data:', formData.toString())
 
-      const credentials = btoa(`${ebayConfig.clientId}:${ebayConfig.clientSecret}`)
-      console.log('Basic auth header length:', credentials.length)
+      const credentials = btoa(`${ebayClientId}:${ebayClientSecret}`)
+      console.log('Basic auth credentials length:', credentials.length)
 
+      console.log('Making token exchange request...')
+      
       try {
         const tokenResponse = await fetch(tokenUrl, {
           method: 'POST',
@@ -174,104 +172,43 @@ serve(async (req) => {
         })
 
         console.log('Token response status:', tokenResponse.status)
-        console.log('Token response headers:', Object.fromEntries(tokenResponse.headers.entries()))
+        console.log('Token response ok:', tokenResponse.ok)
 
         const responseText = await tokenResponse.text()
         console.log('Token response body:', responseText)
 
         if (!tokenResponse.ok) {
-          console.error('=== eBay Token Exchange Failed ===')
+          console.error('=== EBAY ERROR RESPONSE ===')
           console.error('Status:', tokenResponse.status)
-          console.error('Status text:', tokenResponse.statusText)
-          console.error('Response body:', responseText)
+          console.error('Body:', responseText)
           
-          // Try to parse error details
-          let errorDetails = responseText
-          try {
-            const errorJson = JSON.parse(responseText)
-            errorDetails = JSON.stringify(errorJson, null, 2)
-          } catch (e) {
-            // Response is not JSON, use as-is
-          }
-          
-          throw new Error(`eBay token exchange failed (${tokenResponse.status}): ${errorDetails}`)
+          return new Response(
+            JSON.stringify({ 
+              error: `eBay token exchange failed (${tokenResponse.status})`,
+              ebay_error: responseText,
+              details: {
+                status: tokenResponse.status,
+                client_id_present: !!ebayClientId,
+                redirect_uri: redirectUri
+              }
+            }),
+            { 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 500 
+            }
+          )
         }
 
         const tokenData = JSON.parse(responseText)
-        console.log('=== Token Exchange Success ===')
+        console.log('Token exchange successful!')
         console.log('Access token received:', tokenData.access_token ? 'YES' : 'NO')
-        console.log('Refresh token received:', tokenData.refresh_token ? 'YES' : 'NO')
-        console.log('Expires in:', tokenData.expires_in)
 
-        if (!tokenData.access_token) {
-          throw new Error('No access token in eBay response')
-        }
-
-        // Get user info
-        let userInfo = { username: 'Unknown User' }
-        try {
-          const userResponse = await fetch(`${apiUrl}/commerce/identity/v1/user/`, {
-            headers: {
-              'Authorization': `Bearer ${tokenData.access_token}`,
-              'Content-Type': 'application/json'
-            }
-          })
-
-          if (userResponse.ok) {
-            userInfo = await userResponse.json()
-            console.log('User info retrieved:', userInfo.username)
-          } else {
-            console.warn('Failed to get user info:', userResponse.status)
-          }
-        } catch (error) {
-          console.warn('Error getting user info:', error)
-        }
-
-        // Store in database
-        const authHeader = req.headers.get('Authorization')
-        if (!authHeader) {
-          throw new Error('No authorization header provided')
-        }
-
-        const { data: authData, error: authError } = await supabase.auth.getUser(
-          authHeader.replace('Bearer ', '')
-        )
-
-        if (authError || !authData.user) {
-          console.error('Authentication error:', authError)
-          throw new Error(`Authentication error: ${authError?.message || 'User not found'}`)
-        }
-
-        const expiresAt = new Date(Date.now() + (tokenData.expires_in * 1000)).toISOString()
-
-        const { error: upsertError } = await supabase
-          .from('marketplace_accounts')
-          .upsert({
-            user_id: authData.user.id,
-            platform: 'ebay',
-            account_username: userInfo.username,
-            oauth_token: tokenData.access_token,
-            refresh_token: tokenData.refresh_token,
-            oauth_expires_at: expiresAt,
-            is_connected: true,
-            is_active: true,
-            last_sync_at: new Date().toISOString()
-          }, {
-            onConflict: 'user_id,platform'
-          })
-
-        if (upsertError) {
-          console.error('Database upsert error:', upsertError)
-          throw upsertError
-        }
-
-        console.log('=== eBay Connection Complete ===')
-
+        // For now, just return success without storing in database to isolate the issue
         return new Response(
           JSON.stringify({ 
-            success: true, 
-            username: userInfo.username,
-            expires_at: expiresAt
+            success: true,
+            message: 'Token exchange successful',
+            has_access_token: !!tokenData.access_token
           }),
           { 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -280,12 +217,24 @@ serve(async (req) => {
         )
 
       } catch (fetchError) {
-        console.error('=== Network Error During Token Exchange ===')
+        console.error('=== FETCH ERROR ===')
         console.error('Error:', fetchError)
-        throw new Error(`Network error during token exchange: ${fetchError.message}`)
+        console.error('Error message:', fetchError.message)
+        
+        return new Response(
+          JSON.stringify({ 
+            error: 'Network error during token exchange',
+            details: fetchError.message
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 500 
+          }
+        )
       }
     }
 
+    console.log('Invalid action:', action)
     return new Response(
       JSON.stringify({ error: 'Invalid action' }),
       { 
@@ -295,14 +244,16 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('=== eBay OAuth Error ===')
+    console.error('=== FUNCTION ERROR ===')
     console.error('Error:', error)
+    console.error('Error message:', error.message)
     console.error('Stack:', error.stack)
     
     return new Response(
       JSON.stringify({ 
         error: error.message,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        type: 'function_error'
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
