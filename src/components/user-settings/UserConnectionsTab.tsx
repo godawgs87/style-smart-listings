@@ -24,6 +24,56 @@ const UserConnectionsTab = () => {
     { name: 'Depop', connected: false, autoList: false, icon: '🎨' }
   ]);
 
+  // Check for pending eBay OAuth on component mount
+  useEffect(() => {
+    const handlePendingOAuth = async () => {
+      const pendingOAuth = localStorage.getItem('ebay_oauth_pending');
+      if (pendingOAuth) {
+        try {
+          const { code, state } = JSON.parse(pendingOAuth);
+          const { data: { session } } = await supabase.auth.getSession();
+          
+          if (session) {
+            // User is now authenticated, complete the OAuth flow
+            const { data, error } = await supabase.functions.invoke('ebay-oauth', {
+              headers: {
+                Authorization: `Bearer ${session.access_token}`
+              },
+              body: { 
+                action: 'exchange_code',
+                code: code,
+                state: state
+              }
+            });
+
+            if (error) throw error;
+
+            if (data.success) {
+              localStorage.removeItem('ebay_oauth_pending');
+              setPlatforms(prev => prev.map(p => 
+                p.name === 'eBay' ? { ...p, connected: true } : p
+              ));
+              toast({
+                title: "eBay Connected Successfully",
+                description: `Your eBay account (${data.username}) is now connected and ready to use`
+              });
+            }
+          }
+        } catch (error: any) {
+          console.error('Failed to complete pending eBay OAuth:', error);
+          localStorage.removeItem('ebay_oauth_pending');
+          toast({
+            title: "Connection Failed",
+            description: "Failed to complete eBay connection. Please try again.",
+            variant: "destructive"
+          });
+        }
+      }
+    };
+
+    handlePendingOAuth();
+  }, [toast]);
+
   const handleConnectEbay = async () => {
     try {
       // Step 1: Get authorization URL from our edge function

@@ -32,7 +32,15 @@ const EbayCallback = () => {
         const { data: { session } } = await supabase.auth.getSession();
         
         if (!session) {
-          throw new Error('User not authenticated');
+          // User is not authenticated, store the OAuth data and redirect to login
+          localStorage.setItem('ebay_oauth_pending', JSON.stringify({ code, state }));
+          toast({
+            title: "Please Log In",
+            description: "You need to be logged in to complete the eBay connection. Please sign in first.",
+            variant: "destructive"
+          });
+          navigate('/auth');
+          return;
         }
 
         // Exchange the authorization code for access token
@@ -52,6 +60,9 @@ const EbayCallback = () => {
         }
 
         if (data.success) {
+          // Clear any pending OAuth data
+          localStorage.removeItem('ebay_oauth_pending');
+          
           toast({
             title: "eBay Connected Successfully",
             description: `Your eBay account (${data.username}) is now connected and ready to use`
