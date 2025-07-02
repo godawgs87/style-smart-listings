@@ -227,34 +227,66 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
   const ebayClientId = Deno.env.get('EBAY_CLIENT_ID');
   const ebayClientSecret = Deno.env.get('EBAY_CLIENT_SECRET');
 
-  // Get listing data with timeout protection and essential fields only
+  // Get listing data with enhanced timeout protection and retry logic
   logStep("Fetching listing data", { listingId });
   
   let listing;
-  try {
-    const { data: listingData, error: listingError } = await supabaseClient
-      .from('listings')
-      .select('id, title, description, price, condition, brand, category, photos')
-      .eq('id', listingId)
-      .eq('user_id', userId)
-      .abortSignal(AbortSignal.timeout(10000)) // 10 second timeout
-      .single();
+  let retryCount = 0;
+  const maxRetries = 3;
+  
+  while (retryCount < maxRetries) {
+    try {
+      logStep(`Attempting to fetch listing (attempt ${retryCount + 1}/${maxRetries})`, { listingId });
+      
+      const { data: listingData, error: listingError } = await supabaseClient
+        .from('listings')
+        .select('id, title, description, price, condition, brand, category, photos, status')
+        .eq('id', listingId)
+        .eq('user_id', userId)
+        .abortSignal(AbortSignal.timeout(5000)) // Reduced to 5 second timeout
+        .single();
 
-    if (listingError) {
-      logStep("Listing fetch error", { error: listingError });
-      throw new Error(`Failed to fetch listing: ${listingError.message}`);
+      if (listingError) {
+        logStep("Listing fetch error", { error: listingError, attempt: retryCount + 1 });
+        
+        // If it's a timeout error and we have retries left, continue
+        if (listingError.code === '57014' && retryCount < maxRetries - 1) {
+          retryCount++;
+          logStep("Database timeout, retrying...", { retryCount });
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
+          continue;
+        }
+        
+        throw new Error(`Failed to fetch listing: ${listingError.message}`);
+      }
+      
+      if (!listingData) {
+        logStep("Listing not found", { listingId });
+        throw new Error('Listing not found or you do not have permission to access it');
+      }
+      
+      listing = listingData;
+      logStep("Listing data retrieved successfully", { 
+        title: listing.title, 
+        price: listing.price,
+        attempt: retryCount + 1 
+      });
+      break; // Success, exit retry loop
+      
+    } catch (error) {
+      logStep(`Listing fetch attempt ${retryCount + 1} failed`, { error: error.message });
+      
+      // If it's the last retry or not a timeout error, throw
+      if (retryCount >= maxRetries - 1 || !error.message.includes('timeout')) {
+        logStep("All retry attempts failed", { finalError: error.message });
+        throw new Error(`Listing fetch failed after ${maxRetries} attempts: ${error.message}`);
+      }
+      
+      retryCount++;
+      const backoffDelay = 1000 * Math.pow(2, retryCount - 1); // Exponential backoff
+      logStep("Retrying after backoff", { retryCount, backoffDelay });
+      await new Promise(resolve => setTimeout(resolve, backoffDelay));
     }
-    
-    if (!listingData) {
-      logStep("Listing not found", { listingId });
-      throw new Error('Listing not found');
-    }
-    
-    listing = listingData;
-    logStep("Listing data retrieved", { title: listing.title, price: listing.price });
-  } catch (timeoutError) {
-    logStep("Listing fetch timeout", { error: timeoutError.message });
-    throw new Error('Listing fetch timeout - database may be overloaded. Please try again.');
   }
 
   // Get eBay account

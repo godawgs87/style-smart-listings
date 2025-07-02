@@ -54,36 +54,77 @@ export const useEbaySyncOperation = () => {
         }
       }
 
-      // Use the ebay-integration edge function with account info
+      // Use the ebay-integration edge function with retry logic
       console.log('📡 Calling eBay integration function...');
       console.log('📋 Function payload:', {
         action: 'publish_listing',
         listingId: listing.id
       });
       
-      const { data, error } = await supabase.functions.invoke('ebay-integration', {
-        body: {
-          action: 'publish_listing',
-          listingId: listing.id
+      let retryCount = 0;
+      const maxRetries = 2; // Allow 1 retry for 500 errors
+      let lastError;
+      let successData;
+      
+      while (retryCount <= maxRetries) {
+        try {
+          const { data, error } = await supabase.functions.invoke('ebay-integration', {
+            body: {
+              action: 'publish_listing',
+              listingId: listing.id
+            }
+          });
+
+          console.log('📥 Function response:', { data, error, attempt: retryCount + 1 });
+
+          if (error) {
+            console.error('❌ eBay sync failed with error:', error);
+            
+            // Check if it's a temporary error that we should retry
+            if (error.message.includes('FunctionsHttpError') && retryCount < maxRetries) {
+              console.log(`🔄 Retrying eBay sync (attempt ${retryCount + 1}/${maxRetries + 1})...`);
+              lastError = error;
+              retryCount++;
+              await new Promise(resolve => setTimeout(resolve, 2000 * retryCount)); // 2s, 4s delay
+              continue;
+            }
+            
+            throw new Error(`eBay sync failed: ${error.message}`);
+          }
+
+          // Check for function execution errors (500 status, etc.)
+          if (!data || data?.status !== 'success') {
+            console.error('❌ eBay sync returned failure:', data);
+            const errorMsg = data?.error || 'eBay listing failed - server returned an error';
+            
+            // Retry on server errors if we have retries left
+            if (errorMsg.includes('timeout') && retryCount < maxRetries) {
+              console.log(`🔄 Retrying due to timeout (attempt ${retryCount + 1}/${maxRetries + 1})...`);
+              retryCount++;
+              await new Promise(resolve => setTimeout(resolve, 2000 * retryCount));
+              continue;
+            }
+            
+            throw new Error(errorMsg);
+          }
+          
+          // Success case - store data and break out of retry loop
+          successData = data;
+          break;
+          
+        } catch (err: any) {
+          lastError = err;
+          if (retryCount >= maxRetries) {
+            throw err;
+          }
+          console.log(`🔄 Retrying after error (attempt ${retryCount + 1}/${maxRetries + 1}):`, err.message);
+          retryCount++;
+          await new Promise(resolve => setTimeout(resolve, 2000 * retryCount));
         }
-      });
-
-      console.log('📥 Function response:', { data, error });
-
-      if (error) {
-        console.error('❌ eBay sync failed with error:', error);
-        throw new Error(`eBay sync failed: ${error.message}`);
-      }
-
-      // Check for function execution errors (500 status, etc.)
-      if (!data || data?.status !== 'success') {
-        console.error('❌ eBay sync returned failure:', data);
-        const errorMsg = data?.error || 'eBay listing failed - server returned an error';
-        throw new Error(errorMsg);
       }
 
       // Platform listing record should already be created by ebay-integration function
-      console.log('✅ eBay listing created successfully:', data.platform_listing_id);
+      console.log('✅ eBay listing created successfully:', successData?.platform_listing_id);
 
       toast({
         title: "eBay Sync Successful",
@@ -92,8 +133,8 @@ export const useEbaySyncOperation = () => {
 
       return {
         success: true,
-        platformListingId: data.platform_listing_id,
-        platformUrl: data.platform_url
+        platformListingId: successData?.platform_listing_id,
+        platformUrl: successData?.platform_url
       };
 
     } catch (error: any) {
