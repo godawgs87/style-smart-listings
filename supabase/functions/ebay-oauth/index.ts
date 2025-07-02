@@ -97,7 +97,7 @@ serve(async (req) => {
       }
 
       const redirectUri = 'https://preview--hustly-mvp.lovable.app/ebay/callback';
-      const authUrl = new URL('https://auth.sandbox.ebay.com/oauth2/authorize');
+      const authUrl = new URL('https://auth.ebay.com/oauth2/authorize');
       authUrl.searchParams.set('client_id', ebayClientId);
       authUrl.searchParams.set('redirect_uri', redirectUri);
       authUrl.searchParams.set('response_type', 'code');
@@ -138,7 +138,7 @@ serve(async (req) => {
       console.log('Making eBay token request...');
       
       try {
-        const tokenResponse = await fetch('https://api.sandbox.ebay.com/identity/v1/oauth2/token', {
+        const tokenResponse = await fetch('https://api.ebay.com/identity/v1/oauth2/token', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -222,7 +222,7 @@ serve(async (req) => {
           is_connected: true,
           is_active: true,
           platform_settings: {
-            sandbox: true,
+            sandbox: false,
             scopes: ['https://api.ebay.com/oauth/api_scope']
           }
         };
