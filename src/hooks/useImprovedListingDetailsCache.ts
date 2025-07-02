@@ -88,7 +88,7 @@ export const useImprovedListingDetailsCache = () => {
       
       const { data, error } = await supabase
         .from('listings')
-        .select('id, title, description, price, status, category, condition, shipping_cost, measurements, keywords, photos, price_research, created_at, updated_at, purchase_price, purchase_date, is_consignment, consignment_percentage, consignor_name, consignor_contact, source_location, source_type, cost_basis, fees_paid, listed_date, days_to_sell, performance_notes, sold_price, sold_date, net_profit, profit_margin, user_id')
+        .select('*')
         .eq('id', listingId)
         .single();
 
@@ -106,7 +106,8 @@ export const useImprovedListingDetailsCache = () => {
         keywords: Array.isArray(data.keywords) ? data.keywords : [],
         photos: Array.isArray(data.photos) ? data.photos : [],
         shipping_cost: data.shipping_cost !== null ? Number(data.shipping_cost) : null,
-      };
+        gender: data.gender as "Men" | "Women" | "Kids" | "Unisex" | null,
+      } as Listing;
 
       console.log('✅ Successfully fetched listing details');
       return { details: transformedDetails };

@@ -44,11 +44,8 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
 
       console.log('🔍 Fetching unified inventory for user:', user.id);
 
-      // Use reasonable limit with timeout protection
-      const limit = Math.min(options.limit || 50, 100);
-
-      // Optimized query - essential fields with better performance
-      let query = supabase
+      // Simple query without timeout complexity
+      const { data, error } = await supabase
         .from('listings')
         .select(`
           id, title, price, status, category, condition, created_at, updated_at,
@@ -57,15 +54,7 @@ export const useUnifiedInventory = (options: UnifiedInventoryOptions = {}) => {
         `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(limit);
-
-      // Create timeout promise - longer timeout since we have indexes now
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Query timeout - using cached data')), 8000)
-      );
-
-      // Race the query against timeout
-      const { data, error } = await Promise.race([query, timeoutPromise]);
+        .limit(50);
 
       if (error) {
         console.error('❌ Database error:', error);
