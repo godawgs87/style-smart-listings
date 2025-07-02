@@ -103,6 +103,8 @@ const UserConnectionsTab = () => {
 
   const handleConnectEbay = async () => {
     try {
+      console.log('Starting eBay connection process...');
+      
       // Step 1: Get authorization URL from our edge function
       const { data, error } = await supabase.functions.invoke('ebay-oauth', {
         body: { 
@@ -111,15 +113,25 @@ const UserConnectionsTab = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Edge function error:', error);
+        throw error;
+      }
+
+      console.log('Received OAuth URL data:', data);
+
+      if (!data.auth_url) {
+        throw new Error('No authorization URL received from server');
+      }
 
       // Step 2: Redirect to eBay OAuth page
+      console.log('Redirecting to eBay OAuth URL:', data.auth_url);
       window.location.href = data.auth_url;
     } catch (error: any) {
       console.error('eBay OAuth initiation failed:', error);
       toast({
         title: "Connection Failed",
-        description: error.message || 'Failed to initiate eBay connection',
+        description: error.message || 'Failed to initiate eBay connection. Please check your eBay app configuration.',
         variant: "destructive"
       });
     }

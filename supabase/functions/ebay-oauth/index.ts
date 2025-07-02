@@ -59,21 +59,37 @@ serve(async (req) => {
         'https://api.ebay.com/oauth/api_scope/sell.inventory.readonly',
         'https://api.ebay.com/oauth/api_scope/sell.inventory',
         'https://api.ebay.com/oauth/api_scope/sell.account.readonly',
-        'https://api.ebay.com/oauth/api_scope/sell.account'
+        'https://api.ebay.com/oauth/api_scope/sell.account',
+        'https://api.ebay.com/oauth/api_scope/sell.fulfillment.readonly',
+        'https://api.ebay.com/oauth/api_scope/sell.fulfillment'
       ].join(' ')
+
+      // Validate required parameters
+      if (!ebayConfig.clientId) {
+        throw new Error('eBay Client ID is not configured')
+      }
 
       const authUrl = new URL(`${baseUrl}/oauth2/authorize`)
       authUrl.searchParams.set('client_id', ebayConfig.clientId)
       authUrl.searchParams.set('redirect_uri', ebayConfig.redirectUri)
       authUrl.searchParams.set('response_type', 'code')
       authUrl.searchParams.set('scope', scopes)
-      authUrl.searchParams.set('state', state)
+      authUrl.searchParams.set('state', state || 'default_state')
 
       console.log('Generated OAuth URL:', authUrl.toString())
       console.log('Redirect URI being sent:', ebayConfig.redirectUri)
+      console.log('Client ID (partial):', ebayConfig.clientId ? `${ebayConfig.clientId.substring(0, 8)}...` : 'MISSING')
+      console.log('Scopes:', scopes)
 
       return new Response(
-        JSON.stringify({ auth_url: authUrl.toString() }),
+        JSON.stringify({ 
+          auth_url: authUrl.toString(),
+          debug_info: {
+            client_id: ebayConfig.clientId ? 'present' : 'missing',
+            redirect_uri: ebayConfig.redirectUri,
+            sandbox: ebayConfig.sandbox
+          }
+        }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200 
