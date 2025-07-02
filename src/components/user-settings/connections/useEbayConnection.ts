@@ -28,7 +28,8 @@ export const useEbayConnection = () => {
         const hasRealConnection = accounts && accounts.length > 0 && 
           accounts.some(acc => 
             acc.oauth_token && 
-            acc.oauth_token !== 'mock_oauth_token_1751473213527' &&
+            acc.is_connected === true &&
+            acc.is_active === true &&
             !acc.oauth_token.startsWith('mock_')
           );
 
