@@ -27,14 +27,28 @@ const OptimisticInventoryTableView = ({
   onDuplicateListing,
   onSyncComplete
 }: OptimisticInventoryTableViewProps) => {
+  // PERFORMANCE FIX: Only enable basic columns, disable expensive detail loading
   const visibleColumns = {
-    image: true,
+    image: false, // Disable expensive image loading for inventory table
     title: true,
     price: true,
     status: true,
     category: true,
     condition: true,
-    shipping: true
+    shipping: true,
+    measurements: false,
+    keywords: false,
+    description: false,
+    purchasePrice: false,
+    netProfit: false,
+    profitMargin: false,
+    purchaseDate: false,
+    consignmentStatus: false,
+    sourceType: false,
+    sourceLocation: false,
+    costBasis: false,
+    daysToSell: false,
+    performanceNotes: false
   };
 
   return (

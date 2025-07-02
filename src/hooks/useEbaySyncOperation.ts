@@ -52,27 +52,12 @@ export const useEbaySyncOperation = () => {
         }
       }
 
-      // Use the list-to-ebay edge function with account info
+      // Use the ebay-integration edge function with account info
       console.log('📡 Calling eBay integration function...');
-      const { data, error } = await supabase.functions.invoke('list-to-ebay', {
+      const { data, error } = await supabase.functions.invoke('ebay-integration', {
         body: {
-          listing: {
-            id: listing.id,
-            title: listing.title,
-            description: listing.description || 'No description provided',
-            price: listing.price,
-            shippingCost: listing.shipping_cost || 9.95,
-            photos: listing.photos || [],
-            condition: listing.condition || 'Used',
-            category: listing.category || 'Other',
-            brand: (listing as any).brand,
-            weight_oz: (listing as any).weight_oz
-          },
-          accountInfo: {
-            oauth_token: ebayAccount.oauth_token,
-            account_id: ebayAccount.account_id,
-            account_username: ebayAccount.account_username
-          }
+          action: 'publish_listing',
+          listingId: listing.id
         }
       });
 
@@ -81,36 +66,13 @@ export const useEbaySyncOperation = () => {
         throw new Error(`eBay sync failed: ${error.message}`);
       }
 
-      if (!data?.success) {
+      if (data?.status !== 'success') {
         console.error('❌ eBay sync returned failure:', data);
         throw new Error(data?.error || 'eBay listing failed');
       }
 
-      // Create platform_listing record
-      const { error: insertError } = await supabase
-        .from('platform_listings')
-        .insert({
-          user_id: user.id,
-          listing_id: listing.id,
-          marketplace_account_id: ebayAccount.id,
-          platform: 'ebay',
-          platform_listing_id: data.itemId,
-          platform_url: `https://www.ebay.com/itm/${data.itemId}`,
-          status: 'active',
-          sync_status: 'success',
-          platform_data: {
-            itemId: data.itemId,
-            listingUrl: `https://www.ebay.com/itm/${data.itemId}`,
-            fees: data.fees || {},
-            listingDate: new Date().toISOString()
-          },
-          last_synced_at: new Date().toISOString()
-        });
-
-      if (insertError) {
-        console.error('❌ Failed to save platform listing:', insertError);
-        // Don't throw here as the eBay listing succeeded
-      }
+      // Platform listing record should already be created by ebay-integration function
+      console.log('✅ eBay listing created successfully:', data.platform_listing_id);
 
       toast({
         title: "eBay Sync Successful",
@@ -119,8 +81,8 @@ export const useEbaySyncOperation = () => {
 
       return {
         success: true,
-        platformListingId: data.itemId,
-        platformUrl: `https://www.ebay.com/itm/${data.itemId}`
+        platformListingId: data.platform_listing_id,
+        platformUrl: data.platform_url
       };
 
     } catch (error: any) {
