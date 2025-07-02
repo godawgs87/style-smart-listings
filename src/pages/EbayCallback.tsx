@@ -97,13 +97,25 @@ const EbayCallback = () => {
       <Card className="p-8 max-w-md w-full text-center">
         <div className="space-y-4">
           <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-600" />
-          <h2 className="text-xl font-semibold">Connecting to eBay</h2>
+          <h2 className="text-xl font-semibold">
+            {processing ? "Connecting to eBay" : "Processing Complete"}
+          </h2>
           <p className="text-gray-600">
             {processing 
               ? "Please wait while we complete your eBay connection..."
-              : "Connection processed. Redirecting..."
+              : "Redirecting you back to settings..."
             }
           </p>
+          {!processing && (
+            <div className="mt-4">
+              <button 
+                onClick={() => navigate('/settings')}
+                className="text-blue-600 hover:text-blue-800 underline"
+              >
+                Continue to Settings
+              </button>
+            </div>
+          )}
         </div>
       </Card>
     </div>

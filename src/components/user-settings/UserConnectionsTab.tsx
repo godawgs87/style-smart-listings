@@ -74,6 +74,33 @@ const UserConnectionsTab = () => {
     handlePendingOAuth();
   }, [toast]);
 
+  // Check for existing eBay connection on mount
+  useEffect(() => {
+    const checkEbayConnection = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const { data: accounts } = await supabase
+            .from('marketplace_accounts')
+            .select('*')
+            .eq('platform', 'ebay')
+            .eq('is_connected', true)
+            .single();
+
+          if (accounts) {
+            setPlatforms(prev => prev.map(p => 
+              p.name === 'eBay' ? { ...p, connected: true } : p
+            ));
+          }
+        }
+      } catch (error) {
+        console.log('No existing eBay connection found');
+      }
+    };
+
+    checkEbayConnection();
+  }, []);
+
   const handleConnectEbay = async () => {
     try {
       // Step 1: Get authorization URL from our edge function

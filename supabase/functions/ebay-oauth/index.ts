@@ -31,7 +31,7 @@ serve(async (req) => {
     const ebayConfig: EbayOAuthConfig = {
       clientId: Deno.env.get('EBAY_CLIENT_ID') ?? '',
       clientSecret: Deno.env.get('EBAY_CLIENT_SECRET') ?? '',
-      redirectUri: `${req.headers.get('origin') || 'http://localhost:3000'}/ebay/callback`,
+      redirectUri: 'https://preview--hustly-mvp.lovable.app/ebay/callback',
       sandbox: true // Change to false for production
     }
 
