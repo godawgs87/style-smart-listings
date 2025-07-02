@@ -35,6 +35,13 @@ serve(async (req) => {
       sandbox: true // Change to false for production
     }
 
+    console.log('eBay Config:', {
+      clientId: ebayConfig.clientId ? `${ebayConfig.clientId.substring(0, 8)}...` : 'MISSING',
+      clientSecret: ebayConfig.clientSecret ? 'SET' : 'MISSING',
+      redirectUri: ebayConfig.redirectUri,
+      sandbox: ebayConfig.sandbox
+    })
+
     const baseUrl = ebayConfig.sandbox 
       ? 'https://auth.sandbox.ebay.com'
       : 'https://auth.ebay.com'
