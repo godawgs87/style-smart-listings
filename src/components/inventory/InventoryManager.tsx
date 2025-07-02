@@ -193,12 +193,14 @@ const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) =>
             categories={filters.categories}
             loading={false}
             selectedCount={0}
+            selectedItems={[]}
             onSearchChange={filters.setSearchTerm}
             onStatusChange={filters.setStatusFilter}
             onCategoryChange={filters.setCategoryFilter}
             onClearFilters={filters.handleClearFilters}
             onRefresh={inventory.refetch}
             onCreateListing={onCreateListing}
+            onSyncComplete={inventory.refetch}
           />
           <InventoryEmptyState onCreateListing={onCreateListing} />
         </div>
@@ -258,12 +260,14 @@ const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) =>
           categories={filters.categories}
           loading={inventory.loading}
           selectedCount={selectedItems.length}
+          selectedItems={selectedItems}
           onSearchChange={filters.setSearchTerm}
           onStatusChange={filters.setStatusFilter}
           onCategoryChange={filters.setCategoryFilter}
           onClearFilters={filters.handleClearFilters}
           onRefresh={inventory.refetch}
           onCreateListing={onCreateListing}
+          onSyncComplete={inventory.refetch}
         />
 
         <OptimisticInventoryTableView

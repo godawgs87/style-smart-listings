@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { RefreshCw, Plus, Search } from 'lucide-react';
+import InventorySyncManager from './InventorySyncManager';
 
 interface InventoryControlsProps {
   searchTerm: string;
@@ -14,12 +15,14 @@ interface InventoryControlsProps {
   categories: string[];
   loading: boolean;
   selectedCount: number;
+  selectedItems: string[];
   onSearchChange: (value: string) => void;
   onStatusChange: (value: string) => void;
   onCategoryChange: (value: string) => void;
   onClearFilters: () => void;
   onRefresh: () => void;
   onCreateListing: () => void;
+  onSyncComplete: () => void;
 }
 
 const InventoryControls = ({
@@ -29,12 +32,14 @@ const InventoryControls = ({
   categories,
   loading,
   selectedCount,
+  selectedItems,
   onSearchChange,
   onStatusChange,
   onCategoryChange,
   onClearFilters,
   onRefresh,
-  onCreateListing
+  onCreateListing,
+  onSyncComplete
 }: InventoryControlsProps) => {
   const hasActiveFilters = searchTerm || statusFilter !== 'all' || categoryFilter !== 'all';
 
@@ -51,7 +56,13 @@ const InventoryControls = ({
           />
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          {/* Sync Manager Component */}
+          <InventorySyncManager 
+            selectedItems={selectedItems}
+            onSyncComplete={onSyncComplete}
+          />
+          
           <Button onClick={onRefresh} variant="outline" size="sm" disabled={loading}>
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
