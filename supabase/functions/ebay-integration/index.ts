@@ -46,7 +46,16 @@ serve(async (req) => {
     if (!user?.id) throw new Error("User not authenticated");
     logStep("User authenticated", { userId: user.id });
 
-    const { action, ...params } = await req.json();
+    let requestData;
+    try {
+      requestData = await req.json();
+      logStep("Request data parsed", { action: requestData.action });
+    } catch (parseError) {
+      logStep("JSON parse error", { error: parseError.message });
+      throw new Error(`Invalid JSON in request: ${parseError.message}`);
+    }
+
+    const { action, ...params } = requestData;
 
     switch (action) {
       case 'connect_account':
@@ -67,7 +76,7 @@ serve(async (req) => {
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: errorMessage });
+    logStep("ERROR", { message: errorMessage, stack: error instanceof Error ? error.stack : undefined });
     return new Response(JSON.stringify({ error: errorMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
