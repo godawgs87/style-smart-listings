@@ -90,6 +90,23 @@ export const useEbayConnection = () => {
     try {
       console.log('Starting eBay connection process...');
       
+      // Test the function first
+      const { data: testData, error: testError } = await supabase.functions.invoke('ebay-oauth', {
+        body: { action: 'test' }
+      });
+      
+      if (testError) {
+        console.error('Function test failed:', testError);
+        toast({
+          title: "Function Error", 
+          description: "Edge function is not responding properly",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      console.log('Function test successful:', testData);
+      
       // First check if credentials are configured
       const { data: debugData, error: debugError } = await supabase.functions.invoke('ebay-oauth', {
         body: { action: 'debug' }

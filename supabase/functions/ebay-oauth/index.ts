@@ -58,9 +58,11 @@ serve(async (req) => {
       : 'https://api.ebay.com'
 
     if (action === 'debug') {
+      console.log('=== DEBUG ENDPOINT CALLED ===')
       return new Response(
         JSON.stringify({ 
           status: 'ok',
+          timestamp: new Date().toISOString(),
           config: {
             clientId: ebayConfig.clientId ? 'configured' : 'missing',
             clientSecret: ebayConfig.clientSecret ? 'configured' : 'missing',
@@ -69,6 +71,20 @@ serve(async (req) => {
             baseUrl,
             apiUrl
           }
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200 
+        }
+      )
+    }
+
+    if (action === 'test') {
+      console.log('=== TEST ENDPOINT CALLED ===')
+      return new Response(
+        JSON.stringify({ 
+          message: 'Function is working',
+          timestamp: new Date().toISOString()
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
