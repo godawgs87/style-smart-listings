@@ -27,9 +27,9 @@ const OptimisticInventoryTableView = ({
   onDuplicateListing,
   onSyncComplete
 }: OptimisticInventoryTableViewProps) => {
-  // PERFORMANCE FIX: Only enable basic columns, disable expensive detail loading
+  // Optimized columns with image loading enabled but efficiently cached
   const visibleColumns = {
-    image: false, // Disable expensive image loading for inventory table
+    image: true, // Enable image loading with optimized caching
     title: true,
     price: true,
     status: true,

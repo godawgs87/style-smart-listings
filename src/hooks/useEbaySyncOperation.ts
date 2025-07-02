@@ -75,9 +75,11 @@ export const useEbaySyncOperation = () => {
         throw new Error(`eBay sync failed: ${error.message}`);
       }
 
-      if (data?.status !== 'success') {
+      // Check for function execution errors (500 status, etc.)
+      if (!data || data?.status !== 'success') {
         console.error('❌ eBay sync returned failure:', data);
-        throw new Error(data?.error || 'eBay listing failed');
+        const errorMsg = data?.error || 'eBay listing failed - server returned an error';
+        throw new Error(errorMsg);
       }
 
       // Platform listing record should already be created by ebay-integration function
