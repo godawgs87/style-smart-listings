@@ -61,6 +61,37 @@ serve(async (req) => {
       });
     }
 
+    // Get auth URL action
+    if (action === 'get_auth_url') {
+      console.log('✅ Get auth URL action triggered');
+      const ebayClientId = Deno.env.get('EBAY_CLIENT_ID');
+      
+      if (!ebayClientId) {
+        console.error('eBay Client ID not configured');
+        return new Response(JSON.stringify({
+          error: 'eBay Client ID not configured'
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500
+        });
+      }
+
+      const redirectUri = 'https://preview--hustly-mvp.lovable.app/ebay/callback';
+      const authUrl = new URL('https://auth.sandbox.ebay.com/oauth2/authorize');
+      authUrl.searchParams.set('client_id', ebayClientId);
+      authUrl.searchParams.set('redirect_uri', redirectUri);
+      authUrl.searchParams.set('response_type', 'code');
+      authUrl.searchParams.set('scope', 'https://api.ebay.com/oauth/api_scope');
+      authUrl.searchParams.set('state', state || 'default');
+
+      console.log('Generated auth URL:', authUrl.toString());
+      return new Response(JSON.stringify({
+        auth_url: authUrl.toString()
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     // Exchange code action
     if (action === 'exchange_code') {
       console.log('✅ Exchange code action triggered');
