@@ -18,6 +18,12 @@ const EbayCallback = () => {
         const state = searchParams.get('state');
         const error = searchParams.get('error');
 
+        console.log('eBay OAuth callback received:', { 
+          code: code ? 'present' : 'missing', 
+          state: state ? 'present' : 'missing', 
+          error 
+        });
+
         if (error) {
           throw new Error(`eBay OAuth error: ${error}`);
         }
@@ -28,11 +34,33 @@ const EbayCallback = () => {
 
         console.log('Processing eBay OAuth callback with code:', code);
 
-        // Get current session for authentication
-        const { data: { session } } = await supabase.auth.getSession();
+        // Get current session for authentication - with retry logic
+        let session = null;
+        let attempts = 0;
+        const maxAttempts = 3;
+        
+        while (!session && attempts < maxAttempts) {
+          attempts++;
+          console.log(`Attempting to get session (attempt ${attempts}/${maxAttempts})`);
+          
+          const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+          
+          if (sessionError) {
+            console.error('Session error:', sessionError);
+            throw new Error(`Session error: ${sessionError.message}`);
+          }
+          
+          session = currentSession;
+          
+          if (!session && attempts < maxAttempts) {
+            console.log('No session found, waiting 1 second before retry...');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
         
         if (!session) {
           // User is not authenticated, store the OAuth data and redirect to login
+          console.log('No session found after retries, storing OAuth data for later');
           localStorage.setItem('ebay_oauth_pending', JSON.stringify({ code, state }));
           toast({
             title: "Please Log In",
@@ -43,10 +71,16 @@ const EbayCallback = () => {
           return;
         }
 
+        console.log('Session found, proceeding with token exchange:', {
+          userId: session.user?.id,
+          tokenPresent: !!session.access_token
+        });
+
         // Exchange the authorization code for access token
         const { data, error: exchangeError } = await supabase.functions.invoke('ebay-oauth', {
           headers: {
-            Authorization: `Bearer ${session.access_token}`
+            Authorization: `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json'
           },
           body: { 
             action: 'exchange_code',
@@ -55,11 +89,18 @@ const EbayCallback = () => {
           }
         });
 
+        console.log('Token exchange response:', {
+          hasData: !!data,
+          hasError: !!exchangeError,
+          errorMessage: exchangeError?.message
+        });
+
         if (exchangeError) {
+          console.error('Token exchange error:', exchangeError);
           throw exchangeError;
         }
 
-        if (data.success) {
+        if (data?.success) {
           // Clear any pending OAuth data
           localStorage.removeItem('ebay_oauth_pending');
           

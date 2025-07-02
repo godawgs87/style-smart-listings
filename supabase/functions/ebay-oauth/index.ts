@@ -39,8 +39,14 @@ serve(async (req) => {
       clientId: ebayConfig.clientId ? `${ebayConfig.clientId.substring(0, 8)}...` : 'MISSING',
       clientSecret: ebayConfig.clientSecret ? 'SET' : 'MISSING',
       redirectUri: ebayConfig.redirectUri,
-      sandbox: ebayConfig.sandbox
+      sandbox: ebayConfig.sandbox,
+      action: action
     })
+
+    // Validate required configuration
+    if (!ebayConfig.clientId || !ebayConfig.clientSecret) {
+      throw new Error('eBay Client ID and Client Secret must be configured')
+    }
 
     const baseUrl = ebayConfig.sandbox 
       ? 'https://auth.sandbox.ebay.com'
@@ -98,6 +104,11 @@ serve(async (req) => {
     }
 
     if (action === 'exchange_code') {
+      console.log('Starting token exchange process...')
+      console.log('Request headers:', Object.fromEntries(req.headers.entries()))
+      console.log('Code received:', code ? 'present' : 'missing')
+      console.log('State received:', state ? 'present' : 'missing')
+      
       // Step 2: Exchange authorization code for access token
       const tokenResponse = await fetch(`${baseUrl}/identity/v1/oauth2/token`, {
         method: 'POST',
@@ -140,13 +151,26 @@ serve(async (req) => {
 
       // Step 4: Store the connection in database
       const authHeader = req.headers.get('Authorization')
+      console.log('Auth header check:', {
+        headerPresent: !!authHeader,
+        headerValue: authHeader ? `${authHeader.substring(0, 20)}...` : 'missing'
+      })
+      
       if (!authHeader) {
+        console.error('No authorization header provided')
         throw new Error('No authorization header provided')
       }
 
+      console.log('Attempting to validate user with Supabase...')
       const { data: authData, error: authError } = await supabase.auth.getUser(
         authHeader.replace('Bearer ', '')
       )
+
+      console.log('Supabase auth result:', {
+        userPresent: !!authData?.user,
+        userId: authData?.user?.id,
+        error: authError?.message
+      })
 
       if (authError || !authData.user) {
         console.error('Authentication error:', authError)
