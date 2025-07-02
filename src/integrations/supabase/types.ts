@@ -53,12 +53,99 @@ export type Database = {
           },
         ]
       }
+      listing_photos: {
+        Row: {
+          ai_analysis_status: string | null
+          compressed_path: string | null
+          confidence_scores: Json | null
+          created_at: string | null
+          detected_brand: string | null
+          detected_colors: Json | null
+          detected_flaws: Json | null
+          detected_material: string | null
+          detected_measurements: Json | null
+          file_size_bytes: number | null
+          id: string
+          is_primary: boolean | null
+          listing_id: string | null
+          mime_type: string | null
+          original_filename: string | null
+          photo_order: number
+          photo_type: string | null
+          storage_path: string
+          thumbnail_path: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          ai_analysis_status?: string | null
+          compressed_path?: string | null
+          confidence_scores?: Json | null
+          created_at?: string | null
+          detected_brand?: string | null
+          detected_colors?: Json | null
+          detected_flaws?: Json | null
+          detected_material?: string | null
+          detected_measurements?: Json | null
+          file_size_bytes?: number | null
+          id?: string
+          is_primary?: boolean | null
+          listing_id?: string | null
+          mime_type?: string | null
+          original_filename?: string | null
+          photo_order?: number
+          photo_type?: string | null
+          storage_path: string
+          thumbnail_path?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          ai_analysis_status?: string | null
+          compressed_path?: string | null
+          confidence_scores?: Json | null
+          created_at?: string | null
+          detected_brand?: string | null
+          detected_colors?: Json | null
+          detected_flaws?: Json | null
+          detected_material?: string | null
+          detected_measurements?: Json | null
+          file_size_bytes?: number | null
+          id?: string
+          is_primary?: boolean | null
+          listing_id?: string | null
+          mime_type?: string | null
+          original_filename?: string | null
+          photo_order?: number
+          photo_type?: string | null
+          storage_path?: string
+          thumbnail_path?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_photos_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listings: {
         Row: {
           age_group: string | null
+          ai_analysis_status: string | null
+          ai_confidence_score: number | null
+          ai_suggestions: Json | null
+          brand: string | null
+          bulk_session_id: string | null
           category: string | null
           category_id: string | null
           clothing_size: string | null
+          color_primary: string | null
+          color_secondary: string | null
           condition: string | null
           consignment_percentage: number | null
           consignor_contact: string | null
@@ -73,31 +160,53 @@ export type Database = {
           is_consignment: boolean | null
           keywords: string[] | null
           listed_date: string | null
+          markup_percentage: number | null
+          material: string | null
           measurements: Json | null
+          minimum_price: number | null
           net_profit: number | null
+          package_height_in: number | null
+          package_length_in: number | null
+          package_width_in: number | null
+          pattern: string | null
           performance_notes: string | null
           photos: string[] | null
           price: number
           price_research: string | null
+          processing_order: number | null
           profit_margin: number | null
           purchase_date: string | null
           purchase_price: number | null
           shipping_cost: number | null
+          ships_from_zip: string | null
           shoe_size: string | null
+          size_type: string | null
+          size_value: string | null
           sold_date: string | null
           sold_price: number | null
           source_location: string | null
           source_type: string | null
           status: string | null
+          target_price: number | null
           title: string
           updated_at: string
           user_id: string
+          user_notes: string | null
+          user_review_status: string | null
+          weight_oz: number | null
         }
         Insert: {
           age_group?: string | null
+          ai_analysis_status?: string | null
+          ai_confidence_score?: number | null
+          ai_suggestions?: Json | null
+          brand?: string | null
+          bulk_session_id?: string | null
           category?: string | null
           category_id?: string | null
           clothing_size?: string | null
+          color_primary?: string | null
+          color_secondary?: string | null
           condition?: string | null
           consignment_percentage?: number | null
           consignor_contact?: string | null
@@ -112,31 +221,53 @@ export type Database = {
           is_consignment?: boolean | null
           keywords?: string[] | null
           listed_date?: string | null
+          markup_percentage?: number | null
+          material?: string | null
           measurements?: Json | null
+          minimum_price?: number | null
           net_profit?: number | null
+          package_height_in?: number | null
+          package_length_in?: number | null
+          package_width_in?: number | null
+          pattern?: string | null
           performance_notes?: string | null
           photos?: string[] | null
           price: number
           price_research?: string | null
+          processing_order?: number | null
           profit_margin?: number | null
           purchase_date?: string | null
           purchase_price?: number | null
           shipping_cost?: number | null
+          ships_from_zip?: string | null
           shoe_size?: string | null
+          size_type?: string | null
+          size_value?: string | null
           sold_date?: string | null
           sold_price?: number | null
           source_location?: string | null
           source_type?: string | null
           status?: string | null
+          target_price?: number | null
           title: string
           updated_at?: string
           user_id: string
+          user_notes?: string | null
+          user_review_status?: string | null
+          weight_oz?: number | null
         }
         Update: {
           age_group?: string | null
+          ai_analysis_status?: string | null
+          ai_confidence_score?: number | null
+          ai_suggestions?: Json | null
+          brand?: string | null
+          bulk_session_id?: string | null
           category?: string | null
           category_id?: string | null
           clothing_size?: string | null
+          color_primary?: string | null
+          color_secondary?: string | null
           condition?: string | null
           consignment_percentage?: number | null
           consignor_contact?: string | null
@@ -151,25 +282,40 @@ export type Database = {
           is_consignment?: boolean | null
           keywords?: string[] | null
           listed_date?: string | null
+          markup_percentage?: number | null
+          material?: string | null
           measurements?: Json | null
+          minimum_price?: number | null
           net_profit?: number | null
+          package_height_in?: number | null
+          package_length_in?: number | null
+          package_width_in?: number | null
+          pattern?: string | null
           performance_notes?: string | null
           photos?: string[] | null
           price?: number
           price_research?: string | null
+          processing_order?: number | null
           profit_margin?: number | null
           purchase_date?: string | null
           purchase_price?: number | null
           shipping_cost?: number | null
+          ships_from_zip?: string | null
           shoe_size?: string | null
+          size_type?: string | null
+          size_value?: string | null
           sold_date?: string | null
           sold_price?: number | null
           source_location?: string | null
           source_type?: string | null
           status?: string | null
+          target_price?: number | null
           title?: string
           updated_at?: string
           user_id?: string
+          user_notes?: string | null
+          user_review_status?: string | null
+          weight_oz?: number | null
         }
         Relationships: [
           {
@@ -180,6 +326,125 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      subscriptions: {
+        Row: {
+          billing_cycle: string | null
+          canceled_at: string | null
+          created_at: string | null
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          plan_name: string
+          plan_price_monthly: number | null
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          trial_end: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          billing_cycle?: string | null
+          canceled_at?: string | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan_name: string
+          plan_price_monthly?: number | null
+          status: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          trial_end?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          billing_cycle?: string | null
+          canceled_at?: string | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan_name?: string
+          plan_price_monthly?: number | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          trial_end?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_profiles: {
+        Row: {
+          ai_training_completed: boolean | null
+          created_at: string | null
+          default_markup_percentage: number | null
+          email: string
+          full_name: string | null
+          id: string
+          last_photo_reset_date: string | null
+          monthly_photo_limit: number | null
+          onboarding_completed: boolean | null
+          photos_used_this_month: number | null
+          preferred_shipping_service: string | null
+          subscription_ends_at: string | null
+          subscription_status: string | null
+          subscription_tier: string | null
+          timezone: string | null
+          trial_ends_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ai_training_completed?: boolean | null
+          created_at?: string | null
+          default_markup_percentage?: number | null
+          email: string
+          full_name?: string | null
+          id: string
+          last_photo_reset_date?: string | null
+          monthly_photo_limit?: number | null
+          onboarding_completed?: boolean | null
+          photos_used_this_month?: number | null
+          preferred_shipping_service?: string | null
+          subscription_ends_at?: string | null
+          subscription_status?: string | null
+          subscription_tier?: string | null
+          timezone?: string | null
+          trial_ends_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ai_training_completed?: boolean | null
+          created_at?: string | null
+          default_markup_percentage?: number | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          last_photo_reset_date?: string | null
+          monthly_photo_limit?: number | null
+          onboarding_completed?: boolean | null
+          photos_used_this_month?: number | null
+          preferred_shipping_service?: string | null
+          subscription_ends_at?: string | null
+          subscription_status?: string | null
+          subscription_tier?: string | null
+          timezone?: string | null
+          trial_ends_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
     }
     Views: {
