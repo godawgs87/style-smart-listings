@@ -1,12 +1,30 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { CreditCard, Download, Calendar } from 'lucide-react';
+import { CreditCard, Download, Calendar, ExternalLink } from 'lucide-react';
+import { useSubscriptionManagement } from '@/hooks/useSubscriptionManagement';
 
 const UserBillingTab = () => {
+  const { subscriptionStatus, createCheckout, openCustomerPortal, checking, creating } = useSubscriptionManagement();
+  const [planName, setPlanName] = useState('Free Plan');
+
+  useEffect(() => {
+    if (subscriptionStatus?.subscribed) {
+      setPlanName(subscriptionStatus.subscription_tier || 'Unknown Plan');
+    }
+  }, [subscriptionStatus]);
+
+  const handleUpgrade = async (plan: 'starter' | 'professional' | 'enterprise') => {
+    await createCheckout(plan);
+  };
+
+  const handleManageSubscription = async () => {
+    await openCustomerPortal();
+  };
+
   return (
     <Card className="p-6">
       <div className="flex items-center space-x-3 mb-6">
@@ -21,28 +39,83 @@ const UserBillingTab = () => {
               <h4 className="text-lg font-medium">Current Plan</h4>
               <p className="text-sm text-gray-600">Manage your subscription</p>
             </div>
-            <Badge className="bg-blue-100 text-blue-800">Pro Plan</Badge>
+            <Badge className={subscriptionStatus?.subscribed ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}>
+              {planName}
+            </Badge>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div className="p-4 border rounded-lg">
-              <p className="text-2xl font-bold">$29</p>
-              <p className="text-sm text-gray-600">per month</p>
-            </div>
-            <div className="p-4 border rounded-lg">
-              <p className="text-2xl font-bold">1,250</p>
-              <p className="text-sm text-gray-600">listings used</p>
-            </div>
-            <div className="p-4 border rounded-lg">
-              <p className="text-2xl font-bold">750</p>
-              <p className="text-sm text-gray-600">remaining</p>
-            </div>
-          </div>
+          {subscriptionStatus?.subscribed ? (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div className="p-4 border rounded-lg">
+                  <p className="text-lg font-semibold text-green-600">Active Subscription</p>
+                  <p className="text-sm text-gray-600">
+                    {subscriptionStatus.subscription_end 
+                      ? `Renews ${new Date(subscriptionStatus.subscription_end).toLocaleDateString()}`
+                      : 'Subscription active'
+                    }
+                  </p>
+                </div>
+                <div className="p-4 border rounded-lg">
+                  <p className="text-lg font-semibold">Unlimited</p>
+                  <p className="text-sm text-gray-600">Monthly listings</p>
+                </div>
+              </div>
 
-          <div className="flex space-x-2">
-            <Button variant="outline">Change Plan</Button>
-            <Button variant="outline">Cancel Subscription</Button>
-          </div>
+              <div className="flex space-x-2">
+                <Button 
+                  onClick={handleManageSubscription}
+                  className="flex items-center space-x-2"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span>Manage Subscription</span>
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div className="p-4 border rounded-lg">
+                  <p className="text-2xl font-bold">$0</p>
+                  <p className="text-sm text-gray-600">per month</p>
+                </div>
+                <div className="p-4 border rounded-lg">
+                  <p className="text-2xl font-bold">10</p>
+                  <p className="text-sm text-gray-600">monthly limit</p>
+                </div>
+                <div className="p-4 border rounded-lg">
+                  <p className="text-2xl font-bold">Basic</p>
+                  <p className="text-sm text-gray-600">features</p>
+                </div>
+              </div>
+
+              <div className="bg-blue-50 p-4 rounded-lg mb-4">
+                <h5 className="font-medium text-blue-900 mb-2">Upgrade to unlock more features:</h5>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>• Unlimited listings</li>
+                  <li>• Multiple marketplace integrations</li>
+                  <li>• Advanced analytics</li>
+                  <li>• Priority support</li>
+                </ul>
+              </div>
+
+              <div className="flex space-x-2">
+                <Button 
+                  onClick={() => handleUpgrade('starter')}
+                  disabled={creating}
+                  variant="outline"
+                >
+                  {creating ? 'Processing...' : 'Side Hustler - $19.99/mo'}
+                </Button>
+                <Button 
+                  onClick={() => handleUpgrade('professional')}
+                  disabled={creating}
+                >
+                  {creating ? 'Processing...' : 'Serious Seller - $39.99/mo'}
+                </Button>
+              </div>
+            </>
+          )}
         </div>
 
         <Separator />
