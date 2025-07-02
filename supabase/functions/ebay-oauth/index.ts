@@ -161,12 +161,17 @@ serve(async (req) => {
         }
 
         console.log('Storing marketplace account for user:', user.id)
+        
+        // Calculate expiration time (eBay tokens typically expire in 2 hours = 7200 seconds)
+        const expiresIn = tokenData.expires_in || 7200
+        const expirationTime = new Date(Date.now() + (expiresIn * 1000))
+        
         const { data: accountData, error: dbError } = await supabase.from('marketplace_accounts').upsert({
           user_id: user.id,
           platform: 'ebay',
           oauth_token: tokenData.access_token,
           refresh_token: tokenData.refresh_token,
-          oauth_expires_at: new Date(Date.now() + (tokenData.expires_in * 1000)).toISOString(),
+          oauth_expires_at: expirationTime.toISOString(),
           account_username: 'ebay_user',
           is_connected: true,
           is_active: true,
