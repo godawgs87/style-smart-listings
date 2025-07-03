@@ -92,66 +92,81 @@ serve(async (req) => {
 });
 
 async function connectEbayAccount(supabaseClient: any, userId: string, params: any) {
-  logStep("Connecting eBay account", { userId });
+  logStep("Connecting eBay account via Trading API Auth'n'Auth", { userId });
 
-  // In a real implementation, this would handle OAuth flow
-  // For now, we'll simulate the connection process
-  const { username, oauth_token } = params;
+  const { step, sessionId } = params;
 
-  if (!username || !oauth_token) {
-    throw new Error('Username and OAuth token required');
-  }
+  if (step === 'get_session_id') {
+    // Step 1: Get Session ID from eBay
+    const sessionResponse = await fetch(
+      `${Deno.env.get("SUPABASE_URL")}/functions/v1/ebay-auth`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ action: 'get_session_id' })
+      }
+    );
 
-  // Check if account already exists
-  const { data: existingAccount } = await supabaseClient
-    .from('marketplace_accounts')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('platform', 'ebay')
-    .single();
-
-  const accountData = {
-    user_id: userId,
-    platform: 'ebay',
-    account_username: username,
-    is_connected: true,
-    is_active: true,
-    oauth_token: oauth_token,
-    oauth_expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 year
-    account_id: `ebay_${username}`,
-    seller_level: 'standard',
-    api_permissions: ['read', 'write'],
-    last_sync_at: new Date().toISOString(),
-    platform_settings: {
-      auto_list: true,
-      auto_relist: false,
-      listing_duration: '7_days',
-      listing_format: 'auction_with_bin'
+    if (!sessionResponse.ok) {
+      throw new Error('Failed to get eBay session ID');
     }
-  };
 
-  const { error } = await supabaseClient
-    .from('marketplace_accounts')
-    .upsert(accountData, { onConflict: 'user_id,platform' });
+    const sessionData = await sessionResponse.json();
+    logStep("Session ID generated", { sessionId: sessionData.sessionId });
 
-  if (error) {
-    throw new Error(`Failed to save eBay account: ${error.message}`);
-  }
+    return new Response(JSON.stringify({
+      status: 'session_created',
+      sessionId: sessionData.sessionId,
+      signInUrl: sessionData.signInUrl,
+      message: 'Please complete eBay sign-in at the provided URL, then call with step=fetch_token'
+    }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200,
+    });
 
-  logStep("eBay account connected successfully", { username });
-
-  return new Response(JSON.stringify({
-    status: 'success',
-    message: 'eBay account connected successfully',
-    account: {
-      platform: 'ebay',
-      username: username,
-      connected: true
+  } else if (step === 'fetch_token') {
+    // Step 2: Exchange Session ID for Auth Token
+    if (!sessionId) {
+      throw new Error('Session ID required for token fetch');
     }
-  }), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-    status: 200,
-  });
+
+    const tokenResponse = await fetch(
+      `${Deno.env.get("SUPABASE_URL")}/functions/v1/ebay-auth`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          action: 'fetch_token', 
+          sessionId: sessionId 
+        })
+      }
+    );
+
+    if (!tokenResponse.ok) {
+      throw new Error('Failed to fetch eBay auth token');
+    }
+
+    const tokenData = await tokenResponse.json();
+    logStep("eBay token fetched successfully");
+
+    return new Response(JSON.stringify({
+      status: 'success',
+      message: 'eBay account connected successfully',
+      account: tokenData.account
+    }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200,
+    });
+
+  } else {
+    throw new Error('Invalid step. Use step=get_session_id or step=fetch_token');
+  }
 }
 
 async function importSoldListings(supabaseClient: any, userId: string, params: any) {
