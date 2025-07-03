@@ -1,85 +1,290 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { X } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { X, Edit, DollarSign, Package, Calendar, User, MapPin, TrendingUp, Clock, FileText } from 'lucide-react';
+import { useListingDetails } from '@/hooks/useListingDetails';
+import ListingImagePreview from '@/components/ListingImagePreview';
 import type { Listing } from '@/types/Listing';
 
 interface SimpleListingModalProps {
   listing: Listing;
   onClose: () => void;
+  onEdit?: () => void;
 }
 
-const SimpleListingModal = ({ listing, onClose }: SimpleListingModalProps) => {
+const SimpleListingModal = ({ listing, onClose, onEdit }: SimpleListingModalProps) => {
+  const { loadDetails } = useListingDetails();
+  const [detailedListing, setDetailedListing] = useState<Listing>(listing);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    
+    const loadListingDetails = async () => {
+      try {
+        const details = await loadDetails(listing.id);
+        if (details && isMounted) {
+          setDetailedListing({ ...listing, ...details });
+        }
+      } catch (error) {
+        console.error('Error loading listing details:', error);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadListingDetails();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [listing.id, loadDetails, listing]);
+
+  const renderSizeInfo = () => {
+    const sizeFields = [
+      { label: 'Gender', value: detailedListing.gender },
+      { label: 'Age Group', value: detailedListing.age_group },
+      { label: 'Clothing Size', value: detailedListing.clothing_size },
+      { label: 'Shoe Size', value: detailedListing.shoe_size }
+    ].filter(field => field.value);
+
+    if (sizeFields.length === 0) return null;
+
+    return (
+      <div className="space-y-3">
+        <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+          <User className="w-4 h-4" />
+          Size Information
+        </h3>
+        <div className="grid grid-cols-2 gap-2">
+          {sizeFields.map((field, index) => (
+            <div key={index} className="flex justify-between">
+              <span className="text-sm text-gray-600">{field.label}:</span>
+              <Badge variant="outline" className="text-xs">{field.value}</Badge>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderMeasurements = () => {
+    if (!detailedListing.measurements || typeof detailedListing.measurements !== 'object') {
+      return null;
+    }
+
+    const measurements = detailedListing.measurements as Record<string, any>;
+    const measurementEntries = Object.entries(measurements).filter(([_, value]) => value);
+
+    if (measurementEntries.length === 0) return null;
+
+    return (
+      <div className="space-y-3">
+        <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+          <Package className="w-4 h-4" />
+          Measurements
+        </h3>
+        <div className="grid grid-cols-2 gap-2">
+          {measurementEntries.map(([key, value], index) => (
+            <div key={index} className="flex justify-between">
+              <span className="text-sm text-gray-600 capitalize">{key.replace('_', ' ')}:</span>
+              <span className="text-sm font-medium">{value}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderFinancialInfo = () => {
+    const hasFinancialData = detailedListing.purchase_price || detailedListing.cost_basis || detailedListing.profit_margin;
+    if (!hasFinancialData) return null;
+
+    return (
+      <div className="space-y-3">
+        <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+          <TrendingUp className="w-4 h-4" />
+          Financial Information
+        </h3>
+        <div className="grid grid-cols-2 gap-4">
+          {detailedListing.purchase_price && (
+            <div className="text-center p-3 bg-gray-50 rounded">
+              <p className="text-sm text-gray-600">Purchase Price</p>
+              <p className="text-lg font-semibold">${detailedListing.purchase_price}</p>
+            </div>
+          )}
+          {detailedListing.profit_margin && (
+            <div className="text-center p-3 bg-green-50 rounded">
+              <p className="text-sm text-gray-600">Profit Margin</p>
+              <p className="text-lg font-semibold text-green-600">{detailedListing.profit_margin}%</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderSourceInfo = () => {
+    const hasSourceData = detailedListing.source_type || detailedListing.source_location || detailedListing.purchase_date;
+    if (!hasSourceData) return null;
+
+    return (
+      <div className="space-y-3">
+        <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+          <MapPin className="w-4 h-4" />
+          Source Information
+        </h3>
+        <div className="space-y-2">
+          {detailedListing.source_type && (
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-600">Source Type:</span>
+              <Badge variant="secondary">{detailedListing.source_type}</Badge>
+            </div>
+          )}
+          {detailedListing.source_location && (
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-600">Location:</span>
+              <span className="text-sm">{detailedListing.source_location}</span>
+            </div>
+          )}
+          {detailedListing.purchase_date && (
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-600">Purchase Date:</span>
+              <span className="text-sm">{new Date(detailedListing.purchase_date).toLocaleDateString()}</span>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
+      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto animate-scale-in">
         {/* Header */}
-        <div className="flex justify-between items-start p-6 border-b">
-          <div>
-            <h2 className="text-xl font-semibold mb-2">{listing.title}</h2>
-            <div className="flex gap-2">
-              <Badge variant={listing.status === 'active' ? 'default' : 'secondary'}>
-                {listing.status}
+        <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between rounded-t-lg">
+          <div className="flex-1 pr-4">
+            <h2 className="text-xl font-semibold mb-2">{detailedListing.title}</h2>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant={detailedListing.status === 'active' ? 'default' : 'secondary'}>
+                {detailedListing.status}
               </Badge>
-              <Badge variant="outline">{listing.category || 'No category'}</Badge>
-              <Badge variant="outline">{listing.condition || 'No condition'}</Badge>
+              <Badge variant="outline">{detailedListing.category || 'No category'}</Badge>
+              <Badge variant="outline">{detailedListing.condition || 'No condition'}</Badge>
+              {(detailedListing as any).brand && (
+                <Badge variant="outline">{(detailedListing as any).brand}</Badge>
+              )}
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            <X className="w-4 h-4" />
-          </Button>
+          <div className="flex gap-2">
+            {onEdit && (
+              <Button variant="outline" size="sm" onClick={onEdit}>
+                <Edit className="w-4 h-4 mr-1" />
+                Edit
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
-          {/* Basic Info */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <h3 className="font-medium mb-1">Price</h3>
-              <p className="text-2xl font-bold text-green-600">${listing.price}</p>
+        <div className="p-6">
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
             </div>
-            <div>
-              <h3 className="font-medium mb-1">Shipping</h3>
-              <p className="text-lg">${listing.shipping_cost || 9.95}</p>
-            </div>
-          </div>
-
-          {/* Description */}
-          {listing.description && (
-            <div>
-              <h3 className="font-medium mb-2">Description</h3>
-              <p className="text-gray-700">{listing.description}</p>
-            </div>
-          )}
-
-          {/* Photos */}
-          {listing.photos && listing.photos.length > 0 && (
-            <div>
-              <h3 className="font-medium mb-2">Photos</h3>
-              <div className="grid grid-cols-3 gap-2">
-                {listing.photos.slice(0, 6).map((photo, index) => (
-                  <img
-                    key={index}
-                    src={photo}
-                    alt={`${listing.title} ${index + 1}`}
-                    className="w-full h-24 object-cover rounded border"
+          ) : (
+            <div className="space-y-6">
+              {/* Image and Basic Info */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-1">
+                  <ListingImagePreview 
+                    photos={detailedListing.photos} 
+                    title={detailedListing.title}
+                    className="w-full h-64 object-cover rounded-lg"
                   />
-                ))}
+                </div>
+                <div className="md:col-span-2 space-y-4">
+                  {/* Pricing */}
+                  <Card>
+                    <CardContent className="p-4">
+                      <h3 className="font-semibold mb-3 flex items-center gap-2">
+                        <DollarSign className="w-4 h-4" />
+                        Pricing
+                      </h3>
+                      <div className="flex items-center justify-between">
+                        <div className="text-center">
+                          <p className="text-sm text-gray-600">List Price</p>
+                          <p className="text-2xl font-bold text-green-600">${detailedListing.price}</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm text-gray-600">Shipping</p>
+                          <p className="text-lg font-medium">${detailedListing.shipping_cost || 9.95}</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm text-gray-600">Total</p>
+                          <p className="text-lg font-semibold">${(detailedListing.price + (detailedListing.shipping_cost || 9.95)).toFixed(2)}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Description */}
+                  {detailedListing.description && (
+                    <Card>
+                      <CardContent className="p-4">
+                        <h3 className="font-semibold mb-2 flex items-center gap-2">
+                          <FileText className="w-4 h-4" />
+                          Description
+                        </h3>
+                        <p className="text-gray-700 leading-relaxed">{detailedListing.description}</p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
 
-          {/* Keywords */}
-          {listing.keywords && listing.keywords.length > 0 && (
-            <div>
-              <h3 className="font-medium mb-2">Keywords</h3>
-              <div className="flex flex-wrap gap-1">
-                {listing.keywords.map((keyword, index) => (
-                  <Badge key={index} variant="secondary" className="text-xs">
-                    {keyword}
-                  </Badge>
-                ))}
-              </div>
+              <Separator />
+
+              {/* Size Information */}
+              {renderSizeInfo()}
+              
+              {renderSizeInfo() && <Separator />}
+
+              {/* Measurements */}
+              {renderMeasurements()}
+              
+              {renderMeasurements() && <Separator />}
+
+              {/* Financial Information */}
+              {renderFinancialInfo()}
+              
+              {renderFinancialInfo() && <Separator />}
+
+              {/* Source Information */}
+              {renderSourceInfo()}
+              
+              {renderSourceInfo() && <Separator />}
+
+              {/* Keywords */}
+              {detailedListing.keywords && detailedListing.keywords.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-gray-900">Keywords</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {detailedListing.keywords.map((keyword, index) => (
+                      <Badge key={index} variant="secondary" className="text-xs">
+                        {keyword}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

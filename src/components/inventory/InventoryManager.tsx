@@ -55,7 +55,8 @@ const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) =>
       const success = await operations.updateListing(listingId, updates);
       if (success) {
         console.log('✅ Listing updated successfully, refreshing inventory');
-        inventory.refetch();
+        await inventory.refetch();
+        console.log('🔄 Inventory refetch completed');
       }
     } catch (error) {
       console.error('Failed to update listing:', error);
