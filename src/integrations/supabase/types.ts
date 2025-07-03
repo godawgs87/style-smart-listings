@@ -585,10 +585,12 @@ export type Database = {
           oauth_token_secret: string | null
           platform: string
           platform_settings: Json | null
+          platform_user_id: string | null
           refresh_token: string | null
           seller_level: string | null
           store_name: string | null
           sync_errors: Json | null
+          token_expires_at: string | null
           updated_at: string
           user_id: string
         }
@@ -607,10 +609,12 @@ export type Database = {
           oauth_token_secret?: string | null
           platform: string
           platform_settings?: Json | null
+          platform_user_id?: string | null
           refresh_token?: string | null
           seller_level?: string | null
           store_name?: string | null
           sync_errors?: Json | null
+          token_expires_at?: string | null
           updated_at?: string
           user_id: string
         }
@@ -629,10 +633,12 @@ export type Database = {
           oauth_token_secret?: string | null
           platform?: string
           platform_settings?: Json | null
+          platform_user_id?: string | null
           refresh_token?: string | null
           seller_level?: string | null
           store_name?: string | null
           sync_errors?: Json | null
+          token_expires_at?: string | null
           updated_at?: string
           user_id?: string
         }

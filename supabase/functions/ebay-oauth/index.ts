@@ -6,6 +6,29 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
 };
 
+// eBay OAuth configuration
+const EBAY_CONFIG = {
+  clientId: Deno.env.get('EBAY_CLIENT_ID') || '',
+  clientSecret: Deno.env.get('EBAY_CLIENT_SECRET') || '',
+  sandbox: Deno.env.get('EBAY_SANDBOX') === 'true',
+  get redirectUri() {
+    return `https://preview--hustly-mvp.lovable.app/ebay/callback`;
+  },
+  get baseUrl() {
+    return this.sandbox ? 'https://api.sandbox.ebay.com' : 'https://api.ebay.com';
+  },
+  get authUrl() {
+    return this.sandbox ? 'https://auth.sandbox.ebay.com' : 'https://auth.ebay.com';
+  }
+};
+
+const REQUIRED_SCOPES = [
+  'https://api.ebay.com/oauth/api_scope',
+  'https://api.ebay.com/oauth/api_scope/sell.inventory',
+  'https://api.ebay.com/oauth/api_scope/sell.inventory.readonly',
+  'https://api.ebay.com/oauth/api_scope/sell.fulfillment.readonly'
+].join(' ');
+
 serve(async (req) => {
   console.log('=== EBAY OAUTH FUNCTION START ===');
   console.log('Method:', req.method);
@@ -18,9 +41,6 @@ serve(async (req) => {
 
   try {
     console.log('Reading request body...');
-    console.log('Request headers:', Object.fromEntries(req.headers.entries()));
-    console.log('Request method:', req.method);
-    console.log('Content-Type:', req.headers.get('content-type'));
     
     // Handle different content types and empty bodies
     let requestData;
@@ -84,9 +104,8 @@ serve(async (req) => {
 
     if (action === 'get_auth_url') {
       console.log('✅ Get auth URL action - generating eBay OAuth URL');
-      const ebayClientId = Deno.env.get('EBAY_CLIENT_ID');
       
-      if (!ebayClientId) {
+      if (!EBAY_CONFIG.clientId) {
         console.error('eBay Client ID not configured');
         return new Response(JSON.stringify({
           error: 'eBay Client ID not configured'
@@ -96,18 +115,18 @@ serve(async (req) => {
         });
       }
 
-      const redirectUri = 'https://preview--hustly-mvp.lovable.app/ebay/callback';
-      const authUrl = new URL('https://auth.ebay.com/oauth2/authorize');
-      authUrl.searchParams.set('client_id', ebayClientId);
-      authUrl.searchParams.set('redirect_uri', redirectUri);
-      authUrl.searchParams.set('response_type', 'code');
-      authUrl.searchParams.set('scope', 'https://api.ebay.com/oauth/api_scope https://api.ebay.com/oauth/api_scope/sell.inventory https://api.ebay.com/oauth/api_scope/sell.account.readonly');
-      authUrl.searchParams.set('state', state || 'default');
+      // Generate OAuth authorization URL
+      const authUrl = `${EBAY_CONFIG.authUrl}/oauth2/authorize?` + 
+        `client_id=${EBAY_CONFIG.clientId}&` +
+        `response_type=code&` +
+        `redirect_uri=${encodeURIComponent(EBAY_CONFIG.redirectUri)}&` +
+        `scope=${encodeURIComponent(REQUIRED_SCOPES)}&` +
+        `state=${state || 'ebay_oauth'}`;
 
-      console.log('Generated auth URL:', authUrl.toString());
+      console.log('Generated auth URL:', authUrl);
       
       return new Response(JSON.stringify({
-        auth_url: authUrl.toString()
+        auth_url: authUrl
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -138,16 +157,16 @@ serve(async (req) => {
       console.log('Making eBay token request...');
       
       try {
-        const tokenResponse = await fetch('https://api.ebay.com/identity/v1/oauth2/token', {
+        const tokenResponse = await fetch(`${EBAY_CONFIG.baseUrl}/identity/v1/oauth2/token`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
-            'Authorization': `Basic ${btoa(`${ebayClientId}:${ebayClientSecret}`)}`
+            'Authorization': `Basic ${btoa(`${EBAY_CONFIG.clientId}:${EBAY_CONFIG.clientSecret}`)}`
           },
           body: new URLSearchParams({
             grant_type: 'authorization_code',
             code: code,
-            redirect_uri: 'https://preview--hustly-mvp.lovable.app/ebay/callback'
+            redirect_uri: EBAY_CONFIG.redirectUri
           })
         });
 
