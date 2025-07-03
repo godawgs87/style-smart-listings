@@ -13,6 +13,7 @@ import InventoryErrorSection from './InventoryErrorSection';
 import InventoryEmptyState from './InventoryEmptyState';
 import InventoryLoadingState from './InventoryLoadingState';
 import ListingDetailView from './ListingDetailView';
+import SimpleListingModal from './SimpleListingModal';
 import type { Listing } from '@/types/Listing';
 
 interface InventoryManagerProps {
@@ -312,12 +313,9 @@ const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) =>
       )}
 
       {previewListing && (
-        <ListingDetailView
+        <SimpleListingModal
           listing={previewListing}
           onClose={handleClosePreview}
-          onEdit={() => {
-            console.log('Edit listing:', previewListing.id);
-          }}
         />
       )}
     </div>

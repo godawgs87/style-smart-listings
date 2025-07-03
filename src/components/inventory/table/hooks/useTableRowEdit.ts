@@ -40,7 +40,12 @@ export const useTableRowEdit = (listing: Listing, onUpdateListing?: (listingId: 
   };
 
   const updateEditData = (field: keyof Listing, value: any) => {
-    setEditData(prev => ({ ...prev, [field]: value }));
+    console.log('🔄 updateEditData called:', { field, value, currentEditData: editData });
+    setEditData(prev => {
+      const newData = { ...prev, [field]: value };
+      console.log('📝 New edit data:', newData);
+      return newData;
+    });
   };
 
   return {
