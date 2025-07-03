@@ -84,45 +84,37 @@ const EbayCallback = () => {
         
         console.log('Sending request to ebay-oauth with body:', requestBody);
 
-        // Exchange the authorization code for access token - FIXED: Use direct fetch
-        const response = await fetch(`https://ekzaaptxfwixgmbrooqr.supabase.co/functions/v1/ebay-oauth`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVremFhcHR4ZndpeGdtYnJvb3FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA2ODI2NzksImV4cCI6MjA2NjI1ODY3OX0.C5ivIgxoapGcsGpZJo_hOF9XUzRuXeVgyCbmawDeCes'
-          },
-          body: JSON.stringify({
+        // Use Supabase function invoke for proper authentication
+        const { data: responseData, error: functionError } = await supabase.functions.invoke('ebay-oauth', {
+          body: {
             action: 'exchange_code',
             code: code,
             state: state
-          })
+          }
         });
 
-        console.log('Response status:', response.status);
+        console.log('Function response:', { data: responseData, error: functionError });
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Function returned error:', errorText);
-          throw new Error(`Function error: ${response.status} - ${errorText}`);
+        if (functionError) {
+          console.error('Function returned error:', functionError);
+          throw new Error(`Function error: ${functionError.message}`);
         }
 
-        const data = await response.json();
-        console.log('Token exchange response:', data);
+        console.log('Token exchange response:', responseData);
         
-        if (data?.success) {
+        if (responseData?.success) {
           // Clear any pending OAuth data
           localStorage.removeItem('ebay_oauth_pending');
           
           toast({
             title: "eBay Connected Successfully",
-            description: `Your eBay account (${data.username}) is now connected and ready to use`
+            description: `Your eBay account (${responseData.username}) is now connected and ready to use`
           });
 
           // Redirect to settings page
           navigate('/settings');
         } else {
-          console.error('eBay connection failed - missing success flag in response:', data);
+          console.error('eBay connection failed - missing success flag in response:', responseData);
           throw new Error('Failed to complete eBay connection');
         }
 

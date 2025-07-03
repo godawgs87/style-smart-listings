@@ -28,15 +28,20 @@ const EbayOAuthConnection = () => {
 
       console.log('🔍 eBay connection check:', data);
       
-      // Check if this is a real OAuth connection by looking for actual OAuth token
-      if (data && data.oauth_token && data.oauth_token.startsWith('v^1.1#')) {
+      // Check if this is a real OAuth connection by validating token format and length
+      if (data && data.oauth_token && data.oauth_token.length > 50 && data.is_connected) {
         console.log('✅ Found real eBay OAuth connection');
-        setEbayAccount(data);
-      } else if (data && data.account_username === 'ebay_user') {
-        console.log('⚠️ Found mock eBay connection, treating as disconnected');
-        setEbayAccount(null);
+        
+        // Check if token is expired
+        if (data.oauth_expires_at && new Date(data.oauth_expires_at) < new Date()) {
+          console.log('⚠️ eBay token expired, treating as disconnected');
+          setEbayAccount(null);
+        } else {
+          setEbayAccount(data);
+        }
       } else {
-        setEbayAccount(data);
+        console.log('⚠️ No valid eBay OAuth connection found');
+        setEbayAccount(null);
       }
     } catch (error) {
       console.error('Error checking eBay connection:', error);

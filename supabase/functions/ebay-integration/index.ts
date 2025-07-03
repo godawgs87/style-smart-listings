@@ -235,15 +235,22 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
     expiresAt: ebayAccount.oauth_expires_at 
   });
 
-  // Validate OAuth token
-  if (!ebayAccount.oauth_token) {
-    throw new Error('eBay OAuth token not available. Please reconnect your eBay account.');
+  // Validate OAuth token format and expiration
+  if (!ebayAccount.oauth_token || ebayAccount.oauth_token.length < 50) {
+    logStep("Invalid OAuth token", { tokenLength: ebayAccount.oauth_token?.length });
+    throw new Error('eBay OAuth token is invalid. Please reconnect your eBay account.');
   }
 
   // Check token expiration
   if (ebayAccount.oauth_expires_at && new Date(ebayAccount.oauth_expires_at) < new Date()) {
+    logStep("OAuth token expired", { expiresAt: ebayAccount.oauth_expires_at });
     throw new Error('eBay OAuth token has expired. Please reconnect your eBay account.');
   }
+
+  logStep("OAuth token validation passed", { 
+    tokenValid: true, 
+    expiresAt: ebayAccount.oauth_expires_at 
+  });
 
   // Build eBay Inventory API request for createOrReplaceInventoryItem
   logStep("Building eBay REST API request");

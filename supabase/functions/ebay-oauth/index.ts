@@ -230,23 +230,40 @@ serve(async (req) => {
         const expiresIn = tokenData.expires_in || 7200;
         const expirationTime = new Date(Date.now() + expiresIn * 1000);
 
-        // ✅ CORRECT database fields
+        // Get user info from eBay to store real username
+        let realUsername = 'ebay_seller';
+        try {
+          const userResponse = await fetch(`${EBAY_CONFIG.baseUrl}/commerce/identity/v1/user/`, {
+            headers: {
+              'Authorization': `Bearer ${tokenData.access_token}`,
+              'Accept': 'application/json'
+            }
+          });
+          
+          if (userResponse.ok) {
+            const userInfo = await userResponse.json();
+            realUsername = userInfo.username || userInfo.registrationAddress?.contactAddress?.fullName || 'ebay_seller';
+            console.log('Retrieved eBay username:', realUsername);
+          }
+        } catch (err) {
+          console.log('Failed to get eBay user info, using default username:', err);
+        }
+
+        // ✅ CORRECT database fields with real user data
         const marketplaceAccountData = {
           user_id: user.id,
           platform: 'ebay',
-          account_username: 'ebay_user',
+          account_username: realUsername,
           oauth_token: tokenData.access_token,
           refresh_token: tokenData.refresh_token || null,
           oauth_expires_at: expirationTime.toISOString(),
+          token_expires_at: expirationTime.toISOString(),
           is_connected: true,
           is_active: true,
           platform_settings: {
-            sandbox: false,
-            scopes: [
-              'https://api.ebay.com/oauth/api_scope',
-              'https://api.ebay.com/oauth/api_scope/sell.inventory',
-              'https://api.ebay.com/oauth/api_scope/sell.account.readonly'
-            ]
+            sandbox: EBAY_CONFIG.sandbox,
+            scopes: REQUIRED_SCOPES.split(' '),
+            token_type: tokenData.token_type || 'Bearer'
           }
         };
 

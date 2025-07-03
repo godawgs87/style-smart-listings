@@ -50,6 +50,7 @@ const EbaySyncButton = ({ listing, onSyncComplete }: EbaySyncButtonProps) => {
         .from('marketplace_accounts')
         .select('*')
         .eq('platform', 'ebay')
+        .eq('is_connected', true)
         .eq('is_active', true)
         .maybeSingle();
 
@@ -72,7 +73,37 @@ const EbaySyncButton = ({ listing, onSyncComplete }: EbaySyncButtonProps) => {
         return;
       }
 
-      console.log('✅ Found eBay account:', ebayAccount.account_username);
+      // Validate OAuth token format and expiration
+      if (!ebayAccount.oauth_token || ebayAccount.oauth_token.length < 50) {
+        toast({
+          title: "Invalid eBay Token",
+          description: "Your eBay connection appears to be invalid. Please reconnect your account.",
+          variant: "destructive",
+          action: (
+            <Button variant="outline" size="sm" onClick={() => window.location.href = '/settings'}>
+              Reconnect eBay
+            </Button>
+          )
+        });
+        return;
+      }
+
+      // Check token expiration
+      if (ebayAccount.oauth_expires_at && new Date(ebayAccount.oauth_expires_at) < new Date()) {
+        toast({
+          title: "eBay Token Expired",
+          description: "Your eBay connection has expired. Please reconnect your account.",
+          variant: "destructive",
+          action: (
+            <Button variant="outline" size="sm" onClick={() => window.location.href = '/settings'}>
+              Reconnect eBay
+            </Button>
+          )
+        });
+        return;
+      }
+
+      console.log('✅ Found valid eBay account:', ebayAccount.account_username);
 
       // Validate listing data
       if (!listing.title || !listing.price) {
