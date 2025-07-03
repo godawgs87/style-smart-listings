@@ -27,28 +27,15 @@ const OptimisticInventoryTableView = ({
   onDuplicateListing,
   onSyncComplete
 }: OptimisticInventoryTableViewProps) => {
-  // Optimized columns with image loading enabled but efficiently cached
+  // Simple visible columns - only show what we need
   const visibleColumns = {
-    image: true, // Enable image loading with optimized caching
+    image: true,
     title: true,
     price: true,
     status: true,
     category: true,
     condition: true,
-    shipping: true,
-    measurements: false,
-    keywords: false,
-    description: false,
-    purchasePrice: false,
-    netProfit: false,
-    profitMargin: false,
-    purchaseDate: false,
-    consignmentStatus: false,
-    sourceType: false,
-    sourceLocation: false,
-    costBasis: false,
-    daysToSell: false,
-    performanceNotes: false
+    shipping: true
   };
 
   return (
