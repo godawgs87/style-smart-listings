@@ -300,6 +300,8 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
   });
   
   // Create inventory item using the eBay Inventory API
+  logStep("About to send request to eBay", { requestData: inventoryItemData });
+  
   const inventoryResponse = await fetch(`${ebayApiBase}/sell/inventory/v1/inventory_item/${inventoryItemSku}`, {
     method: 'PUT',
     headers: {
