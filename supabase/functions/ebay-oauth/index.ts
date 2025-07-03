@@ -277,7 +277,7 @@ serve(async (req) => {
           oauth_expires_at: expirationTime.toISOString(),
           token_expires_at: expirationTime.toISOString(),
           is_connected: true,
-          is_active: true,
+          is_active: true,  // ✅ Make sure this is set to true
           platform_settings: {
             sandbox: EBAY_CONFIG.sandbox,
             scopes: REQUIRED_SCOPES.split(' '),

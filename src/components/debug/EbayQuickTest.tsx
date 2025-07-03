@@ -41,13 +41,32 @@ const EbayQuickTest = () => {
       addLog('🔍 Checking eBay account...');
       const { data: ebayAccount, error: accountError } = await supabase
         .from('marketplace_accounts')
-        .select('account_username, oauth_token, oauth_expires_at')
+        .select('account_username, oauth_token, oauth_expires_at, is_connected, is_active')
         .eq('platform', 'ebay')
         .eq('is_connected', true)
-        .eq('is_active', true)
         .maybeSingle();
 
-      if (accountError || !ebayAccount) {
+      if (accountError) {
+        addLog(`❌ Database error: ${accountError.message}`);
+        throw new Error(`Database error: ${accountError.message}`);
+      }
+
+      if (!ebayAccount) {
+        addLog('❌ No eBay account found with is_connected = true');
+        
+        // Let's check what accounts exist
+        const { data: allAccounts } = await supabase
+          .from('marketplace_accounts')
+          .select('platform, account_username, is_connected, is_active')
+          .eq('platform', 'ebay');
+          
+        addLog(`📊 Found ${allAccounts?.length || 0} eBay accounts total`);
+        if (allAccounts && allAccounts.length > 0) {
+          allAccounts.forEach((acc, i) => {
+            addLog(`   Account ${i+1}: ${acc.account_username}, connected: ${acc.is_connected}, active: ${acc.is_active}`);
+          });
+        }
+        
         throw new Error('eBay account not connected');
       }
       
