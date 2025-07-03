@@ -306,9 +306,7 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
     method: 'PUT',
     headers: {
       'Authorization': `Bearer ${ebayAccount.oauth_token}`,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Accept-Language': 'en-US'
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify(inventoryItemData)
   });
@@ -362,9 +360,7 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${ebayAccount.oauth_token}`,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Accept-Language': 'en-US'
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify(offerData)
   });
@@ -387,10 +383,7 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
   const publishResponse = await fetch(`${ebayApiBase}/sell/inventory/v1/offer/${offerId}/publish/`, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${ebayAccount.oauth_token}`,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Accept-Language': 'en-US'
+      'Authorization': `Bearer ${ebayAccount.oauth_token}`
     }
   });
 
