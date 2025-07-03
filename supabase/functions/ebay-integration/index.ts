@@ -216,7 +216,7 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
   logStep("Fetching eBay account and user profile", { userId });
   const { data: userData, error: userError } = await supabaseClient
     .from('user_profiles')
-    .select('shipping_address_line1, shipping_city, shipping_state, shipping_postal_code, shipping_country')
+    .select('shipping_address_line1, shipping_city, shipping_state, shipping_postal_code, shipping_country, preferred_shipping_service')
     .eq('id', userId)
     .single();
 
@@ -268,6 +268,20 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
   logStep("OAuth token validation passed", { 
     tokenValid: true, 
     expiresAt: ebayAccount.oauth_expires_at 
+  });
+
+  // Validate that user has required business address information for eBay
+  if (!userData || !userData.shipping_address_line1 || !userData.shipping_city || 
+      !userData.shipping_state || !userData.shipping_postal_code) {
+    throw new Error('Please complete your business address in Settings → Business tab before syncing to eBay. eBay requires your shipping location.');
+  }
+
+  logStep("Business address validation passed", {
+    hasAddress: !!userData.shipping_address_line1,
+    hasCity: !!userData.shipping_city,
+    hasState: !!userData.shipping_state,
+    hasPostalCode: !!userData.shipping_postal_code,
+    country: userData.shipping_country
   });
 
   // Build eBay Inventory API request for createOrReplaceInventoryItem
@@ -356,7 +370,10 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
 
   logStep("Inventory item created successfully");
 
-  // Create offer for the inventory item - minimal required fields only
+  // Map user's preferred shipping service to eBay shipping service
+  const shippingService = mapShippingService(userData.preferred_shipping_service || 'usps_priority');
+  
+  // Create offer for the inventory item with full fulfillment policy
   const offerData = {
     sku: inventoryItemSku,
     marketplaceId: 'EBAY_US',
@@ -370,11 +387,89 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
         currency: 'USD'
       }
     },
+    fulfillmentPolicy: {
+      fulfillmentPolicyId: null, // Use inline fulfillment policy
+      shippingOptions: [
+        {
+          optionType: 'DOMESTIC',
+          costType: 'FLAT_RATE',
+          shippingServices: [
+            {
+              serviceName: shippingService.ebayServiceName,
+              shippingCost: {
+                value: listing.shipping_cost?.toString() || '9.95',
+                currency: 'USD'
+              },
+              additionalShippingCost: {
+                value: '0.00',
+                currency: 'USD'
+              },
+              freeShipping: (listing.shipping_cost || 9.95) === 0,
+              shippingCarrierCode: shippingService.carrierCode
+            }
+          ]
+        }
+      ],
+      globalShipping: false,
+      pickupDropOff: false,
+      freightShipping: false,
+      shipToLocations: {
+        regionIncluded: [
+          {
+            regionName: 'United States',
+            regionType: 'COUNTRY'
+          }
+        ]
+      },
+      handlingTime: {
+        value: 1,
+        unit: 'DAY'
+      },
+      shipFromLocation: {
+        country: userData.shipping_country || 'US',
+        postalCode: userData.shipping_postal_code,
+        stateOrProvince: userData.shipping_state
+      }
+    },
+    paymentPolicy: {
+      paymentPolicyId: null, // Use inline payment policy
+      paymentMethods: [
+        {
+          paymentMethodType: 'PAYPAL',
+          recipientAccountReference: {
+            referenceId: ebayAccount.account_email || 'paypal@example.com',
+            referenceType: 'PAYPAL_EMAIL'
+          }
+        },
+        {
+          paymentMethodType: 'CREDIT_CARD'
+        }
+      ],
+      paymentInstructions: 'Payment due within 4 days of purchase.',
+      immediatePay: true
+    },
+    returnPolicy: {
+      returnPolicyId: null, // Use inline return policy
+      returnsAccepted: true,
+      returnPeriod: {
+        value: 30,
+        unit: 'DAY'
+      },
+      returnShippingCostPayer: 'BUYER',
+      returnInstructions: 'Items must be returned in original condition within 30 days.'
+    },
     tax: {
       applyTax: false
     },
     lotSize: 1
   };
+
+  logStep("Offer data with fulfillment policy created", {
+    shippingService: shippingService.displayName,
+    shipFromCountry: userData.shipping_country,
+    shipFromPostalCode: userData.shipping_postal_code,
+    shippingCost: listing.shipping_cost || 9.95
+  });
 
   const offerResponse = await fetch(`${ebayApiBase}/sell/inventory/v1/offer`, {
     method: 'POST',
@@ -706,6 +801,34 @@ function mapCategoryToEbayId(category: string): string {
   };
   
   return categoryMap[category] || '293'; // Default to Consumer Electronics
+}
+
+function mapShippingService(preferredService: string) {
+  // Map user's preferred shipping service to eBay shipping service codes
+  const serviceMap: Record<string, { ebayServiceName: string; carrierCode: string; displayName: string }> = {
+    'usps_priority': {
+      ebayServiceName: 'USPSPriorityMail',
+      carrierCode: 'USPS',
+      displayName: 'USPS Priority Mail'
+    },
+    'usps_first_class': {
+      ebayServiceName: 'USPSFirstClass',
+      carrierCode: 'USPS', 
+      displayName: 'USPS First Class'
+    },
+    'ups_ground': {
+      ebayServiceName: 'UPSGround',
+      carrierCode: 'UPS',
+      displayName: 'UPS Ground'
+    },
+    'fedex_ground': {
+      ebayServiceName: 'FedExHomeDelivery',
+      carrierCode: 'FEDEX',
+      displayName: 'FedEx Ground'
+    }
+  };
+  
+  return serviceMap[preferredService] || serviceMap['usps_priority'];
 }
 
 async function testConnection(supabaseClient: any, userId: string, params: any) {
