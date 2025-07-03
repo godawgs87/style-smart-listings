@@ -28,8 +28,11 @@ const EbayOAuthConnection = () => {
 
       console.log('🔍 eBay connection check:', data);
       
-      // Check if this is a real OAuth connection or mock
-      if (data && data.account_username === 'ebay_user') {
+      // Check if this is a real OAuth connection by looking for actual OAuth token
+      if (data && data.oauth_token && data.oauth_token.startsWith('v^1.1#')) {
+        console.log('✅ Found real eBay OAuth connection');
+        setEbayAccount(data);
+      } else if (data && data.account_username === 'ebay_user') {
         console.log('⚠️ Found mock eBay connection, treating as disconnected');
         setEbayAccount(null);
       } else {
