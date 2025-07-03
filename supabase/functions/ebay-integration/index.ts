@@ -356,7 +356,7 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
 
   logStep("Inventory item created successfully");
 
-  // Create offer for the inventory item with required country field
+  // Create offer for the inventory item - minimal required fields only
   const offerData = {
     sku: inventoryItemSku,
     marketplaceId: 'EBAY_US',
@@ -368,11 +368,6 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
       price: {
         value: listing.price?.toString() || '19.99',
         currency: 'USD'
-      }
-    },
-    storefront: {
-      location: {
-        country: 'US'
       }
     },
     tax: {
