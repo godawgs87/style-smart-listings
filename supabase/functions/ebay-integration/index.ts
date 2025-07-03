@@ -216,35 +216,49 @@ async function importSoldListings(supabaseClient: any, userId: string, params: a
 }
 
 async function publishListing(supabaseClient: any, userId: string, params: any) {
-  logStep("Publishing listing to eBay", { userId, listingId: params.listingId });
+  logStep("Publishing listing to eBay using Trading API", { userId, listingId: params.listingId });
 
   const { listingId } = params;
   if (!listingId) {
     throw new Error('Listing ID required');
   }
 
-  // Get eBay credentials for token refresh
-  const ebayClientId = Deno.env.get('EBAY_CLIENT_ID');
-  const ebayClientSecret = Deno.env.get('EBAY_CLIENT_SECRET');
+  // Get eBay credentials
+  const ebayAppId = Deno.env.get('EBAY_CLIENT_ID');
+  const ebayDevId = Deno.env.get('EBAY_DEV_ID');
+  const ebayCertId = Deno.env.get('EBAY_CLIENT_SECRET');
 
-  // EMERGENCY FIX: Use minimal fallback data to avoid database timeouts
-  logStep("Using fallback listing data to avoid database timeouts", { listingId });
+  if (!ebayAppId || !ebayDevId || !ebayCertId) {
+    throw new Error('Missing eBay Trading API credentials (APP_ID, DEV_ID, CERT_ID)');
+  }
+
+  // Fetch listing data with proper error handling
+  logStep("Fetching listing data", { listingId });
   
-  const listing = {
-    id: listingId,
-    title: `Listing ${listingId}`, // Fallback title
-    description: 'Quality item in good condition.', // Fallback description
-    price: 19.99, // Fallback price
-    condition: 'good', // Fallback condition
-    brand: 'Unbranded', // Fallback brand
-    category: 'Electronics', // Fallback category
-    photos: [], // No photos for now
-    status: 'draft' // Fallback status
-  };
+  const { data: listing, error: listingError } = await supabaseClient
+    .from('listings')
+    .select(`
+      id, title, description, price, condition, brand, category, 
+      photos, status, shipping_cost, measurements, keywords,
+      color_primary, material, pattern, size_value, gender
+    `)
+    .eq('id', listingId)
+    .eq('user_id', userId)
+    .single();
+
+  if (listingError) {
+    logStep("Listing fetch error", { error: listingError });
+    throw new Error(`Failed to fetch listing: ${listingError.message}`);
+  }
   
-  logStep("Using fallback listing data", { 
+  if (!listing) {
+    throw new Error('Listing not found or you do not have permission to access it');
+  }
+  
+  logStep("Listing data retrieved", { 
     title: listing.title, 
-    price: listing.price 
+    price: listing.price,
+    condition: listing.condition 
   });
 
   // Get eBay account
@@ -274,213 +288,74 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
     expiresAt: ebayAccount.oauth_expires_at 
   });
 
-  // Check token expiration and refresh if needed
-  if (ebayAccount.oauth_expires_at) {
-    const expirationDate = new Date(ebayAccount.oauth_expires_at);
-    const now = new Date();
-    logStep("Checking token expiration", { 
-      expiresAt: expirationDate.toISOString(), 
-      now: now.toISOString(),
-      expired: now >= expirationDate 
-    });
-    
-    if (now >= expirationDate) {
-      logStep("Token expired, attempting refresh", { refreshTokenPresent: !!ebayAccount.refresh_token });
-      
-      if (!ebayAccount.refresh_token) {
-        throw new Error('eBay token has expired and no refresh token available. Please reconnect your eBay account.');
-      }
-      
-      // Refresh the token
-      try {
-        const refreshResponse = await fetch('https://api.ebay.com/identity/v1/oauth2/token', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Authorization': `Basic ${btoa(`${ebayClientId}:${ebayClientSecret}`)}`
-          },
-          body: new URLSearchParams({
-            grant_type: 'refresh_token',
-            refresh_token: ebayAccount.refresh_token
-          })
-        });
-
-        if (!refreshResponse.ok) {
-          const error = await refreshResponse.text();
-          logStep("Token refresh failed", { status: refreshResponse.status, error });
-          throw new Error('Failed to refresh eBay token. Please reconnect your eBay account.');
-        }
-
-        const tokenData = await refreshResponse.json();
-        logStep("Token refreshed successfully", { newTokenPresent: !!tokenData.access_token });
-
-        // Update the account with new token
-        const newExpirationTime = new Date(Date.now() + (tokenData.expires_in || 7200) * 1000);
-        
-        const { error: updateError } = await supabaseClient
-          .from('marketplace_accounts')
-          .update({
-            oauth_token: tokenData.access_token,
-            refresh_token: tokenData.refresh_token || ebayAccount.refresh_token,
-            oauth_expires_at: newExpirationTime.toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', ebayAccount.id);
-
-        if (updateError) {
-          logStep("Failed to update refreshed token", { error: updateError });
-          throw new Error('Failed to save refreshed token');
-        }
-
-        // Update the local ebayAccount object
-        ebayAccount.oauth_token = tokenData.access_token;
-        ebayAccount.oauth_expires_at = newExpirationTime.toISOString();
-        
-        logStep("Token refresh complete", { newExpiresAt: newExpirationTime.toISOString() });
-        
-      } catch (refreshError) {
-        logStep("Token refresh error", { error: refreshError.message });
-        throw new Error(`Failed to refresh eBay token: ${refreshError.message}`);
-      }
-    }
+  // Validate eBay token
+  if (!ebayAccount.oauth_token) {
+    throw new Error('eBay authentication token not available. Please reconnect your eBay account.');
   }
 
-  // Use eBay Sell API Inventory endpoint
-  const inventoryItemSku = `hustly_${listingId}_${Date.now()}`;
-  logStep("Creating eBay inventory item", { sku: inventoryItemSku });
+  // Build Trading API XML request for AddFixedPriceItem
+  logStep("Building Trading API XML request");
   
-  const inventoryPayload = {
-    availability: {
-      shipToLocationAvailability: {
-        quantity: 1
-      }
-    },
-    condition: getEbayCondition(listing.condition),
-    product: {
-      title: listing.title.substring(0, 80),
-      description: listing.description || 'Quality item in good condition.',
-      aspects: {},
-      brand: listing.brand || 'Unbranded',
-      mpn: 'Does Not Apply'
-    }
-  };
+  const ebayXML = buildTradingAPIXML(listing, ebayAccount.oauth_token, ebayAppId, ebayDevId, ebayCertId);
   
-  logStep("Inventory payload", inventoryPayload);
+  logStep("Sending Trading API request to eBay");
   
-  // First create inventory item
-  const inventoryResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${inventoryItemSku}`, {
-    method: 'PUT',
-    headers: {
-      'Authorization': `Bearer ${ebayAccount.oauth_token}`,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    },
-    body: JSON.stringify(inventoryPayload)
-  });
-
-  logStep("Inventory response status", { 
-    status: inventoryResponse.status, 
-    statusText: inventoryResponse.statusText 
-  });
-
-  if (!inventoryResponse.ok) {
-    const errorData = await inventoryResponse.text();
-    logStep("eBay inventory creation failed", { 
-      status: inventoryResponse.status,
-      error: errorData 
-    });
-    throw new Error(`eBay inventory creation failed (${inventoryResponse.status}): ${errorData}`);
-  }
-  
-  const inventoryData = await inventoryResponse.json();
-  logStep("Inventory created successfully", inventoryData);
-
-  // Then create the offer
-  logStep("Creating eBay offer");
-  
-  const offerPayload = {
-    sku: inventoryItemSku,
-    marketplaceId: 'EBAY_US',
-    format: 'FIXED_PRICE',
-    pricingSummary: {
-      price: {
-        value: listing.price.toString(),
-        currency: 'USD'
-      }
-    },
-    listingDescription: listing.description || 'Quality item in good condition.',
-    listingPolicies: {
-      fulfillmentPolicyId: 'DEFAULT',
-      paymentPolicyId: 'DEFAULT',
-      returnPolicyId: 'DEFAULT'
-    },
-    categoryId: '293' // Electronics default
-  };
-  
-  logStep("Offer payload", offerPayload);
-  
-  const offerResponse = await fetch('https://api.ebay.com/sell/inventory/v1/offer', {
+  // Make Trading API call
+  const tradingAPIResponse = await fetch('https://api.ebay.com/ws/api.dll', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${ebayAccount.oauth_token}`,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
+      'X-EBAY-API-CALL-NAME': 'AddFixedPriceItem',
+      'X-EBAY-API-APP-NAME': ebayAppId,
+      'X-EBAY-API-DEV-NAME': ebayDevId,
+      'X-EBAY-API-CERT-NAME': ebayCertId,
+      'X-EBAY-API-SITEID': '0', // US eBay site
+      'X-EBAY-API-COMPATIBILITY-LEVEL': '1209',
+      'Content-Type': 'text/xml',
+      'Accept': 'text/xml'
     },
-    body: JSON.stringify(offerPayload)
+    body: ebayXML
   });
 
-  logStep("Offer response status", { 
-    status: offerResponse.status, 
-    statusText: offerResponse.statusText 
+  logStep("Trading API response status", { 
+    status: tradingAPIResponse.status, 
+    statusText: tradingAPIResponse.statusText 
   });
 
-  if (!offerResponse.ok) {
-    const errorData = await offerResponse.text();
-    logStep("eBay offer creation failed", { 
-      status: offerResponse.status,
-      error: errorData 
+  if (!tradingAPIResponse.ok) {
+    const errorText = await tradingAPIResponse.text();
+    logStep("Trading API HTTP error", { 
+      status: tradingAPIResponse.status,
+      error: errorText 
     });
-    throw new Error(`eBay offer creation failed (${offerResponse.status}): ${errorData}`);
+    throw new Error(`eBay Trading API HTTP error (${tradingAPIResponse.status}): ${errorText}`);
   }
 
-  const offerData = await offerResponse.json();
-  const offerId = offerData.offerId;
-  logStep("Offer created successfully", { offerId });
+  const responseXML = await tradingAPIResponse.text();
+  logStep("Trading API response received", { xmlLength: responseXML.length });
 
-  // Finally publish the offer
-  logStep("Publishing eBay offer", { offerId });
+  // Parse XML response
+  const ebayResult = parseTradingAPIResponse(responseXML);
   
-  const publishResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/offer/${offerId}/publish`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${ebayAccount.oauth_token}`,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    }
-  });
-
-  logStep("Publish response status", { 
-    status: publishResponse.status, 
-    statusText: publishResponse.statusText 
-  });
-
-  if (!publishResponse.ok) {
-    const errorData = await publishResponse.text();
-    logStep("eBay publish failed", { 
-      status: publishResponse.status,
-      error: errorData 
-    });
-    throw new Error(`eBay publish failed (${publishResponse.status}): ${errorData}`);
+  if (ebayResult.errors && ebayResult.errors.length > 0) {
+    const errorMessages = ebayResult.errors.map(err => `${err.ErrorCode}: ${err.LongMessage}`).join('; ');
+    logStep("eBay API errors", { errors: ebayResult.errors });
+    throw new Error(`eBay listing failed: ${errorMessages}`);
   }
 
-  const publishData = await publishResponse.json();
-  const ebayItemId = publishData.listingId;
-  logStep("Offer published successfully", { ebayItemId });
+  if (!ebayResult.itemId) {
+    logStep("No item ID in response", { result: ebayResult });
+    throw new Error('eBay listing creation failed - no item ID returned');
+  }
+
+  logStep("eBay listing created successfully", { 
+    itemId: ebayResult.itemId,
+    fees: ebayResult.fees 
+  });
   
   const ebayResponse = {
-    itemId: ebayItemId,
-    listingUrl: `https://ebay.com/itm/${ebayItemId}`,
-    fees: { insertionFee: 0.35, finalValueFee: 0.10 }
+    itemId: ebayResult.itemId,
+    listingUrl: `https://ebay.com/itm/${ebayResult.itemId}`,
+    fees: ebayResult.fees || { insertionFee: 0.35, finalValueFee: 0.10 }
   };
 
   // Create platform listing record
@@ -695,16 +570,125 @@ function mapCategoryToEbay(category: string): string {
   return categoryMap[category] || '293'; // Default to Electronics
 }
 
-function getEbayCondition(condition: string): string {
-  const conditionMap: Record<string, string> = {
-    'New': 'NEW',
-    'Like New': 'LIKE_NEW',
-    'Excellent': 'EXCELLENT',
-    'Very Good': 'VERY_GOOD', 
-    'Good': 'GOOD',
-    'Acceptable': 'ACCEPTABLE',
-    'Used': 'USED'
+// Trading API XML Builder
+function buildTradingAPIXML(listing: any, authToken: string, appId: string, devId: string, certId: string): string {
+  const categoryId = mapCategoryToEbay(listing.category || 'Electronics');
+  const conditionId = mapConditionToEbayId(listing.condition || 'Used');
+  const title = (listing.title || 'Quality Item').substring(0, 80);
+  const description = listing.description || 'Quality item in good condition.';
+  const price = listing.price || 19.99;
+  const shippingCost = listing.shipping_cost || 9.95;
+
+  return `<?xml version="1.0" encoding="utf-8"?>
+<AddFixedPriceItemRequest xmlns="urn:ebay:apis:eBLBaseComponents">
+  <RequesterCredentials>
+    <eBayAuthToken>${authToken}</eBayAuthToken>
+  </RequesterCredentials>
+  <Item>
+    <Title>${escapeXML(title)}</Title>
+    <Description><![CDATA[${description}]]></Description>
+    <StartPrice>${price}</StartPrice>
+    <CategoryID>${categoryId}</CategoryID>
+    <ListingType>FixedPriceItem</ListingType>
+    <ListingDuration>GTC</ListingDuration>
+    <Country>US</Country>
+    <Currency>USD</Currency>
+    <Quantity>1</Quantity>
+    <ConditionID>${conditionId}</ConditionID>
+    <PaymentMethods>PayPal</PaymentMethods>
+    <ShippingDetails>
+      <ShippingType>Flat</ShippingType>
+      <ShippingServiceOptions>
+        <ShippingServicePriority>1</ShippingServicePriority>
+        <ShippingService>USPSMedia</ShippingService>
+        <ShippingServiceCost>${shippingCost}</ShippingServiceCost>
+      </ShippingServiceOptions>
+    </ShippingDetails>
+    <ReturnPolicy>
+      <ReturnsAcceptedOption>ReturnsAccepted</ReturnsAcceptedOption>
+      <RefundOption>MoneyBack</RefundOption>
+      <ReturnsWithinOption>Days_30</ReturnsWithinOption>
+      <ShippingCostPaidByOption>Buyer</ShippingCostPaidByOption>
+    </ReturnPolicy>
+  </Item>
+</AddFixedPriceItemRequest>`;
+}
+
+// Trading API XML Response Parser
+function parseTradingAPIResponse(xmlResponse: string): any {
+  const result: any = { errors: [] };
+  
+  // Extract Item ID
+  const itemIdMatch = xmlResponse.match(/<ItemID>(\d+)<\/ItemID>/);
+  if (itemIdMatch) {
+    result.itemId = itemIdMatch[1];
+  }
+  
+  // Extract Success/Failure
+  const ackMatch = xmlResponse.match(/<Ack>(.*?)<\/Ack>/);
+  result.ack = ackMatch ? ackMatch[1] : 'Unknown';
+  result.success = result.ack === 'Success';
+  
+  // Extract Errors
+  const errorRegex = /<ErrorCode>(\d+)<\/ErrorCode>[\s\S]*?<LongMessage>(.*?)<\/LongMessage>/g;
+  let errorMatch;
+  while ((errorMatch = errorRegex.exec(xmlResponse)) !== null) {
+    result.errors.push({
+      ErrorCode: errorMatch[1],
+      LongMessage: errorMatch[2]
+    });
+  }
+  
+  // Extract Fees
+  const feesRegex = /<Name>(.*?)<\/Name>[\s\S]*?<Fee[^>]*>(.*?)<\/Fee>/g;
+  const fees: any = {};
+  let feeMatch;
+  while ((feeMatch = feesRegex.exec(xmlResponse)) !== null) {
+    const feeName = feeMatch[1].toLowerCase().replace(/\s+/g, '_');
+    const feeAmount = parseFloat(feeMatch[2]) || 0;
+    fees[feeName] = feeAmount;
+  }
+  result.fees = fees;
+  
+  return result;
+}
+
+// Helper Functions
+function escapeXML(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function mapCategoryToEbay(category: string): string {
+  const categoryMap: Record<string, string> = {
+    'Electronics': '293',
+    'Clothing': '11450', 
+    'Home & Garden': '11700',
+    'Collectibles': '1',
+    'Sporting Goods': '888',
+    'Jewelry & Watches': '281',
+    'Books': '267',
+    'Music': '11233',
+    'Movies & TV': '11232'
   };
   
-  return conditionMap[condition] || 'USED';
+  return categoryMap[category] || '293'; // Default to Electronics
+}
+
+function mapConditionToEbayId(condition: string): string {
+  const conditionMap: Record<string, string> = {
+    'New': '1000',
+    'Like New': '1500', 
+    'Excellent': '2000',
+    'Very Good': '2500',
+    'Good': '3000',
+    'Acceptable': '4000',
+    'Used': '3000'
+  };
+  
+  return conditionMap[condition] || '3000'; // Default to Good
 }
