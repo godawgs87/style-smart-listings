@@ -306,7 +306,7 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
       'Authorization': `Bearer ${ebayAccount.oauth_token}`,
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'Content-Language': 'en-US'
+      'Accept-Language': 'en-US'
     },
     body: JSON.stringify(inventoryItemData)
   });
@@ -362,7 +362,7 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
       'Authorization': `Bearer ${ebayAccount.oauth_token}`,
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'Content-Language': 'en-US'
+      'Accept-Language': 'en-US'
     },
     body: JSON.stringify(offerData)
   });
@@ -388,7 +388,7 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
       'Authorization': `Bearer ${ebayAccount.oauth_token}`,
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'Content-Language': 'en-US'
+      'Accept-Language': 'en-US'
     }
   });
 
