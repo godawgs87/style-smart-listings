@@ -1,24 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-  DropdownMenuCheckboxItem,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
-} from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { ChevronDown, RefreshCw, Upload, Download, ArrowLeftRight } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Progress } from '@/components/ui/progress';
+import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useEbayIntegration } from '@/hooks/useEbayIntegration';
-
-interface Platform {
-  id: string;
-  name: string;
-  icon: string;
-  connected: boolean;
-}
+import { supabase } from '@/integrations/supabase/client';
 
 interface InventorySyncManagerProps {
   selectedItems: string[];
@@ -26,253 +13,246 @@ interface InventorySyncManagerProps {
 }
 
 const InventorySyncManager = ({ selectedItems, onSyncComplete }: InventorySyncManagerProps) => {
+  const [ebayAccount, setEbayAccount] = useState<any>(null);
+  const [bulkSyncing, setBulkSyncing] = useState(false);
+  const [syncProgress, setSyncProgress] = useState(0);
+  const [syncResults, setSyncResults] = useState<any[]>([]);
+  const [showResults, setShowResults] = useState(false);
   const { toast } = useToast();
-  const { publishListing, syncListingStatus, publishing, syncing } = useEbayIntegration();
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
-  const [syncDirection, setSyncDirection] = useState<'push' | 'pull' | 'bidirectional'>('push');
-  const [platforms, setPlatforms] = useState<Platform[]>([
-    { id: 'ebay', name: 'eBay', icon: '🛒', connected: true },
-    { id: 'mercari', name: 'Mercari', icon: '📦', connected: false },
-    { id: 'poshmark', name: 'Poshmark', icon: '👗', connected: false },
-    { id: 'depop', name: 'Depop', icon: '🎨', connected: false },
-  ]);
 
-  const connectedPlatforms = platforms.filter(p => p.connected);
-  const hasSelection = selectedItems.length > 0;
-  const hasConnectedPlatforms = connectedPlatforms.length > 0;
+  useEffect(() => {
+    checkEbayConnection();
+  }, []);
 
-  const handlePlatformToggle = (platformId: string) => {
-    setSelectedPlatforms(prev => 
-      prev.includes(platformId)
-        ? prev.filter(id => id !== platformId)
-        : [...prev, platformId]
-    );
+  const checkEbayConnection = async () => {
+    const { data } = await supabase
+      .from('marketplace_accounts')
+      .select('*')
+      .eq('platform', 'ebay')
+      .eq('is_active', true)
+      .maybeSingle();
+
+    setEbayAccount(data);
   };
 
-  const handleSelectAllPlatforms = () => {
-    const allConnectedIds = connectedPlatforms.map(p => p.id);
-    setSelectedPlatforms(
-      selectedPlatforms.length === allConnectedIds.length ? [] : allConnectedIds
-    );
-  };
-
-  const handleSync = async () => {
-    if (selectedPlatforms.length === 0) {
+  const handleBulkSync = async () => {
+    if (!ebayAccount) {
       toast({
-        title: "No Platforms Selected",
-        description: "Please select at least one platform to sync with",
+        title: "eBay Account Required",
+        description: "Please connect your eBay account first",
         variant: "destructive"
       });
       return;
     }
 
-    if (!hasSelection) {
+    if (selectedItems.length === 0) {
       toast({
         title: "No Items Selected",
-        description: "Please select at least one inventory item to sync",
+        description: "Please select items to sync to eBay",
         variant: "destructive"
       });
       return;
     }
 
-    try {
-      const syncOperations = [];
+    setBulkSyncing(true);
+    setSyncProgress(0);
+    setSyncResults([]);
 
-      for (const listingId of selectedItems) {
-        for (const platformId of selectedPlatforms) {
-          if (syncDirection === 'push' || syncDirection === 'bidirectional') {
-            // Push to platform
-            if (platformId === 'ebay') {
-              syncOperations.push(publishListing(listingId));
-            }
+    const results = [];
+
+    try {
+      for (let i = 0; i < selectedItems.length; i++) {
+        const listingId = selectedItems[i];
+        
+        try {
+          // Get listing details
+          const { data: listing } = await supabase
+            .from('listings')
+            .select('*')
+            .eq('id', listingId)
+            .single();
+
+          if (!listing) {
+            throw new Error('Listing not found');
           }
-          
-          if (syncDirection === 'pull' || syncDirection === 'bidirectional') {
-            // Pull from platform
-            if (platformId === 'ebay') {
-              syncOperations.push(syncListingStatus());
+
+          // Sync to eBay
+          const { data, error } = await supabase.functions.invoke('ebay-integration', {
+            body: {
+              action: 'publish_listing',
+              listingId: listingId
             }
+          });
+
+          if (error || data?.status !== 'success') {
+            throw new Error(data?.error || error?.message || 'Sync failed');
           }
+
+          results.push({
+            listingId,
+            title: listing.title,
+            success: true,
+            ebayUrl: data.platform_url,
+            ebayItemId: data.platform_listing_id
+          });
+
+        } catch (error: any) {
+          results.push({
+            listingId,
+            title: 'Unknown',
+            success: false,
+            error: error.message
+          });
         }
+
+        // Update progress
+        setSyncProgress(((i + 1) / selectedItems.length) * 100);
+        setSyncResults([...results]);
       }
 
-      await Promise.all(syncOperations);
-
+      // Show results
+      setShowResults(true);
+      
+      const successCount = results.filter(r => r.success).length;
       toast({
-        title: "Sync Complete",
-        description: `Successfully synced ${selectedItems.length} items across ${selectedPlatforms.length} platforms`,
+        title: "Bulk Sync Complete",
+        description: `${successCount}/${selectedItems.length} items synced successfully`
       });
 
-      onSyncComplete();
-    } catch (error) {
-      console.error('Sync failed:', error);
+      if (onSyncComplete) {
+        onSyncComplete();
+      }
+
+    } catch (error: any) {
       toast({
-        title: "Sync Failed",
-        description: "There was an error syncing your inventory. Please try again.",
+        title: "Bulk Sync Failed",
+        description: error.message,
         variant: "destructive"
       });
-    }
-  };
-
-  const getSyncButtonText = () => {
-    if (publishing || syncing) return 'Syncing...';
-    
-    const direction = syncDirection === 'push' ? 'Push to' : 
-                     syncDirection === 'pull' ? 'Pull from' : 
-                     'Sync with';
-    
-    const platformCount = selectedPlatforms.length;
-    const itemCount = selectedItems.length;
-    
-    if (platformCount === 0 || itemCount === 0) {
-      return 'Sync Inventory';
-    }
-    
-    return `${direction} ${platformCount} platform${platformCount > 1 ? 's' : ''} (${itemCount} item${itemCount > 1 ? 's' : ''})`;
-  };
-
-  const getSyncIcon = () => {
-    switch (syncDirection) {
-      case 'push':
-        return <Upload className="w-4 h-4" />;
-      case 'pull':
-        return <Download className="w-4 h-4" />;
-      case 'bidirectional':
-        return <ArrowLeftRight className="w-4 h-4" />;
-      default:
-        return <RefreshCw className="w-4 h-4" />;
+    } finally {
+      setBulkSyncing(false);
     }
   };
 
   return (
-    <div className="flex items-center space-x-2">
-      {/* Sync Direction Toggle */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" className="px-3">
-            {getSyncIcon()}
-            <ChevronDown className="w-4 h-4 ml-1" />
+    <div className="flex gap-2">
+      {/* Bulk Sync Button */}
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={selectedItems.length === 0 || !ebayAccount}
+          >
+            <span className="mr-2">↗</span>
+            Sync to eBay ({selectedItems.length})
           </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-48">
-          <DropdownMenuLabel>Sync Direction</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuCheckboxItem
-            checked={syncDirection === 'push'}
-            onCheckedChange={() => setSyncDirection('push')}
-          >
-            <Upload className="w-4 h-4 mr-2" />
-            Push to Platforms
-          </DropdownMenuCheckboxItem>
-          <DropdownMenuCheckboxItem
-            checked={syncDirection === 'pull'}
-            onCheckedChange={() => setSyncDirection('pull')}
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Pull from Platforms
-          </DropdownMenuCheckboxItem>
-          <DropdownMenuCheckboxItem
-            checked={syncDirection === 'bidirectional'}
-            onCheckedChange={() => setSyncDirection('bidirectional')}
-          >
-            <ArrowLeftRight className="w-4 h-4 mr-2" />
-            Bidirectional Sync
-          </DropdownMenuCheckboxItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+        </DialogTrigger>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Sync to eBay</DialogTitle>
+          </DialogHeader>
 
-      {/* Platform Selection */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm">
-            <span className="hidden sm:inline">
-              {selectedPlatforms.length === 0 
-                ? 'Select Platforms' 
-                : `${selectedPlatforms.length} Platform${selectedPlatforms.length > 1 ? 's' : ''}`}
-            </span>
-            <span className="sm:hidden">
-              {selectedPlatforms.length === 0 ? 'Platforms' : selectedPlatforms.length}
-            </span>
-            <ChevronDown className="w-4 h-4 ml-2" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-56">
-          <div className="flex items-center justify-between px-3 py-2">
-            <DropdownMenuLabel className="p-0">Connected Platforms</DropdownMenuLabel>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleSelectAllPlatforms}
-              className="h-auto p-0 text-xs"
-            >
-              {selectedPlatforms.length === connectedPlatforms.length ? 'None' : 'All'}
-            </Button>
-          </div>
-          <DropdownMenuSeparator />
-          {connectedPlatforms.length === 0 ? (
-            <div className="px-3 py-2 text-sm text-gray-500">
-              No platforms connected
-            </div>
-          ) : (
-            connectedPlatforms.map((platform) => (
-              <DropdownMenuCheckboxItem
-                key={platform.id}
-                checked={selectedPlatforms.includes(platform.id)}
-                onCheckedChange={() => handlePlatformToggle(platform.id)}
-              >
-                <span className="mr-2">{platform.icon}</span>
-                {platform.name}
-                <Badge variant="secondary" className="ml-auto text-xs">
-                  Connected
-                </Badge>
-              </DropdownMenuCheckboxItem>
-            ))
-          )}
-          {platforms.filter(p => !p.connected).length > 0 && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel className="text-xs text-gray-500">
-                Not Connected
-              </DropdownMenuLabel>
-              {platforms.filter(p => !p.connected).map((platform) => (
-                <div
-                  key={platform.id}
-                  className="px-3 py-2 text-sm text-gray-400 flex items-center"
-                >
-                  <span className="mr-2">{platform.icon}</span>
-                  {platform.name}
-                  <Badge variant="outline" className="ml-auto text-xs">
-                    Not Connected
-                  </Badge>
+          <div className="space-y-4">
+            {!ebayAccount ? (
+              <div className="text-center space-y-4">
+                <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto">
+                  <span className="text-orange-600">!</span>
                 </div>
-              ))}
-            </>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+                <div>
+                  <h3 className="font-medium">eBay Account Required</h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Connect your eBay account to sync listings
+                  </p>
+                </div>
+                <Button onClick={() => window.location.href = '/settings'}>
+                  Connect eBay Account
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
+                    <span className="text-green-600 text-xs">✓</span>
+                  </div>
+                  <div>
+                    <p className="font-medium">eBay Account Connected</p>
+                    <p className="text-sm text-gray-600">{ebayAccount.account_username}</p>
+                  </div>
+                </div>
 
-      {/* Sync Button */}
-      <Button
-        onClick={handleSync}
-        disabled={
-          !hasConnectedPlatforms || 
-          selectedPlatforms.length === 0 || 
-          !hasSelection ||
-          publishing ||
-          syncing
-        }
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    📋 Ready to sync {selectedItems.length} listing{selectedItems.length !== 1 ? 's' : ''} to eBay
+                  </p>
+                </div>
+
+                {bulkSyncing && (
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Syncing...</span>
+                      <span>{Math.round(syncProgress)}%</span>
+                    </div>
+                    <Progress value={syncProgress} className="w-full" />
+                  </div>
+                )}
+
+                {syncResults.length > 0 && (
+                  <div className="max-h-32 overflow-y-auto space-y-1">
+                    {syncResults.map((result, index) => (
+                      <div key={index} className="flex items-center gap-2 text-xs">
+                        {result.success ? (
+                          <span className="text-green-600">✓</span>
+                        ) : (
+                          <span className="text-red-600">✗</span>
+                        )}
+                        <span className="truncate">{result.title}</span>
+                        {result.success && result.ebayUrl && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-4 w-4 p-0"
+                            onClick={() => window.open(result.ebayUrl, '_blank')}
+                          >
+                            →
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <Button 
+                  onClick={handleBulkSync}
+                  disabled={bulkSyncing}
+                  className="w-full"
+                >
+                  {bulkSyncing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Syncing...
+                    </>
+                  ) : (
+                    'Start Bulk Sync'
+                  )}
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Settings Button */}
+      <Button 
+        variant="ghost" 
         size="sm"
+        onClick={() => window.location.href = '/settings'}
       >
-        {publishing || syncing ? (
-          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-        ) : (
-          getSyncIcon()
-        )}
-        <span className="ml-2">{getSyncButtonText()}</span>
+        ⚙
       </Button>
 
       {/* Selection Info */}
-      {hasSelection && (
+      {selectedItems.length > 0 && (
         <Badge variant="secondary" className="hidden sm:inline-flex">
           {selectedItems.length} selected
         </Badge>
