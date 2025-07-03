@@ -356,7 +356,7 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
 
   logStep("Inventory item created successfully");
 
-  // Create offer for the inventory item - include location if user has provided it
+  // Create offer for the inventory item with required country field
   const offerData = {
     sku: inventoryItemSku,
     marketplaceId: 'EBAY_US',
@@ -370,16 +370,11 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
         currency: 'USD'
       }
     },
-    ...(userData?.shipping_city && userData?.shipping_state && {
-      storefront: {
-        location: {
-          country: userData.shipping_country || 'US',
-          stateOrProvince: userData.shipping_state,
-          city: userData.shipping_city,
-          postalCode: userData.shipping_postal_code || ''
-        }
+    storefront: {
+      location: {
+        country: 'US'
       }
-    }),
+    },
     tax: {
       applyTax: false
     },
