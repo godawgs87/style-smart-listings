@@ -358,7 +358,11 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
     },
     listingDescription: (listing.description || 'Quality item in good condition.').substring(0, 4000),
     categoryId: mapCategoryToEbayId(listing.category || 'Electronics'),
-    // Note: Remove listingPolicies and merchantLocationKey as they require pre-configured business policies
+    locationDetails: {
+      location: {
+        country: 'US'
+      }
+    },
     tax: {
       applyTax: false
     },
