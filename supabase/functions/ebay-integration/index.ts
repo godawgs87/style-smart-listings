@@ -306,16 +306,21 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
   // Create inventory item using the eBay Inventory API
   logStep("About to send request to eBay", { requestData: inventoryItemData });
   
+  const requestHeaders = {
+    'Authorization': `Bearer ${ebayAccount.oauth_token}`,
+    'Content-Type': 'application/json',
+    'Content-Language': 'en-US',
+    'Accept': 'application/json',
+    'Accept-Language': 'en-US',
+    'Accept-Encoding': 'gzip, deflate',
+    'User-Agent': 'Hustly/1.0'
+  };
+  
+  logStep("Request headers being sent", { headers: requestHeaders });
+  
   const inventoryResponse = await fetch(`${ebayApiBase}/sell/inventory/v1/inventory_item/${inventoryItemSku}`, {
     method: 'PUT',
-    headers: {
-      'Authorization': `Bearer ${ebayAccount.oauth_token}`,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Accept-Language': 'en-US',
-      'Accept-Encoding': 'gzip, deflate',
-      'User-Agent': 'Hustly/1.0'
-    },
+    headers: requestHeaders,
     body: JSON.stringify(inventoryItemData)
   });
 
@@ -333,10 +338,7 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
       statusText: inventoryResponse.statusText,
       error: errorText,
       requestData: inventoryItemData,
-      requestHeaders: {
-        'Authorization': `Bearer ${ebayAccount.oauth_token.substring(0, 50)}...`,
-        'Content-Type': 'application/json'
-      }
+      requestHeaders: requestHeaders
     });
     throw new Error(`eBay Inventory API error (${inventoryResponse.status}): ${errorText}`);
   }
@@ -369,6 +371,7 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
     headers: {
       'Authorization': `Bearer ${ebayAccount.oauth_token}`,
       'Content-Type': 'application/json',
+      'Content-Language': 'en-US',
       'Accept': 'application/json',
       'Accept-Language': 'en-US',
       'Accept-Encoding': 'gzip, deflate',
@@ -722,7 +725,8 @@ async function testConnection(supabaseClient: any, userId: string, params: any) 
   const isSandbox = ebayAccount.platform_settings?.sandbox || false;
   const ebayApiBase = isSandbox ? 'https://api.sandbox.ebay.com' : 'https://api.ebay.com';
   
-  const testResponse = await fetch(`${ebayApiBase}/sell/account/v1/privilege`, {
+  // Test with a simpler endpoint that requires fewer permissions
+  const testResponse = await fetch(`${ebayApiBase}/sell/inventory/v1/location`, {
     headers: {
       'Authorization': `Bearer ${ebayAccount.oauth_token}`,
       'Accept': 'application/json',
