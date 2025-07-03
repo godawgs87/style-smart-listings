@@ -345,28 +345,24 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
 
   logStep("Inventory item created successfully");
 
-  // Create offer for the inventory item
+  // Create offer for the inventory item with simplified structure
   const offerData = {
     sku: inventoryItemSku,
     marketplaceId: 'EBAY_US',
     format: 'FIXED_PRICE',
+    availableQuantity: 1,
+    categoryId: mapCategoryToEbayId(listing.category || 'Electronics'),
+    listingDescription: (listing.description || 'Quality item in good condition.').substring(0, 4000),
     pricingSummary: {
       price: {
         value: listing.price?.toString() || '19.99',
         currency: 'USD'
       }
     },
-    listingDescription: (listing.description || 'Quality item in good condition.').substring(0, 4000),
-    categoryId: mapCategoryToEbayId(listing.category || 'Electronics'),
-    locationDetails: {
-      location: {
-        country: 'US'
-      }
-    },
+    merchantLocationKey: 'default',
     tax: {
       applyTax: false
     },
-    charity: undefined,
     lotSize: 1
   };
 
