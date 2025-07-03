@@ -310,7 +310,11 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
     method: 'PUT',
     headers: {
       'Authorization': `Bearer ${ebayAccount.oauth_token}`,
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Accept-Language': 'en-US',
+      'Accept-Encoding': 'gzip, deflate',
+      'User-Agent': 'Hustly/1.0'
     },
     body: JSON.stringify(inventoryItemData)
   });
@@ -364,7 +368,11 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${ebayAccount.oauth_token}`,
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Accept-Language': 'en-US',
+      'Accept-Encoding': 'gzip, deflate',
+      'User-Agent': 'Hustly/1.0'
     },
     body: JSON.stringify(offerData)
   });
@@ -387,7 +395,11 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
   const publishResponse = await fetch(`${ebayApiBase}/sell/inventory/v1/offer/${offerId}/publish/`, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${ebayAccount.oauth_token}`
+      'Authorization': `Bearer ${ebayAccount.oauth_token}`,
+      'Accept': 'application/json',
+      'Accept-Language': 'en-US',
+      'Accept-Encoding': 'gzip, deflate',
+      'User-Agent': 'Hustly/1.0'
     }
   });
 
@@ -712,7 +724,11 @@ async function testConnection(supabaseClient: any, userId: string, params: any) 
   
   const testResponse = await fetch(`${ebayApiBase}/sell/account/v1/privilege`, {
     headers: {
-      'Authorization': `Bearer ${ebayAccount.oauth_token}`
+      'Authorization': `Bearer ${ebayAccount.oauth_token}`,
+      'Accept': 'application/json',
+      'Accept-Language': 'en-US',
+      'Accept-Encoding': 'gzip, deflate',
+      'User-Agent': 'Hustly/1.0'
     }
   });
 
