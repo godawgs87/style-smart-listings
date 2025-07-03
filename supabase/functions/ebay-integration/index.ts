@@ -374,8 +374,6 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
       storefront: {
         location: {
           country: userData.shipping_country || 'US',
-          locationAdditionalInfo: userData.shipping_address_line2 || '',
-          locationInstructions: '',
           stateOrProvince: userData.shipping_state,
           city: userData.shipping_city,
           postalCode: userData.shipping_postal_code || ''
