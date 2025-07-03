@@ -3,6 +3,9 @@ project_id = "ekzaaptxfwixgmbrooqr"
 [functions.ai-style-analysis]
 verify_jwt = true
 
+[functions.ebay-auth]
+verify_jwt = true
+
 [functions.ebay-integration]
 verify_jwt = true
 

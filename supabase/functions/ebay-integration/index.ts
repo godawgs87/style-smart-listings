@@ -98,23 +98,14 @@ async function connectEbayAccount(supabaseClient: any, userId: string, params: a
 
   if (step === 'get_session_id') {
     // Step 1: Get Session ID from eBay
-    const sessionResponse = await fetch(
-      `${Deno.env.get("SUPABASE_URL")}/functions/v1/ebay-auth`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ action: 'get_session_id' })
-      }
-    );
+    const { data: sessionData, error: sessionError } = await supabaseClient.functions.invoke('ebay-auth', {
+      body: { action: 'get_session_id' }
+    });
 
-    if (!sessionResponse.ok) {
-      throw new Error('Failed to get eBay session ID');
+    if (sessionError) {
+      throw new Error(`Failed to get eBay session ID: ${sessionError.message}`);
     }
 
-    const sessionData = await sessionResponse.json();
     logStep("Session ID generated", { sessionId: sessionData.sessionId });
 
     return new Response(JSON.stringify({
@@ -133,26 +124,17 @@ async function connectEbayAccount(supabaseClient: any, userId: string, params: a
       throw new Error('Session ID required for token fetch');
     }
 
-    const tokenResponse = await fetch(
-      `${Deno.env.get("SUPABASE_URL")}/functions/v1/ebay-auth`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ 
-          action: 'fetch_token', 
-          sessionId: sessionId 
-        })
+    const { data: tokenData, error: tokenError } = await supabaseClient.functions.invoke('ebay-auth', {
+      body: { 
+        action: 'fetch_token', 
+        sessionId: sessionId 
       }
-    );
+    });
 
-    if (!tokenResponse.ok) {
-      throw new Error('Failed to fetch eBay auth token');
+    if (tokenError) {
+      throw new Error(`Failed to fetch eBay auth token: ${tokenError.message}`);
     }
 
-    const tokenData = await tokenResponse.json();
     logStep("eBay token fetched successfully");
 
     return new Response(JSON.stringify({
