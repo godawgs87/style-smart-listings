@@ -262,7 +262,7 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
   // Build eBay Inventory API request for createOrReplaceInventoryItem
   logStep("Building eBay REST API request");
   
-  const inventoryItemSku = `listing_${listingId}_${Date.now()}`;
+  const inventoryItemSku = `listing${listingId.replace(/-/g, '')}${Date.now()}`.substring(0, 50);
   
   // Debug logging for condition mapping
   const originalCondition = listing.condition || 'Used';
