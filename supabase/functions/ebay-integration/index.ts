@@ -212,8 +212,18 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
     condition: listing.condition 
   });
 
-  // Get eBay account with OAuth token
-  logStep("Fetching eBay account", { userId });
+  // Get eBay account with OAuth token AND user address information
+  logStep("Fetching eBay account and user profile", { userId });
+  const { data: userData, error: userError } = await supabaseClient
+    .from('user_profiles')
+    .select('shipping_address_line1, shipping_city, shipping_state, shipping_postal_code, shipping_country')
+    .eq('id', userId)
+    .single();
+
+  if (userError) {
+    logStep("Warning: Could not fetch user address", { error: userError });
+  }
+
   const { data: ebayAccounts, error: accountError } = await supabaseClient
     .from('marketplace_accounts')
     .select('*')
@@ -239,7 +249,8 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
   logStep("eBay account retrieved", { 
     username: ebayAccount.account_username,
     tokenPresent: !!ebayAccount.oauth_token,
-    expiresAt: ebayAccount.oauth_expires_at 
+    expiresAt: ebayAccount.oauth_expires_at,
+    hasUserAddress: !!(userData?.shipping_address_line1 && userData?.shipping_city)
   });
 
   // Validate OAuth token format and expiration
@@ -345,7 +356,7 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
 
   logStep("Inventory item created successfully");
 
-  // Create offer for the inventory item without location requirements
+  // Create offer for the inventory item - include location if user has provided it
   const offerData = {
     sku: inventoryItemSku,
     marketplaceId: 'EBAY_US',
@@ -359,6 +370,18 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
         currency: 'USD'
       }
     },
+    ...(userData?.shipping_city && userData?.shipping_state && {
+      storefront: {
+        location: {
+          country: userData.shipping_country || 'US',
+          locationAdditionalInfo: userData.shipping_address_line2 || '',
+          locationInstructions: '',
+          stateOrProvince: userData.shipping_state,
+          city: userData.shipping_city,
+          postalCode: userData.shipping_postal_code || ''
+        }
+      }
+    }),
     tax: {
       applyTax: false
     },

@@ -917,6 +917,12 @@ export type Database = {
           onboarding_completed: boolean | null
           photos_used_this_month: number | null
           preferred_shipping_service: string | null
+          shipping_address_line1: string | null
+          shipping_address_line2: string | null
+          shipping_city: string | null
+          shipping_country: string | null
+          shipping_postal_code: string | null
+          shipping_state: string | null
           subscription_ends_at: string | null
           subscription_status: string | null
           subscription_tier: string | null
@@ -936,6 +942,12 @@ export type Database = {
           onboarding_completed?: boolean | null
           photos_used_this_month?: number | null
           preferred_shipping_service?: string | null
+          shipping_address_line1?: string | null
+          shipping_address_line2?: string | null
+          shipping_city?: string | null
+          shipping_country?: string | null
+          shipping_postal_code?: string | null
+          shipping_state?: string | null
           subscription_ends_at?: string | null
           subscription_status?: string | null
           subscription_tier?: string | null
@@ -955,6 +967,12 @@ export type Database = {
           onboarding_completed?: boolean | null
           photos_used_this_month?: number | null
           preferred_shipping_service?: string | null
+          shipping_address_line1?: string | null
+          shipping_address_line2?: string | null
+          shipping_city?: string | null
+          shipping_country?: string | null
+          shipping_postal_code?: string | null
+          shipping_state?: string | null
           subscription_ends_at?: string | null
           subscription_status?: string | null
           subscription_tier?: string | null
