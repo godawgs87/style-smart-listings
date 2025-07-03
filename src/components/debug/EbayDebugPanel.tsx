@@ -18,60 +18,32 @@ const EbayDebugPanel = () => {
     try {
       console.log('🔍 Testing eBay connection...');
 
-      // Step 1: Check marketplace account
-      const { data: ebayAccount, error: accountError } = await supabase
-        .from('marketplace_accounts')
-        .select('*')
-        .eq('platform', 'ebay')
-        .eq('is_connected', true)
-        .eq('is_active', true)
-        .maybeSingle();
-
-      if (accountError) {
-        throw new Error(`Account lookup failed: ${accountError.message}`);
-      }
-
-      if (!ebayAccount) {
-        throw new Error('No eBay account found');
-      }
-
-      // Step 2: Test eBay API call
-      const testResponse = await fetch('https://api.ebay.com/sell/account/v1/privilege', {
-        headers: {
-          'Authorization': `Bearer ${ebayAccount.oauth_token}`,
-          'Accept': 'application/json'
-        }
+      // Call our edge function to test connection server-side
+      const { data, error } = await supabase.functions.invoke('ebay-integration', {
+        body: { action: 'test_connection' }
       });
 
-      const testData = testResponse.ok ? await testResponse.json() : await testResponse.text();
+      if (error) {
+        throw new Error(`Connection test failed: ${error.message}`);
+      }
 
-      setResults({
-        accountFound: true,
-        accountData: {
-          username: ebayAccount.account_username,
-          tokenLength: ebayAccount.oauth_token?.length,
-          expiresAt: ebayAccount.oauth_expires_at,
-          isExpired: ebayAccount.oauth_expires_at ? new Date(ebayAccount.oauth_expires_at) < new Date() : false
-        },
-        apiTest: {
-          status: testResponse.status,
-          statusText: testResponse.statusText,
-          ok: testResponse.ok,
-          data: testData
+      if (data?.status === 'success') {
+        setResults(data);
+
+        if (data.apiTest?.ok) {
+          toast({
+            title: "eBay Connection Healthy ✅",
+            description: "Your eBay account is properly connected and API calls are working"
+          });
+        } else {
+          toast({
+            title: "eBay API Issue ⚠️",
+            description: `API call failed with status ${data.apiTest?.status}`,
+            variant: "destructive"
+          });
         }
-      });
-
-      if (testResponse.ok) {
-        toast({
-          title: "eBay Connection Healthy ✅",
-          description: "Your eBay account is properly connected and API calls are working"
-        });
       } else {
-        toast({
-          title: "eBay API Issue ⚠️",
-          description: `API call failed with status ${testResponse.status}`,
-          variant: "destructive"
-        });
+        throw new Error(data?.error || 'Unknown connection test error');
       }
 
     } catch (error: any) {

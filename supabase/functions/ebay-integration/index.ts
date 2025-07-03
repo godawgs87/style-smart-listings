@@ -65,6 +65,10 @@ serve(async (req) => {
         logStep("Calling syncListingStatus");
         return await syncListingStatus(supabaseClient, user.id, params);
       
+      case 'test_connection':
+        logStep("Calling testConnection");
+        return await testConnection(supabaseClient, user.id, params);
+      
       default:
         logStep("Unknown action", { action });
         throw new Error(`Unknown action: ${action}`);
@@ -677,4 +681,65 @@ function mapCategoryToEbayId(category: string): string {
   };
   
   return categoryMap[category] || '293'; // Default to Consumer Electronics
+}
+
+async function testConnection(supabaseClient: any, userId: string, params: any) {
+  logStep("Testing eBay connection", { userId });
+
+  // Get eBay account
+  const { data: ebayAccount, error: accountError } = await supabaseClient
+    .from('marketplace_accounts')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('platform', 'ebay')
+    .eq('is_connected', true)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (accountError) {
+    throw new Error(`Account lookup failed: ${accountError.message}`);
+  }
+
+  if (!ebayAccount) {
+    throw new Error('No eBay account found');
+  }
+
+  logStep("eBay account found", { username: ebayAccount.account_username });
+
+  // Test eBay API call server-side
+  const isSandbox = ebayAccount.platform_settings?.sandbox || false;
+  const ebayApiBase = isSandbox ? 'https://api.sandbox.ebay.com' : 'https://api.ebay.com';
+  
+  const testResponse = await fetch(`${ebayApiBase}/sell/account/v1/privilege`, {
+    headers: {
+      'Authorization': `Bearer ${ebayAccount.oauth_token}`
+    }
+  });
+
+  const testData = testResponse.ok ? await testResponse.json() : await testResponse.text();
+
+  logStep("eBay API test completed", { 
+    status: testResponse.status, 
+    ok: testResponse.ok 
+  });
+
+  return new Response(JSON.stringify({
+    status: 'success',
+    accountFound: true,
+    accountData: {
+      username: ebayAccount.account_username,
+      tokenLength: ebayAccount.oauth_token?.length,
+      expiresAt: ebayAccount.oauth_expires_at,
+      isExpired: ebayAccount.oauth_expires_at ? new Date(ebayAccount.oauth_expires_at) < new Date() : false
+    },
+    apiTest: {
+      status: testResponse.status,
+      statusText: testResponse.statusText,
+      ok: testResponse.ok,
+      data: testData
+    }
+  }), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    status: 200,
+  });
 }
