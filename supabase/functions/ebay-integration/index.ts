@@ -259,38 +259,33 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
   logStep("Building eBay REST API request");
   
   const inventoryItemSku = `listing_${listingId}_${Date.now()}`;
+  
+  // Debug logging for condition mapping
+  const originalCondition = listing.condition || 'Used';
+  const mappedCondition = mapConditionToEbayCondition(originalCondition);
+  logStep("Condition mapping", { 
+    originalCondition, 
+    mappedCondition 
+  });
+  
   const inventoryItemData = {
     availability: {
       shipToLocationAvailability: {
         quantity: 1
       }
     },
-    condition: mapConditionToEbayCondition(listing.condition || 'Used'),
-    conditionDescription: listing.description ? listing.description.substring(0, 1000) : '',
     product: {
       title: (listing.title || 'Quality Item').substring(0, 80),
       description: (listing.description || 'Quality item in good condition.').substring(0, 4000),
-      imageUrls: listing.photos && listing.photos.length > 0 ? listing.photos.slice(0, 12) : [],
       aspects: {
         Brand: [listing.brand || 'Unbranded'],
+        Condition: [mappedCondition],
         ...(listing.color_primary && { Color: [listing.color_primary] }),
         ...(listing.material && { Material: [listing.material] }),
         ...(listing.size_value && { Size: [listing.size_value] }),
         ...(listing.gender && { Gender: [listing.gender] })
       }
-    },
-    packageWeightAndSize: listing.weight_oz ? {
-      dimensions: {
-        length: listing.package_length_in || 12,
-        width: listing.package_width_in || 12,
-        height: listing.package_height_in || 6,
-        unit: 'INCH'
-      },
-      weight: {
-        value: listing.weight_oz || 16,
-        unit: 'OUNCE'
-      }
-    } : undefined
+    }
   };
 
   // Determine the correct eBay environment based on token
