@@ -345,7 +345,7 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
 
   logStep("Inventory item created successfully");
 
-  // Create offer for the inventory item with simplified structure
+  // Create offer for the inventory item without location requirements
   const offerData = {
     sku: inventoryItemSku,
     marketplaceId: 'EBAY_US',
@@ -359,7 +359,6 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
         currency: 'USD'
       }
     },
-    merchantLocationKey: 'default',
     tax: {
       applyTax: false
     },
