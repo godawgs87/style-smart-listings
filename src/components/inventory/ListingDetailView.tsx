@@ -220,37 +220,34 @@ const ListingDetailView = ({ listing, onClose, onEdit }: ListingDetailViewProps)
   }
 
   return (
-    <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{detailedListing.title}</DialogTitle>
-          <DialogDescription>
-            View detailed information about this listing
-          </DialogDescription>
-        </DialogHeader>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold">{detailedListing.title}</h2>
+            <p className="text-sm text-gray-600">View detailed information about this listing</p>
+          </div>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
         
-        <Card className="border-0 shadow-none">
-          <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4 px-0">
-            <div className="flex-1">
-              <div className="flex items-center space-x-2">
-                <Badge variant={detailedListing.status === 'active' ? 'default' : 'secondary'}>
-                  {detailedListing.status}
-                </Badge>
-                <Badge variant="outline">{detailedListing.category}</Badge>
-                <Badge variant="outline">{detailedListing.condition}</Badge>
-              </div>
-            </div>
-            <div className="flex space-x-2">
-              {onEdit && (
-                <Button variant="outline" size="sm" onClick={onEdit}>
-                  <Edit className="w-4 h-4 mr-1" />
-                  Edit
-                </Button>
-              )}
-            </div>
-          </CardHeader>
+        <div className="p-6">
+          <div className="flex items-center space-x-2 mb-6">
+            <Badge variant={detailedListing.status === 'active' ? 'default' : 'secondary'}>
+              {detailedListing.status}
+            </Badge>
+            <Badge variant="outline">{detailedListing.category}</Badge>
+            <Badge variant="outline">{detailedListing.condition}</Badge>
+            {onEdit && (
+              <Button variant="outline" size="sm" onClick={onEdit} className="ml-auto">
+                <Edit className="w-4 h-4 mr-1" />
+                Edit
+              </Button>
+            )}
+          </div>
 
-          <CardContent className="space-y-6 px-0">
+          <div className="space-y-6">
             {/* Image and Basic Info */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="md:col-span-1">
@@ -328,10 +325,10 @@ const ListingDetailView = ({ listing, onClose, onEdit }: ListingDetailViewProps)
                 </div>
               </>
             )}
-          </CardContent>
-        </Card>
-      </DialogContent>
-    </Dialog>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 

@@ -50,8 +50,10 @@ const InventoryManager = ({ onCreateListing, onBack }: InventoryManagerProps) =>
 
   const handleUpdateListing = useCallback(async (listingId: string, updates: any): Promise<void> => {
     try {
+      console.log('🔄 Updating listing:', { listingId, updates });
       const success = await operations.updateListing(listingId, updates);
       if (success) {
+        console.log('✅ Listing updated successfully, refreshing inventory');
         inventory.refetch();
       }
     } catch (error) {
