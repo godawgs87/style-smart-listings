@@ -594,10 +594,10 @@ function mapConditionToEbayCondition(condition: string): string {
     'Very Good': 'GOOD',
     'Good': 'ACCEPTABLE',
     'Acceptable': 'FOR_PARTS_OR_NOT_WORKING',
-    'Used': 'GOOD'
+    'Used': 'USED_EXCELLENT'
   };
   
-  return conditionMap[condition] || 'GOOD';
+  return conditionMap[condition] || 'USED_EXCELLENT';
 }
 
 function mapCategoryToEbayId(category: string): string {
