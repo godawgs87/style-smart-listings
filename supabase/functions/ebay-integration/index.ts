@@ -334,6 +334,13 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
         ...(listing.size_value && { Size: [listing.size_value] }),
         ...(listing.gender && { Gender: [listing.gender] })
       }
+    },
+    condition: mappedCondition,
+    packageWeightAndSize: {
+      weight: {
+        value: listing.weight_oz || 8,
+        unit: 'OUNCE'
+      }
     }
   };
 
@@ -450,6 +457,21 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
         postalCode: userData.shipping_postal_code,
         stateOrProvince: userData.shipping_state
       }
+    },
+    listingPolicies: {
+      fulfillmentPolicyId: null,
+      paymentPolicyId: null,
+      returnPolicyId: null
+    },
+    location: {
+      country: userData.shipping_country || 'US',
+      postalCode: userData.shipping_postal_code,
+      stateOrProvince: userData.shipping_state
+    },
+    itemLocation: {
+      country: userData.shipping_country || 'US',
+      postalCode: userData.shipping_postal_code,
+      stateOrProvince: userData.shipping_state
     },
     paymentPolicy: {
       paymentPolicyId: null, // Use inline payment policy
