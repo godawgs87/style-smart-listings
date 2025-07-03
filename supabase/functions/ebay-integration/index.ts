@@ -266,12 +266,31 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
       }
     },
     condition: mapConditionToEbayCondition(listing.condition || 'Used'),
+    conditionDescription: listing.description ? listing.description.substring(0, 1000) : '',
     product: {
       title: (listing.title || 'Quality Item').substring(0, 80),
-      description: listing.description || 'Quality item in good condition.',
-      brand: listing.brand || 'Unbranded',
-      mpn: 'Does not apply'
-    }
+      description: (listing.description || 'Quality item in good condition.').substring(0, 4000),
+      imageUrls: listing.photos && listing.photos.length > 0 ? listing.photos.slice(0, 12) : [],
+      aspects: {
+        Brand: [listing.brand || 'Unbranded'],
+        ...(listing.color_primary && { Color: [listing.color_primary] }),
+        ...(listing.material && { Material: [listing.material] }),
+        ...(listing.size_value && { Size: [listing.size_value] }),
+        ...(listing.gender && { Gender: [listing.gender] })
+      }
+    },
+    packageWeightAndSize: listing.weight_oz ? {
+      dimensions: {
+        length: listing.package_length_in || 12,
+        width: listing.package_width_in || 12,
+        height: listing.package_height_in || 6,
+        unit: 'INCH'
+      },
+      weight: {
+        value: listing.weight_oz || 16,
+        unit: 'OUNCE'
+      }
+    } : undefined
   };
 
   // Determine the correct eBay environment based on token
@@ -332,14 +351,14 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
         currency: 'USD'
       }
     },
-    listingDescription: listing.description || 'Quality item in good condition.',
-    listingPolicies: {
-      fulfillmentPolicyId: 'default',
-      paymentPolicyId: 'default',
-      returnPolicyId: 'default'
-    },
+    listingDescription: (listing.description || 'Quality item in good condition.').substring(0, 4000),
     categoryId: mapCategoryToEbayId(listing.category || 'Electronics'),
-    merchantLocationKey: 'default'
+    // Note: Remove listingPolicies and merchantLocationKey as they require pre-configured business policies
+    tax: {
+      applyTax: false
+    },
+    charity: undefined,
+    lotSize: 1
   };
 
   const offerResponse = await fetch(`${ebayApiBase}/sell/inventory/v1/offer`, {
@@ -587,31 +606,85 @@ function calculateSuccessScore(listing: any): number {
 
 // REST API Helper Functions
 function mapConditionToEbayCondition(condition: string): string {
+  // Updated eBay condition values based on current API documentation
   const conditionMap: Record<string, string> = {
     'New': 'NEW',
-    'Like New': 'LIKE_NEW', 
-    'Excellent': 'VERY_GOOD',
-    'Very Good': 'GOOD',
-    'Good': 'ACCEPTABLE',
-    'Acceptable': 'FOR_PARTS_OR_NOT_WORKING',
-    'Used': 'USED_EXCELLENT'
+    'New with defects': 'NEW_WITH_DEFECTS',
+    'New with tags': 'NEW_WITH_TAGS',
+    'New without tags': 'NEW_WITHOUT_TAGS',
+    'Like New': 'LIKE_NEW',
+    'Excellent': 'EXCELLENT',
+    'Very Good': 'VERY_GOOD', 
+    'Good': 'GOOD',
+    'Used': 'USED',
+    'Acceptable': 'ACCEPTABLE',
+    'For parts or not working': 'FOR_PARTS_OR_NOT_WORKING',
+    'For Parts': 'FOR_PARTS_OR_NOT_WORKING'
   };
   
-  return conditionMap[condition] || 'USED_EXCELLENT';
+  return conditionMap[condition] || 'USED';
 }
 
 function mapCategoryToEbayId(category: string): string {
+  // Updated eBay category IDs - these are current as of 2024
   const categoryMap: Record<string, string> = {
-    'Electronics': '58058',
-    'Clothing': '11450', 
-    'Home & Garden': '11700',
-    'Collectibles': '1',
-    'Sporting Goods': '888',
+    // Consumer Electronics
+    'Electronics': '293',
+    'Cell Phones & Accessories': '15032',
+    'Computers/Tablets & Networking': '58058',
+    'Video Games & Consoles': '1249',
+    'Cameras & Photo': '625',
+    'TV, Audio & Surveillance': '32852',
+    
+    // Clothing & Fashion
+    'Clothing': '11450',
+    'Clothing, Shoes & Accessories': '11450',
+    'Women\'s Clothing': '15724',
+    'Men\'s Clothing': '1059',
+    'Shoes': '93427',
     'Jewelry & Watches': '281',
+    'Handbags': '169291',
+    
+    // Home & Garden
+    'Home & Garden': '11700',
+    'Home & Kitchen': '11700',
+    'Tools & Home Improvement': '631',
+    'Garden & Patio': '159912',
+    'Home Décor': '20081',
+    
+    // Sports & Recreation  
+    'Sporting Goods': '888',
+    'Sports & Outdoors': '888',
+    'Outdoor Sports': '159043',
+    'Team Sports': '64482',
+    'Fitness & Exercise': '15273',
+    
+    // Collectibles & Art
+    'Collectibles': '1',
+    'Art': '550',
+    'Antiques': '20081',
+    'Toys & Hobbies': '220',
+    'Trading Cards': '213',
+    
+    // Media
     'Books': '267',
     'Music': '11233',
-    'Movies & TV': '11232'
+    'Movies & TV': '11232',
+    'Video Games': '1249',
+    
+    // Vehicles
+    'Automotive': '6000',
+    'Motorcycles': '6024',
+    'Parts & Accessories': '6028',
+    
+    // Other Categories
+    'Health & Beauty': '26395',
+    'Baby': '2984',
+    'Pet Supplies': '1281',
+    'Musical Instruments': '619',
+    'Crafts': '14339',
+    'Business & Industrial': '12576'
   };
   
-  return categoryMap[category] || '58058'; // Default to Electronics
+  return categoryMap[category] || '293'; // Default to Consumer Electronics
 }
