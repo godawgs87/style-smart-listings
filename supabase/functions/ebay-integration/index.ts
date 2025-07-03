@@ -210,24 +210,27 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
 
   // Get eBay account with OAuth token
   logStep("Fetching eBay account", { userId });
-  const { data: ebayAccount, error: accountError } = await supabaseClient
+  const { data: ebayAccounts, error: accountError } = await supabaseClient
     .from('marketplace_accounts')
     .select('*')
     .eq('user_id', userId)
     .eq('platform', 'ebay')
     .eq('is_connected', true)
-    .eq('is_active', true)
-    .single();
+    .order('updated_at', { ascending: false });
 
   if (accountError) {
     logStep("eBay account fetch error", { error: accountError });
     throw new Error(`Failed to fetch eBay account: ${accountError.message}`);
   }
   
-  if (!ebayAccount) {
+  if (!ebayAccounts || ebayAccounts.length === 0) {
     logStep("No eBay account found", { userId });
     throw new Error('eBay account not connected. Please connect your eBay account first.');
   }
+  
+  // Use the most recently updated connected account
+  const ebayAccount = ebayAccounts[0];
+  logStep("Found eBay accounts", { count: ebayAccounts.length, usingAccount: ebayAccount.account_username });
   
   logStep("eBay account retrieved", { 
     username: ebayAccount.account_username,
