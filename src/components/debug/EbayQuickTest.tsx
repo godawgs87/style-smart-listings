@@ -88,7 +88,22 @@ const EbayQuickTest = () => {
 
       if (error) {
         addLog(`❌ Function error: ${error.message}`);
+        
+        // Try to get more details from the error
+        if (error.details) {
+          addLog(`📄 Error details: ${JSON.stringify(error.details)}`);
+        }
+        if (error.hint) {
+          addLog(`💡 Error hint: ${error.hint}`);
+        }
+        
         throw new Error(`Function call failed: ${error.message}`);
+      }
+
+      // Check if we got a response but it might contain an error
+      if (!data) {
+        addLog(`❌ No data returned from function`);
+        throw new Error('No data returned from eBay integration function');
       }
 
       addLog(`📦 Function response: ${JSON.stringify(data, null, 2)}`);
