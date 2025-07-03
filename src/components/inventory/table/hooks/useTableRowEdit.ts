@@ -23,11 +23,13 @@ export const useTableRowEdit = (listing: Listing, onUpdateListing?: (listingId: 
   const handleSave = async () => {
     if (onUpdateListing) {
       try {
+        console.log('🔄 Saving edit data:', { listingId: listing.id, editData });
         await onUpdateListing(listing.id, editData);
+        console.log('✅ Save completed successfully');
         setEditingId(null);
         setEditData({});
       } catch (error) {
-        console.error('Failed to update listing:', error);
+        console.error('❌ Failed to update listing:', error);
       }
     }
   };

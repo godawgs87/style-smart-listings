@@ -23,15 +23,25 @@ const ListingDetailView = ({ listing, onClose, onEdit }: ListingDetailViewProps)
   const [detailedListing, setDetailedListing] = useState<Listing>(listing);
 
   useEffect(() => {
+    let isMounted = true;
+    
     const loadListingDetails = async () => {
-      const details = await loadDetails(listing.id);
-      if (details) {
-        setDetailedListing({ ...listing, ...details });
+      try {
+        const details = await loadDetails(listing.id);
+        if (details && isMounted) {
+          setDetailedListing({ ...listing, ...details });
+        }
+      } catch (error) {
+        console.error('Error loading listing details:', error);
       }
     };
 
     loadListingDetails();
-  }, [listing.id, loadDetails]);
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [listing.id, loadDetails, listing]);
 
   const renderSizeInfo = () => {
     const sizeFields = [

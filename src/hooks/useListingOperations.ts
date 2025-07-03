@@ -114,8 +114,11 @@ export const useListingOperations = () => {
 
   const updateListing = async (id: string, updates: Partial<Listing>) => {
     try {
+      console.log('🔄 updateListing called:', { id, updates });
+      
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) {
+        console.error('❌ Auth error:', authError);
         toast({
           title: "Authentication Required",
           description: "Please log in to update listings",
@@ -124,22 +127,38 @@ export const useListingOperations = () => {
         return false;
       }
 
-      const { error } = await supabase
+      console.log('✅ User authenticated:', user.id);
+      
+      const { data, error } = await supabase
         .from('listings')
         .update(updates)
         .eq('id', id)
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .select();
+
+      console.log('📥 Update response:', { data, error });
 
       if (error) {
-        console.error('Update error:', error);
+        console.error('❌ Update error:', error);
         toast({
           title: "Error",
-          description: "Failed to update listing",
+          description: `Failed to update listing: ${error.message}`,
           variant: "destructive"
         });
         return false;
       }
 
+      if (!data || data.length === 0) {
+        console.error('❌ No data returned - listing may not exist or belong to user');
+        toast({
+          title: "Error",
+          description: "Listing not found or you don't have permission to update it",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      console.log('✅ Listing updated successfully:', data[0]);
       toast({
         title: "Success",
         description: "Listing updated successfully"
