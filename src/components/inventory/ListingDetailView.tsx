@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Edit, X, DollarSign, Package, Calendar, User, MapPin, TrendingUp, Clock, FileText } from 'lucide-react';
 import { useListingDetails } from '@/hooks/useListingDetails';
 import { useListingOperations } from '@/hooks/useListingOperations';
@@ -219,113 +220,118 @@ const ListingDetailView = ({ listing, onClose, onEdit }: ListingDetailViewProps)
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto m-4">
-        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4">
-          <div className="flex-1">
-            <CardTitle className="text-xl font-bold pr-4">{detailedListing.title}</CardTitle>
-            <div className="flex items-center space-x-2 mt-2">
-              <Badge variant={detailedListing.status === 'active' ? 'default' : 'secondary'}>
-                {detailedListing.status}
-              </Badge>
-              <Badge variant="outline">{detailedListing.category}</Badge>
-              <Badge variant="outline">{detailedListing.condition}</Badge>
-            </div>
-          </div>
-          <div className="flex space-x-2">
-            {onEdit && (
-              <Button variant="outline" size="sm" onClick={onEdit}>
-                <Edit className="w-4 h-4 mr-1" />
-                Edit
-              </Button>
-            )}
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
-        </CardHeader>
-
-        <CardContent className="space-y-6">
-          {/* Image and Basic Info */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-1">
-              <ListingImagePreview 
-                photos={detailedListing.photos} 
-                title={detailedListing.title}
-                className="w-full h-48"
-              />
-            </div>
-            <div className="md:col-span-2 space-y-4">
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Pricing</h3>
-                <div className="flex items-center space-x-4">
-                  <div className="bg-green-100 px-3 py-2 rounded">
-                    <span className="text-lg font-bold text-green-600">${detailedListing.price}</span>
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    + ${detailedListing.shipping_cost || 9.95} shipping
-                  </div>
-                </div>
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{detailedListing.title}</DialogTitle>
+          <DialogDescription>
+            View detailed information about this listing
+          </DialogDescription>
+        </DialogHeader>
+        
+        <Card className="border-0 shadow-none">
+          <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4 px-0">
+            <div className="flex-1">
+              <div className="flex items-center space-x-2">
+                <Badge variant={detailedListing.status === 'active' ? 'default' : 'secondary'}>
+                  {detailedListing.status}
+                </Badge>
+                <Badge variant="outline">{detailedListing.category}</Badge>
+                <Badge variant="outline">{detailedListing.condition}</Badge>
               </div>
-              
-              {detailedListing.description && (
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">Description</h3>
-                  <p className="text-sm text-gray-700 leading-relaxed">{detailedListing.description}</p>
-                </div>
+            </div>
+            <div className="flex space-x-2">
+              {onEdit && (
+                <Button variant="outline" size="sm" onClick={onEdit}>
+                  <Edit className="w-4 h-4 mr-1" />
+                  Edit
+                </Button>
               )}
             </div>
-          </div>
+          </CardHeader>
 
-          <Separator />
-
-          {/* Size Information */}
-          {renderSizeInfo()}
-          
-          {renderSizeInfo() && <Separator />}
-
-          {/* Measurements */}
-          {renderMeasurements()}
-          
-          {renderMeasurements() && <Separator />}
-
-          {/* Financial Information */}
-          {renderFinancialInfo()}
-          
-          {renderFinancialInfo() && <Separator />}
-
-          {/* Consignment Information */}
-          {renderConsignmentInfo()}
-          
-          {renderConsignmentInfo() && <Separator />}
-
-          {/* Source Information */}
-          {renderSourceInfo()}
-          
-          {renderSourceInfo() && <Separator />}
-
-          {/* Performance Information */}
-          {renderPerformanceInfo()}
-
-          {/* Keywords */}
-          {detailedListing.keywords && detailedListing.keywords.length > 0 && (
-            <>
-              <Separator />
-              <div className="space-y-3">
-                <h3 className="font-semibold text-gray-900">Keywords</h3>
-                <div className="flex flex-wrap gap-2">
-                  {detailedListing.keywords.map((keyword, index) => (
-                    <Badge key={index} variant="secondary" className="text-xs">
-                      {keyword}
-                    </Badge>
-                  ))}
-                </div>
+          <CardContent className="space-y-6 px-0">
+            {/* Image and Basic Info */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="md:col-span-1">
+                <ListingImagePreview 
+                  photos={detailedListing.photos} 
+                  title={detailedListing.title}
+                  className="w-full h-48"
+                />
               </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+              <div className="md:col-span-2 space-y-4">
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-2">Pricing</h3>
+                  <div className="flex items-center space-x-4">
+                    <div className="bg-green-100 px-3 py-2 rounded">
+                      <span className="text-lg font-bold text-green-600">${detailedListing.price}</span>
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      + ${detailedListing.shipping_cost || 9.95} shipping
+                    </div>
+                  </div>
+                </div>
+                
+                {detailedListing.description && (
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-2">Description</h3>
+                    <p className="text-sm text-gray-700 leading-relaxed">{detailedListing.description}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Size Information */}
+            {renderSizeInfo()}
+            
+            {renderSizeInfo() && <Separator />}
+
+            {/* Measurements */}
+            {renderMeasurements()}
+            
+            {renderMeasurements() && <Separator />}
+
+            {/* Financial Information */}
+            {renderFinancialInfo()}
+            
+            {renderFinancialInfo() && <Separator />}
+
+            {/* Consignment Information */}
+            {renderConsignmentInfo()}
+            
+            {renderConsignmentInfo() && <Separator />}
+
+            {/* Source Information */}
+            {renderSourceInfo()}
+            
+            {renderSourceInfo() && <Separator />}
+
+            {/* Performance Information */}
+            {renderPerformanceInfo()}
+
+            {/* Keywords */}
+            {detailedListing.keywords && detailedListing.keywords.length > 0 && (
+              <>
+                <Separator />
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-gray-900">Keywords</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {detailedListing.keywords.map((keyword, index) => (
+                      <Badge key={index} variant="secondary" className="text-xs">
+                        {keyword}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </DialogContent>
+    </Dialog>
   );
 };
 

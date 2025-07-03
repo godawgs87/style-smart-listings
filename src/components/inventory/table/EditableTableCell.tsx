@@ -4,6 +4,7 @@ import { TableCell } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { useCategories } from '@/hooks/useCategories';
 import type { Listing } from '@/types/Listing';
 
 interface EditableCellProps {
@@ -15,6 +16,8 @@ interface EditableCellProps {
 }
 
 const EditableTableCell = ({ field, value, isEditing, onUpdate, className }: EditableCellProps) => {
+  const { categories } = useCategories();
+  
   const getStatusBadgeVariant = (status: string | null) => {
     switch (status) {
       case 'active': return 'default';
@@ -22,6 +25,27 @@ const EditableTableCell = ({ field, value, isEditing, onUpdate, className }: Edi
       case 'draft': return 'outline';
       default: return 'outline';
     }
+  };
+
+  const renderCategoryOptions = () => {
+    const options: JSX.Element[] = [];
+    
+    const renderCategoryGroup = (cats: any[], level = 0) => {
+      cats.forEach(cat => {
+        const indent = '  '.repeat(level);
+        options.push(
+          <SelectItem key={cat.id} value={cat.name}>
+            {indent}{cat.name}
+          </SelectItem>
+        );
+        if (cat.children && cat.children.length > 0) {
+          renderCategoryGroup(cat.children, level + 1);
+        }
+      });
+    };
+    
+    renderCategoryGroup(categories);
+    return options;
   };
 
   const renderEditableContent = () => {
@@ -80,12 +104,14 @@ const EditableTableCell = ({ field, value, isEditing, onUpdate, className }: Edi
 
       case 'category':
         return isEditing ? (
-          <Input
-            value={value || ''}
-            onChange={(e) => onUpdate(field, e.target.value)}
-            placeholder="Category"
-            className="w-full"
-          />
+          <Select value={value || ''} onValueChange={(newValue) => onUpdate(field, newValue)}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select category" />
+            </SelectTrigger>
+            <SelectContent className="bg-white border shadow-lg z-50 max-h-60 overflow-y-auto">
+              {renderCategoryOptions()}
+            </SelectContent>
+          </Select>
         ) : (
           <span className="text-sm">{value || '-'}</span>
         );

@@ -222,7 +222,17 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
 
   if (userError) {
     logStep("Warning: Could not fetch user address", { error: userError });
+    // Don't throw here - we'll check required fields later
   }
+  
+  logStep("User profile data fetched", { 
+    userData, 
+    hasAddressLine1: !!userData?.shipping_address_line1,
+    hasCity: !!userData?.shipping_city,
+    hasState: !!userData?.shipping_state,
+    hasPostalCode: !!userData?.shipping_postal_code,
+    country: userData?.shipping_country
+  });
 
   const { data: ebayAccounts, error: accountError } = await supabaseClient
     .from('marketplace_accounts')
@@ -271,6 +281,16 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
   });
 
   // Validate that user has required business address information for eBay
+  logStep("Validating business address", {
+    userData,
+    hasUserData: !!userData,
+    addressLine1: userData?.shipping_address_line1,
+    city: userData?.shipping_city,
+    state: userData?.shipping_state,
+    postalCode: userData?.shipping_postal_code,
+    country: userData?.shipping_country
+  });
+  
   if (!userData || !userData.shipping_address_line1 || !userData.shipping_city || 
       !userData.shipping_state || !userData.shipping_postal_code) {
     throw new Error('Please complete your business address in Settings → Business tab before syncing to eBay. eBay requires your shipping location.');
