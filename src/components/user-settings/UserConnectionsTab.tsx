@@ -6,6 +6,7 @@ import { useEbayIntegration } from '@/hooks/useEbayIntegration';
 import EbayOAuthConnection from './connections/EbayOAuthConnection';
 import { GenericPlatformCard } from './connections/GenericPlatformCard';
 import { PlatformSettingsSection } from './connections/PlatformSettingsSection';
+import EbayDebugPanel from '../debug/EbayDebugPanel';
 
 interface Platform {
   name: string;
@@ -69,6 +70,10 @@ const UserConnectionsTab = () => {
             {index < platforms.length - 1 && <Separator className="mt-6" />}
           </div>
         ))}
+
+        {/* eBay Debug Panel */}
+        <Separator className="mt-6" />
+        <EbayDebugPanel />
       </div>
     </Card>
   );

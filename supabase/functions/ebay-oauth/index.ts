@@ -233,6 +233,7 @@ serve(async (req) => {
         // Get user info from eBay to store real username
         let realUsername = 'ebay_seller';
         try {
+          // Try the User Identity API first
           const userResponse = await fetch(`${EBAY_CONFIG.baseUrl}/commerce/identity/v1/user/`, {
             headers: {
               'Authorization': `Bearer ${tokenData.access_token}`,
@@ -242,11 +243,28 @@ serve(async (req) => {
           
           if (userResponse.ok) {
             const userInfo = await userResponse.json();
-            realUsername = userInfo.username || userInfo.registrationAddress?.contactAddress?.fullName || 'ebay_seller';
-            console.log('Retrieved eBay username:', realUsername);
+            realUsername = userInfo.username || userInfo.userId || 'ebay_seller';
+            console.log('Retrieved eBay username from Identity API:', realUsername);
+          } else {
+            console.log('Identity API failed, trying Account API...');
+            
+            // Fallback to Account API
+            const accountResponse = await fetch(`${EBAY_CONFIG.baseUrl}/sell/account/v1/privilege`, {
+              headers: {
+                'Authorization': `Bearer ${tokenData.access_token}`,
+                'Accept': 'application/json'
+              }
+            });
+            
+            if (accountResponse.ok) {
+              const accountInfo = await accountResponse.json();
+              realUsername = accountInfo.username || `ebay_user_${Date.now()}`;
+              console.log('Retrieved eBay username from Account API:', realUsername);
+            }
           }
         } catch (err) {
-          console.log('Failed to get eBay user info, using default username:', err);
+          console.log('Failed to get eBay user info, using timestamped default:', err);
+          realUsername = `ebay_user_${Date.now()}`;
         }
 
         // ✅ CORRECT database fields with real user data

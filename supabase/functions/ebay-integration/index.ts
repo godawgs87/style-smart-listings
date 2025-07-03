@@ -271,7 +271,11 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
     }
   };
 
-  logStep("Sending REST API request to eBay Inventory API");
+  logStep("Sending REST API request to eBay Inventory API", {
+    url: `https://api.ebay.com/sell/inventory/v1/inventory_item/${inventoryItemSku}`,
+    tokenLength: ebayAccount.oauth_token.length,
+    tokenPrefix: ebayAccount.oauth_token.substring(0, 20)
+  });
   
   // Create inventory item
   const inventoryResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${inventoryItemSku}`, {
@@ -284,11 +288,19 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
     body: JSON.stringify(inventoryItemData)
   });
 
+  logStep("Inventory API response received", { 
+    status: inventoryResponse.status,
+    statusText: inventoryResponse.statusText,
+    ok: inventoryResponse.ok
+  });
+
   if (!inventoryResponse.ok) {
     const errorText = await inventoryResponse.text();
-    logStep("Inventory API error", { 
+    logStep("Inventory API error details", { 
       status: inventoryResponse.status,
-      error: errorText 
+      statusText: inventoryResponse.statusText,
+      error: errorText,
+      requestData: inventoryItemData
     });
     throw new Error(`eBay Inventory API error (${inventoryResponse.status}): ${errorText}`);
   }
