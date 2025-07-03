@@ -232,8 +232,13 @@ serve(async (req) => {
 
         // Get user info from eBay to store real username
         let realUsername = 'ebay_seller';
+        let usernameSource = 'default';
+        
         try {
+          console.log('Attempting to get real eBay username...');
+          
           // Try the User Identity API first
+          console.log('Trying Identity API...');
           const userResponse = await fetch(`${EBAY_CONFIG.baseUrl}/commerce/identity/v1/user/`, {
             headers: {
               'Authorization': `Bearer ${tokenData.access_token}`,
@@ -241,12 +246,25 @@ serve(async (req) => {
             }
           });
           
+          console.log('Identity API response status:', userResponse.status);
+          
           if (userResponse.ok) {
             const userInfo = await userResponse.json();
-            realUsername = userInfo.username || userInfo.userId || 'ebay_seller';
-            console.log('Retrieved eBay username from Identity API:', realUsername);
+            console.log('Identity API response:', userInfo);
+            
+            if (userInfo.username) {
+              realUsername = userInfo.username;
+              usernameSource = 'identity_api';
+              console.log('✅ Retrieved eBay username from Identity API:', realUsername);
+            } else if (userInfo.userId) {
+              realUsername = userInfo.userId;
+              usernameSource = 'identity_api_userid';
+              console.log('✅ Retrieved eBay userId from Identity API:', realUsername);
+            }
           } else {
-            console.log('Identity API failed, trying Account API...');
+            const errorText = await userResponse.text();
+            console.log('Identity API failed with error:', errorText);
+            console.log('Trying Account API...');
             
             // Fallback to Account API
             const accountResponse = await fetch(`${EBAY_CONFIG.baseUrl}/sell/account/v1/privilege`, {
@@ -256,16 +274,37 @@ serve(async (req) => {
               }
             });
             
+            console.log('Account API response status:', accountResponse.status);
+            
             if (accountResponse.ok) {
               const accountInfo = await accountResponse.json();
-              realUsername = accountInfo.username || `ebay_user_${Date.now()}`;
-              console.log('Retrieved eBay username from Account API:', realUsername);
+              console.log('Account API response:', accountInfo);
+              
+              if (accountInfo.username) {
+                realUsername = accountInfo.username;
+                usernameSource = 'account_api';
+                console.log('✅ Retrieved eBay username from Account API:', realUsername);
+              } else {
+                // Create a unique username with timestamp
+                realUsername = `ebay_user_${Date.now()}`;
+                usernameSource = 'generated_timestamp';
+                console.log('⚠️ No username in Account API, generated:', realUsername);
+              }
+            } else {
+              const accountErrorText = await accountResponse.text();
+              console.log('Account API also failed:', accountErrorText);
+              realUsername = `ebay_user_${Date.now()}`;
+              usernameSource = 'generated_fallback';
+              console.log('⚠️ Both APIs failed, generated username:', realUsername);
             }
           }
         } catch (err) {
-          console.log('Failed to get eBay user info, using timestamped default:', err);
+          console.log('❌ Exception while getting eBay user info:', err.message);
           realUsername = `ebay_user_${Date.now()}`;
+          usernameSource = 'error_fallback';
         }
+        
+        console.log(`Final username: "${realUsername}" (source: ${usernameSource})`);
 
         // ✅ CORRECT database fields with real user data
         const marketplaceAccountData = {
