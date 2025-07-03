@@ -7,6 +7,7 @@ import EbayOAuthConnection from './connections/EbayOAuthConnection';
 import { GenericPlatformCard } from './connections/GenericPlatformCard';
 import { PlatformSettingsSection } from './connections/PlatformSettingsSection';
 import EbayDebugPanel from '../debug/EbayDebugPanel';
+import EbayQuickTest from '../debug/EbayQuickTest';
 
 interface Platform {
   name: string;
@@ -72,6 +73,9 @@ const UserConnectionsTab = () => {
         ))}
 
         {/* eBay Debug Panel */}
+        <Separator className="mt-6" />
+        <EbayQuickTest />
+        
         <Separator className="mt-6" />
         <EbayDebugPanel />
       </div>

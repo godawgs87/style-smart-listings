@@ -271,19 +271,25 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
     }
   };
 
+  // Determine the correct eBay environment based on token
+  const isSandbox = ebayAccount.platform_settings?.sandbox || false;
+  const ebayApiBase = isSandbox ? 'https://api.sandbox.ebay.com' : 'https://api.ebay.com';
+  
   logStep("Sending REST API request to eBay Inventory API", {
-    url: `https://api.ebay.com/sell/inventory/v1/inventory_item/${inventoryItemSku}`,
+    url: `${ebayApiBase}/sell/inventory/v1/inventory_item/${inventoryItemSku}`,
+    sandbox: isSandbox,
     tokenLength: ebayAccount.oauth_token.length,
-    tokenPrefix: ebayAccount.oauth_token.substring(0, 20)
+    tokenPrefix: ebayAccount.oauth_token.substring(0, 50) + '...'
   });
   
-  // Create inventory item
-  const inventoryResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/inventory_item/${inventoryItemSku}`, {
+  // Create inventory item using the eBay Inventory API
+  const inventoryResponse = await fetch(`${ebayApiBase}/sell/inventory/v1/inventory_item/${inventoryItemSku}`, {
     method: 'PUT',
     headers: {
       'Authorization': `Bearer ${ebayAccount.oauth_token}`,
       'Content-Type': 'application/json',
-      'Accept': 'application/json'
+      'Accept': 'application/json',
+      'Content-Language': 'en-US'
     },
     body: JSON.stringify(inventoryItemData)
   });
@@ -291,7 +297,8 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
   logStep("Inventory API response received", { 
     status: inventoryResponse.status,
     statusText: inventoryResponse.statusText,
-    ok: inventoryResponse.ok
+    ok: inventoryResponse.ok,
+    headers: Object.fromEntries(inventoryResponse.headers.entries())
   });
 
   if (!inventoryResponse.ok) {
@@ -300,7 +307,11 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
       status: inventoryResponse.status,
       statusText: inventoryResponse.statusText,
       error: errorText,
-      requestData: inventoryItemData
+      requestData: inventoryItemData,
+      requestHeaders: {
+        'Authorization': `Bearer ${ebayAccount.oauth_token.substring(0, 50)}...`,
+        'Content-Type': 'application/json'
+      }
     });
     throw new Error(`eBay Inventory API error (${inventoryResponse.status}): ${errorText}`);
   }
@@ -328,12 +339,13 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
     merchantLocationKey: 'default'
   };
 
-  const offerResponse = await fetch('https://api.ebay.com/sell/inventory/v1/offer', {
+  const offerResponse = await fetch(`${ebayApiBase}/sell/inventory/v1/offer`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${ebayAccount.oauth_token}`,
       'Content-Type': 'application/json',
-      'Accept': 'application/json'
+      'Accept': 'application/json',
+      'Content-Language': 'en-US'
     },
     body: JSON.stringify(offerData)
   });
@@ -353,12 +365,13 @@ async function publishListing(supabaseClient: any, userId: string, params: any) 
   logStep("Offer created successfully", { offerId });
 
   // Publish the offer
-  const publishResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/offer/${offerId}/publish/`, {
+  const publishResponse = await fetch(`${ebayApiBase}/sell/inventory/v1/offer/${offerId}/publish/`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${ebayAccount.oauth_token}`,
       'Content-Type': 'application/json',
-      'Accept': 'application/json'
+      'Accept': 'application/json',
+      'Content-Language': 'en-US'
     }
   });
 
